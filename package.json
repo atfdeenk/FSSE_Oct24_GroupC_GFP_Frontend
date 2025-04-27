@@ -21,6 +21,7 @@
     "@types/react": "^19",
     "@types/react-dom": "^19",
     "tailwindcss": "^4",
+    "tsconfig-paths": "^4.2.0",
     "typescript": "^5"
   }
 }

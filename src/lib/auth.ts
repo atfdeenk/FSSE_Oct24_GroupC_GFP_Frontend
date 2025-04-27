@@ -22,18 +22,28 @@ export interface AuthUser {
  */
 export async function loginUser(data: LoginFormData): Promise<AuthUser> {
   try {
+    // Use the enhanced API with longer timeout for login
     const response = await api.login({
       email: data.email,
       password: data.password,
-    });
+    }, { timeout: 60000 }); // 60 second timeout for login
     
-    // Check if response has access_token
-    if (!(response as any).access_token) {
+    // Handle different response formats
+    let accessToken = '';
+    
+    if (response.success && response.data && response.data.access_token) {
+      // New API format
+      accessToken = response.data.access_token;
+    } else if ((response as any).access_token) {
+      // Old API format
+      accessToken = (response as any).access_token;
+    } else {
+      console.error('Login response:', response);
       throw new Error('Invalid response from server');
     }
     
     // Store token
-    setToken((response as any).access_token);
+    setToken(accessToken);
     
     // Get user profile
     const userProfile = await getUserProfile();
@@ -43,6 +53,10 @@ export async function loginUser(data: LoginFormData): Promise<AuthUser> {
     
     return userProfile;
   } catch (error: any) {
+    console.error('Login error:', error);
+    if (error.name === 'AbortError' || error.code === 'TIMEOUT') {
+      throw new Error('Login request timed out. Please try again.');
+    }
     throw new Error(error?.message || 'Login failed. Please check your credentials.');
   }
 }
@@ -81,21 +95,41 @@ export async function getUserProfile(): Promise<AuthUser> {
       throw new Error('No authentication token found');
     }
     
-    // Get user profile from API
-    const response = await api.me();
+    // Get user profile from API with auth header
+    const response = await api.me({
+      headers: {
+        Authorization: `Bearer ${token}`
+      },
+      timeout: 30000 // 30 second timeout
+    });
+    
+    // Handle different response formats
+    let userData: any;
+    
+    if (response.success && response.data) {
+      // New API format
+      userData = response.data;
+    } else {
+      // Old API format
+      userData = response;
+    }
     
     // Transform API response to AuthUser
     const user: AuthUser = {
-      id: (response as any).id,
-      email: (response as any).email,
-      firstName: (response as any).first_name,
-      lastName: (response as any).last_name,
-      role: (response as any).role,
+      id: userData.id,
+      email: userData.email,
+      firstName: userData.first_name || userData.firstName || '',
+      lastName: userData.last_name || userData.lastName || '',
+      role: userData.role || 'user',
       // Add any other user properties
     };
     
     return user;
   } catch (error: any) {
+    console.error('Get user profile error:', error);
+    if (error.name === 'AbortError' || error.code === 'TIMEOUT') {
+      throw new Error('Request timed out. Please try again.');
+    }
     logout(); // Clear invalid session
     throw new Error(error?.message || 'Failed to get user profile');
   }
@@ -154,11 +188,14 @@ function setUser(user: AuthUser): void {
 
 // Add headers with authentication token to all API requests
 export function setupAuthInterceptor() {
-  // This is a mock implementation since we're not using a real HTTP client like axios
-  // In a real app, you would set up interceptors to add the token to all requests
-  // and handle token refresh, etc.
+  // This function is no longer needed as we're using the interceptor system
+  // from our enhanced API layer. The token is automatically added to requests
+  // by the interceptor in src/lib/api/interceptors.ts
   
-  // Example with fetch API:
+  // However, we'll keep this function for backward compatibility
+  console.info('Using enhanced API interceptor system for authentication');
+  
+  // We could still set up the fetch interceptor for non-API requests
   const originalFetch = window.fetch;
   window.fetch = async function(input: RequestInfo | URL, init?: RequestInit) {
     const token = getToken();
