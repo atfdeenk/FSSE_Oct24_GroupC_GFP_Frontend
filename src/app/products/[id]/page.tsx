@@ -113,6 +113,10 @@ export default function ProductDetail() {
                 src={product.image_url || "/coffee-placeholder.jpg"}
                 alt={product.name}
                 className="w-full h-full object-cover"
+                onError={(e) => {
+                  const target = e.target as HTMLImageElement;
+                  target.src = '/coffee-placeholder.jpg';
+                }}
               />
             </div>
             <div className="grid grid-cols-4 gap-4">
@@ -126,6 +130,10 @@ export default function ProductDetail() {
                     src={product.image_url || "/coffee-placeholder.jpg"}
                     alt={`${product.name} view ${i + 1}`}
                     className="w-full h-full object-cover"
+                    onError={(e) => {
+                      const target = e.target as HTMLImageElement;
+                      target.src = '/coffee-placeholder.jpg';
+                    }}
                   />
                 </div>
               ))}
@@ -332,6 +340,10 @@ export default function ProductDetail() {
                       src={relatedProduct.image_url || "/coffee-placeholder.jpg"}
                       alt={relatedProduct.name}
                       className="w-full h-full object-cover group-hover:scale-110 transition-transform duration-700 ease-in-out"
+                      onError={(e) => {
+                        const target = e.target as HTMLImageElement;
+                        target.src = '/coffee-placeholder.jpg';
+                      }}
                     />
                   </div>
 
