@@ -81,7 +81,15 @@ export interface CategoryResponse extends BaseResponse {
   data: Category;
 }
 
-export interface CategoriesResponse extends PaginatedResponse<Category> {}
+export interface CategoriesResponse {
+  limit?: number;
+  page?: number;
+  categories?: Category[];
+  data?: Category[];
+  total?: number;
+  success?: boolean;
+  message?: string;
+}
 
 // Product types
 export interface Product {
@@ -145,7 +153,15 @@ export interface OrderResponse extends BaseResponse {
   data: Order;
 }
 
-export interface OrdersResponse extends PaginatedResponse<Order> {}
+export interface OrdersResponse {
+  limit?: number;
+  page?: number;
+  orders?: OrderResponse[];
+  data?: OrderResponse[];
+  total?: number;
+  success?: boolean;
+  message?: string;
+}
 
 // Cart types
 export interface CartItem {
@@ -179,7 +195,7 @@ export interface OrderItemResponse {
   subtotal: number;
 }
 
-export interface OrderResponse extends BaseResponse {
+export interface OrderResponse {
   id: number;
   user_id: number;
   items: OrderItemResponse[];
@@ -192,8 +208,6 @@ export interface OrderResponse extends BaseResponse {
   created_at?: string;
   updated_at?: string;
 }
-
-export interface OrdersResponse extends PaginatedResponse<Order> {}
 
 // Review responses
 export interface ReviewResponse {

@@ -61,23 +61,18 @@ const productService = {
     }
   },
 
-  // Get product images
-  getProductImages: async (id: number | string) => {
-    try {
-      const response = await axiosInstance.get(
-        API_CONFIG.ENDPOINTS.products.images(id)
-      );
-      return response.data;
-    } catch (error) {
-      console.error(`Get product ${id} images error:`, error);
-      throw error;
-    }
-  },
-  
   // Get product image URL
   getProductImageUrl: (imageUrl: string) => {
-    return API_CONFIG.ENDPOINTS.products.imageUrl(imageUrl);
+    if (!imageUrl) return '/coffee-placeholder.jpg';
+    
+    // If it's already a full URL, return it
+    if (imageUrl.startsWith('http')) return imageUrl;
+    
+    // Use the imageUrl endpoint to construct the full URL
+    return `${API_CONFIG.BASE_URL}${API_CONFIG.ENDPOINTS.products.imageUrl(imageUrl)}`;
   },
+  
+
   
   // Add category to product
   addCategoryToProduct: async (productId: number | string, categoryId: number | string) => {

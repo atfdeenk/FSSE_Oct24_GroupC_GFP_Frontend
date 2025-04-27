@@ -46,7 +46,6 @@ export const API_CONFIG = {
       categories: (id: string | number) => `/products/${id}/categories`,
       removeCategory: (productId: string | number, categoryId: string | number) => 
         `/products/${productId}/categories/${categoryId}`,
-      images: (id: string | number) => `/products/upload/{images_url}`
     },
     
     // Cart endpoints

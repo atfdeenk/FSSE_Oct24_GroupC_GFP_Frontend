@@ -87,15 +87,15 @@ async function testProducts() {
   try {
     console.log('Getting all products...');
     const productsResponse = await productService.getProducts();
-    console.log('Products retrieved:', productsResponse.success);
+    console.log('Products retrieved:', productsResponse.products ? 'success' : 'failed');
     
-    if (productsResponse.data && productsResponse.data.length > 0) {
-      const productId = productsResponse.data[0].id;
+    if (productsResponse.products && productsResponse.products.length > 0) {
+      const productId = productsResponse.products[0].id;
       
       try {
         console.log(`Getting product by ID: ${productId}...`);
         const productResponse = await productService.getProduct(productId);
-        console.log('Product retrieved:', productResponse.success);
+        console.log('Product retrieved:', productResponse ? 'success' : 'failed');
       } catch (error) {
         console.error('Error getting product by ID:', error);
       }
@@ -112,15 +112,17 @@ async function testCategories() {
   try {
     console.log('Getting all categories...');
     const categoriesResponse = await categoryService.getCategories();
-    console.log('Categories retrieved:', categoriesResponse.success);
+    // Handle both old and new response formats
+    const categories = categoriesResponse.data || categoriesResponse.categories || [];
+    console.log('Categories retrieved:', categories.length > 0 ? 'success' : 'failed');
     
-    if (categoriesResponse.data && categoriesResponse.data.length > 0) {
-      const categoryId = categoriesResponse.data[0].id;
+    if (categories.length > 0) {
+      const categoryId = categories[0].id;
       
       try {
         console.log(`Getting category by ID: ${categoryId}...`);
         const categoryResponse = await categoryService.getCategory(categoryId);
-        console.log('Category retrieved:', categoryResponse.success);
+        console.log('Category retrieved:', categoryResponse ? 'success' : 'failed');
       } catch (error) {
         console.error('Error getting category by ID:', error);
       }
@@ -137,15 +139,17 @@ async function testOrders() {
   try {
     console.log('Getting all orders...');
     const ordersResponse = await orderService.getOrders();
-    console.log('Orders retrieved:', ordersResponse.success);
+    // Handle both old and new response formats
+    const orders = ordersResponse.data || ordersResponse.orders || [];
+    console.log('Orders retrieved:', orders.length > 0 ? 'success' : 'failed');
     
-    if (ordersResponse.data && ordersResponse.data.length > 0) {
-      const orderId = ordersResponse.data[0].id;
+    if (orders.length > 0) {
+      const orderId = orders[0].id;
       
       try {
         console.log(`Getting order by ID: ${orderId}...`);
         const orderResponse = await orderService.getOrder(orderId);
-        console.log('Order retrieved:', orderResponse.success);
+        console.log('Order retrieved:', orderResponse ? 'success' : 'failed');
       } catch (error) {
         console.error('Error getting order by ID:', error);
       }
