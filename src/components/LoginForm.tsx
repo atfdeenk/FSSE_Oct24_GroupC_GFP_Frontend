@@ -48,6 +48,12 @@ export default function LoginForm({ onLogin, error }: LoginFormProps) {
           }
         });
         setValidationErrors(errors);
+        
+        // Focus on the first field with an error
+        const firstErrorField = error.errors[0]?.path[0] as string;
+        if (firstErrorField && document.getElementsByName(firstErrorField)[0]) {
+          document.getElementsByName(firstErrorField)[0].focus();
+        }
       }
       return false;
     }
@@ -114,7 +120,7 @@ export default function LoginForm({ onLogin, error }: LoginFormProps) {
       <div className="mb-8">
         <div className="flex justify-between items-center mb-2">
           <label className="block text-white/80 text-sm font-medium">Password</label>
-          <a href="#" className="text-amber-500 text-sm hover:text-amber-400 transition-colors">Forgot Password?</a>
+          <a href="/forgot-password" className="text-amber-500 text-sm hover:text-amber-400 transition-colors">Forgot Password?</a>
         </div>
         <div className="relative">
           <div className="absolute inset-y-0 left-0 pl-3 flex items-center pointer-events-none">
@@ -143,16 +149,13 @@ export default function LoginForm({ onLogin, error }: LoginFormProps) {
         {validationErrors.password && (
           <p className="mt-1 text-red-400 text-sm">{validationErrors.password}</p>
         )}
-        <div className="flex justify-between mt-2">
-          <div className="flex items-center">
-            <input 
-              type="checkbox" 
-              id="remember" 
-              className="h-4 w-4 border border-white/10 rounded bg-black/50 text-amber-500 focus:ring-amber-500/50"
-            />
-            <label htmlFor="remember" className="ml-2 text-sm text-white/60">Remember me</label>
-          </div>
-          <a href="#" className="text-sm text-amber-500 hover:text-amber-400 transition-colors">Forgot password?</a>
+        <div className="flex items-center mt-2">
+          <input 
+            type="checkbox" 
+            id="remember" 
+            className="h-4 w-4 border border-white/10 rounded bg-black/50 text-amber-500 focus:ring-amber-500/50"
+          />
+          <label htmlFor="remember" className="ml-2 text-sm text-white/60">Remember me</label>
         </div>
       </div>
       

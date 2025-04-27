@@ -2,12 +2,14 @@
 import { useEffect, useState } from "react";
 import dynamic from "next/dynamic";
 import { api } from '../../lib/api';
-import type { Product, ProductsResponse } from '../../scripts/types/apiResponses';
+import type { ProductResponse, ProductsResponse } from '../../types/apiResponses';
+import Header from "../../components/Header";
 import Footer from "../../components/Footer";
+import { getImageUrl, handleImageError } from "../../lib/utils/imageUtils";
 const LoginForm = dynamic(() => import("../../components/LoginForm"), { ssr: false });
 
 export default function ProductsPage() {
-  const [products, setProducts] = useState<Product[]>([]);
+  const [products, setProducts] = useState<ProductResponse[]>([]);
   const [error, setError] = useState('');
   const [search, setSearch] = useState('');
   const [sort, setSort] = useState('');
@@ -16,7 +18,10 @@ export default function ProductsPage() {
 
   useEffect(() => {
     api.products()
-      .then(res => setProducts((res as ProductsResponse).products || []))
+      .then(res => {
+        const response = res as ProductsResponse;
+        setProducts(response.data || []);
+      })
       .catch(e => {
         setError(e?.message || 'Failed to load products.');
       });
@@ -42,6 +47,7 @@ export default function ProductsPage() {
 
   return (
     <div className="min-h-screen bg-black text-white">
+      <Header />
       {/* Hero banner */}
       <div className="w-full bg-black relative overflow-hidden py-20 px-6">
         <div className="absolute inset-0 bg-[url('/coffee-beans-dark.jpg')] bg-cover bg-center opacity-20"></div>
@@ -125,15 +131,12 @@ export default function ProductsPage() {
               href={`/products/${product.id}`}
               className="group bg-neutral-900/50 backdrop-blur-sm rounded-sm overflow-hidden border border-white/5 hover:border-amber-500/30 transition-all duration-300 flex flex-col h-full"
             >
-              <div className="relative overflow-hidden h-64">
-                <img
-                  src={product.image_url || '/coffee-placeholder.jpg'}
-                  alt={product.name}
-                  onError={(e) => {
-                    const target = e.target as HTMLImageElement;
-                    target.src = '/coffee-placeholder.jpg';
-                  }}
-                  className="w-full h-full object-cover group-hover:scale-110 transition-transform duration-700 ease-in-out"
+              <div className="relative h-48 overflow-hidden bg-neutral-900 rounded-t-sm">
+                <img 
+                  src={getImageUrl(product.image_url)} 
+                  alt={product.name} 
+                  className="w-full h-full object-cover transition-transform duration-500 group-hover:scale-110"
+                  onError={handleImageError()}
                 />
                 <div className="absolute inset-0 bg-gradient-to-t from-black/80 to-transparent opacity-0 group-hover:opacity-100 transition-opacity duration-300"></div>
                 <div className="absolute bottom-0 left-0 p-4 w-full">

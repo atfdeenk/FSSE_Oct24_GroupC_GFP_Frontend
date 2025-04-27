@@ -2,6 +2,7 @@
 // Centralized authentication service for frontend-only implementation
 import { api } from './api';
 import { LoginFormData, RegisterFormData } from './validations';
+import { mapUIRoleToAPIRole, mapAPIRoleToUIRole } from './utils/roleMapper';
 
 // Token storage key
 const TOKEN_KEY = 'bumibrew_token';
@@ -64,21 +65,43 @@ export async function loginUser(data: LoginFormData): Promise<AuthUser> {
 /**
  * Register a new user
  */
-export async function registerUser(data: RegisterFormData): Promise<AuthUser> {
+export const registerUser = async (userData: RegisterFormData): Promise<any> => {
   try {
-    // Register user
-    await api.register({
-      email: data.email,
-      password: data.password,
-      first_name: data.firstName,
-      last_name: data.lastName,
-      role: data.role,
-    });
+    // Map UI roles to API roles
+    const apiUserData = {
+      // Required fields
+      email: userData.email,
+      password: userData.password,
+      first_name: userData.firstName,
+      last_name: userData.lastName,
+      // Generate username if not provided
+      username: userData.username || `user_${Date.now().toString().slice(-6)}`,
+      // Map UI roles to API roles
+      role: mapUIRoleToAPIRole(userData.role),
+      
+      // Optional fields with defaults
+      phone: userData.phone || "+62000000000",
+      date_of_birth: userData.dateOfBirth || "1990-01-01",
+      address: userData.address || "Default Address",
+      city: userData.city || "Jakarta",
+      state: userData.state || "DKI Jakarta",
+      country: userData.country || "Indonesia",
+      zip_code: userData.zipCode || "10110",
+      image_url: userData.imageUrl || "http://example.com/default.jpg",
+      bank_account: userData.bankAccount || "0000000000",
+      bank_name: userData.bankName || "Default Bank"
+    };
+    
+    const response = await api.register(apiUserData);
+    
+    if (!response) {
+      throw new Error('Registration failed');
+    }
     
     // Login after successful registration
     return await loginUser({
-      email: data.email,
-      password: data.password,
+      email: userData.email,
+      password: userData.password,
     });
   } catch (error: any) {
     throw new Error(error?.message || 'Registration failed. Please try again.');
@@ -114,17 +137,13 @@ export async function getUserProfile(): Promise<AuthUser> {
       userData = response;
     }
     
-    // Transform API response to AuthUser
-    const user: AuthUser = {
-      id: userData.id,
-      email: userData.email,
-      firstName: userData.first_name || userData.firstName || '',
-      lastName: userData.last_name || userData.lastName || '',
-      role: userData.role || 'user',
-      // Add any other user properties
-    };
+    // Map API role to UI role if needed
+    if (userData.role) {
+      userData.role = mapAPIRoleToUIRole(userData.role);
+    }
     
-    return user;
+    // Return user data
+    return userData as AuthUser;
   } catch (error: any) {
     console.error('Get user profile error:', error);
     if (error.name === 'AbortError' || error.code === 'TIMEOUT') {

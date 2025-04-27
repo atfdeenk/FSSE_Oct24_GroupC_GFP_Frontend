@@ -20,9 +20,21 @@ export const registerSchema = z.object({
   confirmPassword: z.string(),
   firstName: z.string().min(1, 'First name is required'),
   lastName: z.string().min(1, 'Last name is required'),
-  role: z.enum(['consumer', 'seller'], {
+  role: z.enum(['buyer', 'seller'], {
     errorMap: () => ({ message: 'Please select a valid role' }),
   }),
+  name: z.string().optional(),
+  username: z.string().optional(),
+  phone: z.string().optional(),
+  dateOfBirth: z.string().optional(),
+  address: z.string().optional(),
+  city: z.string().optional(),
+  state: z.string().optional(),
+  country: z.string().optional(),
+  zipCode: z.string().optional(),
+  imageUrl: z.string().optional(),
+  bankAccount: z.string().optional(),
+  bankName: z.string().optional(),
 }).refine((data) => data.password === data.confirmPassword, {
   message: "Passwords don't match",
   path: ["confirmPassword"],

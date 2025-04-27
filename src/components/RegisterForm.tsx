@@ -4,14 +4,15 @@ import React, { useState } from "react";
 import { z } from "zod";
 import { registerSchema, RegisterFormData } from "../lib/validations";
 import { registerUser } from "../lib/auth";
+import { mapAPIRoleToUIRole } from "../lib/utils/roleMapper";
 
 interface RegisterFormProps {
   onRegister: (userData: any) => void;
   error?: string;
-  initialRole?: 'consumer' | 'seller';
+  initialRole?: 'buyer' | 'seller';
 }
 
-export default function RegisterForm({ onRegister, error, initialRole = 'consumer' }: RegisterFormProps) {
+export default function RegisterForm({ onRegister, error, initialRole = 'buyer' }: RegisterFormProps) {
   const [formData, setFormData] = useState<RegisterFormData>({
     email: "",
     password: "",
@@ -19,6 +20,8 @@ export default function RegisterForm({ onRegister, error, initialRole = 'consume
     firstName: "",
     lastName: "",
     role: initialRole, // Use the provided initialRole
+    name: "", // Add name field required by API
+    phone: "+62", // Initialize phone with country code
   });
   const [showPassword, setShowPassword] = useState(false);
   const [loading, setLoading] = useState(false);
@@ -42,24 +45,23 @@ export default function RegisterForm({ onRegister, error, initialRole = 'consume
 
   const validateStep1 = (): boolean => {
     try {
-      // Validate email, password, and confirmPassword
-      const emailSchema = z.string().email('Please enter a valid email address');
-      const passwordSchema = z.string()
-        .min(8, 'Password must be at least 8 characters')
-        .regex(/[A-Z]/, 'Password must contain at least one uppercase letter')
-        .regex(/[a-z]/, 'Password must contain at least one lowercase letter')
-        .regex(/[0-9]/, 'Password must contain at least one number');
+      // Use the schema directly from validations.ts for consistency
+      // This validates email and password
+      const step1Schema = z.object({
+        email: z.string().email('Please enter a valid email address'),
+        password: z.string()
+          .min(8, 'Password must be at least 8 characters')
+          .regex(/[A-Z]/, 'Password must contain at least one uppercase letter')
+          .regex(/[a-z]/, 'Password must contain at least one lowercase letter')
+          .regex(/[0-9]/, 'Password must contain at least one number'),
+        confirmPassword: z.string()
+      }).refine((data) => data.password === data.confirmPassword, {
+        message: "Passwords don't match",
+        path: ["confirmPassword"],
+      });
       
-      // Validate email
-      emailSchema.parse(formData.email);
-      
-      // Validate password
-      passwordSchema.parse(formData.password);
-      
-      // Validate password confirmation
-      if (formData.password !== formData.confirmPassword) {
-        throw new Error("Passwords don't match");
-      }
+      // Validate all fields at once
+      step1Schema.parse(formData);
       
       setValidationErrors({});
       return true;
@@ -72,6 +74,12 @@ export default function RegisterForm({ onRegister, error, initialRole = 'consume
           }
         });
         setValidationErrors(errors);
+        
+        // Focus on the first field with an error
+        const firstErrorField = error.errors[0]?.path[0] as string;
+        if (firstErrorField && document.getElementsByName(firstErrorField)[0]) {
+          document.getElementsByName(firstErrorField)[0].focus();
+        }
       } else if (error instanceof Error) {
         setValidationErrors({ confirmPassword: error.message });
       }
@@ -81,20 +89,18 @@ export default function RegisterForm({ onRegister, error, initialRole = 'consume
 
   const validateStep2 = (): boolean => {
     try {
-      // Validate firstName and lastName
-      const nameSchema = z.string().min(1, 'This field is required');
-      const roleSchema = z.enum(['consumer', 'seller'], {
-        errorMap: () => ({ message: 'Please select a valid role' }),
+      // Use a schema for step 2 validation
+      const step2Schema = z.object({
+        firstName: z.string().min(1, 'First name is required'),
+        lastName: z.string().min(1, 'Last name is required'),
+        phone: z.string().regex(/^\+62[0-9]{8,12}$/, 'Phone number must start with +62 followed by 8-12 digits'),
+        role: z.enum(['buyer', 'seller'], {
+          errorMap: () => ({ message: 'Please select a valid role' }),
+        })
       });
       
-      // Validate first name
-      nameSchema.parse(formData.firstName);
-      
-      // Validate last name
-      nameSchema.parse(formData.lastName);
-      
-      // Validate role
-      roleSchema.parse(formData.role);
+      // Validate all fields at once
+      step2Schema.parse(formData);
       
       setValidationErrors({});
       return true;
@@ -107,6 +113,12 @@ export default function RegisterForm({ onRegister, error, initialRole = 'consume
           }
         });
         setValidationErrors(errors);
+        
+        // Focus on the first field with an error
+        const firstErrorField = error.errors[0]?.path[0] as string;
+        if (firstErrorField && document.getElementsByName(firstErrorField)[0]) {
+          document.getElementsByName(firstErrorField)[0].focus();
+        }
       }
       return false;
     }
@@ -139,9 +151,38 @@ export default function RegisterForm({ onRegister, error, initialRole = 'consume
     try {
       // Use the centralized auth service
       const userData = await registerUser(formData);
+      
+      // Map any role in the response back to UI roles if needed
+      if (userData && userData.role) {
+        userData.role = mapAPIRoleToUIRole(userData.role);
+      }
+      
       onRegister(userData);
     } catch (err: any) {
-      setFormError(err?.message || "Registration failed. Please try again.");
+      // Check if the error is related to email (already exists)
+      if (err?.message?.toLowerCase().includes('email') || 
+          err?.message?.toLowerCase().includes('already exists')) {
+        setStep(1); // Go back to first step if there's an error with the email
+        setValidationErrors(prev => ({ ...prev, email: err?.message || "This email may already be registered" }));
+      } else if (err?.message?.includes('role: Invalid enum value')) {
+        // Special handling for role validation errors
+        // Use type assertion to avoid TypeScript errors since we're handling API values
+        const roleValue = formData.role as string;
+        const fixedRole = roleValue === 'customer' ? 'buyer' : roleValue === 'vendor' ? 'seller' : roleValue;
+        
+        // Update the form data with the correct role
+        setFormData(prev => ({ ...prev, role: fixedRole as 'buyer' | 'seller' }));
+        
+        // Automatically retry the submission with the corrected role
+        setTimeout(() => {
+          handleSubmit(e);
+        }, 100);
+        
+        // Show a temporary message
+        setFormError("Fixing role value and retrying...");
+      } else {
+        setFormError(err?.message || "Registration failed. Please try again.");
+      }
     } finally {
       setLoading(false);
     }
@@ -291,29 +332,53 @@ export default function RegisterForm({ onRegister, error, initialRole = 'consume
               )}
             </div>
             
+            <div className="mb-6">
+              <label className="block text-white/80 text-sm font-medium mb-2">Phone Number</label>
+              <div className="relative">
+                <div className="absolute inset-y-0 left-0 pl-3 flex items-center pointer-events-none">
+                  <svg className="h-5 w-5 text-white/30" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                    <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={1.5} d="M3 5a2 2 0 012-2h3.28a1 1 0 01.948.684l1.498 4.493a1 1 0 01-.502 1.21l-2.257 1.13a11.042 11.042 0 005.516 5.516l1.13-2.257a1 1 0 011.21-.502l4.493 1.498a1 1 0 01.684.949V19a2 2 0 01-2 2h-1C9.716 21 3 14.284 3 6V5z" />
+                  </svg>
+                </div>
+                <input
+                  type="tel"
+                  name="phone"
+                  className={`bg-black/50 border ${validationErrors.phone ? 'border-red-500' : 'border-white/10'} rounded-sm pl-10 pr-3 py-3 w-full text-white placeholder:text-white/30 focus:outline-none focus:border-amber-500/50`}
+                  value={formData.phone}
+                  onChange={handleChange}
+                  placeholder="+628xxxxxxxxxx"
+                  pattern="\+62[0-9]{8,12}"
+                  title="Phone number must start with +62 followed by 8-12 digits"
+                />
+              </div>
+              {validationErrors.phone && (
+                <p className="mt-1 text-red-400 text-sm">{validationErrors.phone}</p>
+              )}
+            </div>
+            
             <div className="mb-8">
               <label className="block text-white/80 text-sm font-medium mb-2">I am a</label>
-              <div className="grid grid-cols-2 gap-4">
+              <div className="grid grid-cols-1 md:grid-cols-2 gap-4 mt-2">
                 <div 
                   className={`border rounded-sm p-4 cursor-pointer flex items-center ${
-                    formData.role === 'consumer' 
+                    formData.role === 'buyer' 
                       ? 'border-amber-500 bg-amber-500/10' 
                       : 'border-white/10 bg-black/30 hover:bg-black/50'
                   }`}
-                  onClick={() => setFormData(prev => ({ ...prev, role: 'consumer' }))}
+                  onClick={() => setFormData(prev => ({ ...prev, role: 'buyer' }))}
                 >
                   <input 
                     type="radio" 
                     name="role" 
-                    value="consumer" 
-                    checked={formData.role === 'consumer'}
+                    value="buyer" 
+                    checked={formData.role === 'buyer'}
                     onChange={handleChange}
                     className="sr-only"
                   />
                   <div className={`w-4 h-4 rounded-full mr-3 flex items-center justify-center ${
-                    formData.role === 'consumer' ? 'bg-amber-500' : 'bg-white/10'
+                    formData.role === 'buyer' ? 'bg-amber-500' : 'bg-white/10'
                   }`}>
-                    {formData.role === 'consumer' && (
+                    {formData.role === 'buyer' && (
                       <div className="w-2 h-2 rounded-full bg-black"></div>
                     )}
                   </div>
@@ -344,6 +409,7 @@ export default function RegisterForm({ onRegister, error, initialRole = 'consume
                   </div>
                   <span className="text-white">Coffee Seller</span>
                 </div>
+
               </div>
               {validationErrors.role && (
                 <p className="mt-1 text-red-400 text-sm">{validationErrors.role}</p>

@@ -3,18 +3,20 @@
 import { useEffect, useState } from "react";
 import { useParams, useRouter } from "next/navigation";
 import { api } from "../../../lib/api";
-import type { Product } from "../../../scripts/types/apiResponses";
+import type { ProductResponse } from "../../../types/apiResponses";
+import Header from "../../../components/Header";
 import Footer from "../../../components/Footer";
+import { getImageUrl, handleImageError } from "../../../lib/utils/imageUtils";
 
 export default function ProductDetail() {
   const params = useParams();
   const router = useRouter();
-  const [product, setProduct] = useState<Product | null>(null);
+  const [product, setProduct] = useState<ProductResponse | null>(null);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState("");
   const [quantity, setQuantity] = useState(1);
   const [activeTab, setActiveTab] = useState("description");
-  const [relatedProducts, setRelatedProducts] = useState<Product[]>([]);
+  const [relatedProducts, setRelatedProducts] = useState<ProductResponse[]>([]);
 
   useEffect(() => {
     const productId = params?.id as string;
@@ -24,15 +26,15 @@ export default function ProductDetail() {
     api.productById(productId)
       .then((res) => {
         if (!res) throw new Error("Product not found");
-        setProduct(res as Product);
+        setProduct(res as ProductResponse);
         // Fetch related products (mock implementation)
         return api.products();
       })
       .then((res) => {
         // Filter out current product and get 3 random products
-        const productsData = res as { products: Product[] };
-        const otherProducts = productsData.products.filter(
-          (p: Product) => p.id !== parseInt(productId, 10)
+        const productsData = res as { data: ProductResponse[] };
+        const otherProducts = productsData.data.filter(
+          (p: ProductResponse) => p.id !== parseInt(productId, 10)
         );
         const randomProducts = [...otherProducts]
           .sort(() => 0.5 - Math.random())
@@ -90,6 +92,7 @@ export default function ProductDetail() {
 
   return (
     <div className="min-h-screen bg-black text-white">
+      <Header />
       {/* Breadcrumb */}
       <div className="bg-neutral-900/50 border-b border-white/5">
         <div className="max-w-6xl mx-auto px-6 py-4">
@@ -108,15 +111,12 @@ export default function ProductDetail() {
         <div className="grid grid-cols-1 lg:grid-cols-2 gap-12">
           {/* Product Images */}
           <div className="space-y-6">
-            <div className="aspect-square overflow-hidden rounded-sm border border-white/10 bg-neutral-900/50">
-              <img
-                src={product.image_url || "/coffee-placeholder.jpg"}
-                alt={product.name}
+            <div className="relative h-80 overflow-hidden bg-neutral-900 rounded-t-sm">
+              <img 
+                src={getImageUrl(product.image_url)} 
+                alt={product.name} 
                 className="w-full h-full object-cover"
-                onError={(e) => {
-                  const target = e.target as HTMLImageElement;
-                  target.src = '/coffee-placeholder.jpg';
-                }}
+                onError={handleImageError()}
               />
             </div>
             <div className="grid grid-cols-4 gap-4">
@@ -337,13 +337,10 @@ export default function ProductDetail() {
                 >
                   <div className="relative overflow-hidden h-48">
                     <img
-                      src={relatedProduct.image_url || "/coffee-placeholder.jpg"}
+                      src={getImageUrl(relatedProduct.image_url)}
                       alt={relatedProduct.name}
                       className="w-full h-full object-cover group-hover:scale-110 transition-transform duration-700 ease-in-out"
-                      onError={(e) => {
-                        const target = e.target as HTMLImageElement;
-                        target.src = '/coffee-placeholder.jpg';
-                      }}
+                      onError={handleImageError()}
                     />
                   </div>
 
