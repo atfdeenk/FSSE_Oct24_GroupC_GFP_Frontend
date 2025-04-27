@@ -1,7 +1,7 @@
 // src/utils/error/index.ts
 // Centralized error handling system
 
-import { ApiRequestError } from '@/lib/api/methods';
+import { ApiRequestError } from '../../services/api/errors';
 
 /**
  * Different types of errors in the application
@@ -108,7 +108,7 @@ export function fromApiError(error: ApiRequestError): AppError {
     type,
     error.status,
     error.code,
-    error.data
+    error.details
   );
 }
 

@@ -8,7 +8,7 @@
 
 // Common response structures
 export interface BaseResponse {
-  success?: boolean;
+  success: boolean;
   message?: string;
   error?: string;
 }
@@ -20,19 +20,11 @@ export interface PaginatedResponse<T> extends BaseResponse {
   limit: number;
 }
 
-// Auth responses
-export interface AuthResponse extends BaseResponse {
-  access_token?: string;
-  refresh_token?: string;
-  token_type?: string;
-  expires_in?: number;
-  user?: UserResponse;
-}
-
-export interface UserResponse {
-  id: number;
+// User types
+export interface User {
+  id: number | string;
   email: string;
-  username: string;
+  username?: string;
   first_name: string;
   last_name: string;
   role: string;
@@ -44,65 +36,137 @@ export interface UserResponse {
   country?: string;
   zip_code?: string;
   image_url?: string;
-  bank_account?: string;
-  bank_name?: string;
   created_at?: string;
   updated_at?: string;
 }
 
-export interface RegisterResponse extends BaseResponse {
-  user: UserResponse;
+export interface UserResponse extends BaseResponse {
+  data: User;
 }
 
-export interface LoginResponse extends AuthResponse {}
+export interface UsersResponse extends PaginatedResponse<User> {}
 
-export interface MeResponse extends UserResponse {}
+// Auth responses
+export interface AuthData {
+  user: User;
+  token: string;
+  refresh_token?: string;
+  token_type?: string;
+  expires_in?: number;
+}
 
-export interface UsersResponse extends PaginatedResponse<UserResponse> {}
+export interface AuthResponse extends BaseResponse {
+  data: AuthData;
+}
 
-// Product responses
-export interface ProductResponse {
-  id: number;
+export interface LoginResponse {
+  access_token: string;
+  msg?: string;
+}
+
+export interface RegisterResponse extends AuthResponse {}
+
+// Category types
+export interface Category {
+  id: number | string;
+  name: string;
+  description?: string;
+  image?: string;
+  parent_id?: number | string;
+  created_at?: string;
+  updated_at?: string;
+}
+
+export interface CategoryResponse extends BaseResponse {
+  data: Category;
+}
+
+export interface CategoriesResponse extends PaginatedResponse<Category> {}
+
+// Product types
+export interface Product {
+  id: number | string;
   name: string;
   description: string;
   price: number;
+  stock_quantity: number;
   currency: string;
   image_url: string;
   location: string;
-  seller_id: number;
-  seller_name?: string;
-  categories?: CategoryResponse[];
+  vendor_id: number | string;
+  slug: string;
+  unit_quantity: string;
+  discount_percentage: number;
+  featured: boolean;
+  flash_sale: boolean;
+  created_at: string;
+  updated_at: string;
+  categories?: Category[];
+}
+
+export interface ProductResponse extends Product {
+  // The API returns the product data directly, not wrapped in a data property
+}
+
+export interface ProductsResponse {
+  limit: number;
+  page: number;
+  products: Product[];
+  total: number;
+  success?: boolean;
+  message?: string;
+}
+
+// Order types
+export interface OrderItem {
+  id: number | string;
+  product_id: number | string;
+  order_id: number | string;
+  quantity: number;
+  price: number;
+  subtotal?: number;
+  product?: Product;
+}
+
+export interface Order {
+  id: number | string;
+  user_id: number | string;
+  status: 'pending' | 'processing' | 'shipped' | 'delivered' | 'cancelled';
+  total: number;
+  items?: OrderItem[];
+  shipping_address?: string;
+  payment_method?: string;
+  payment_status?: 'pending' | 'paid' | 'failed';
   created_at?: string;
   updated_at?: string;
 }
 
-export interface ProductsResponse extends PaginatedResponse<ProductResponse> {}
-
-export interface CategoryResponse {
-  id: number;
-  name: string;
-  description?: string;
+export interface OrderResponse extends BaseResponse {
+  data: Order;
 }
 
-export interface CategoriesResponse extends PaginatedResponse<CategoryResponse> {}
+export interface OrdersResponse extends PaginatedResponse<Order> {}
 
-// Cart responses
-export interface CartItemResponse {
-  id: number;
-  product_id: number;
-  product: ProductResponse;
+// Cart types
+export interface CartItem {
+  id: number | string;
+  product_id: number | string;
+  user_id?: number | string;
   quantity: number;
-  price: number;
-  subtotal: number;
+  price?: number;
+  subtotal?: number;
+  product?: Product;
+}
+
+export interface Cart {
+  id?: number | string;
+  user_id?: number | string;
+  items: CartItem[];
+  total: number;
 }
 
 export interface CartResponse extends BaseResponse {
-  id: number;
-  user_id: number;
-  items: CartItemResponse[];
-  total: number;
-  created_at?: string;
-  updated_at?: string;
+  data: Cart;
 }
 
 // Order responses
@@ -129,7 +193,7 @@ export interface OrderResponse extends BaseResponse {
   updated_at?: string;
 }
 
-export interface OrdersResponse extends PaginatedResponse<OrderResponse> {}
+export interface OrdersResponse extends PaginatedResponse<Order> {}
 
 // Review responses
 export interface ReviewResponse {

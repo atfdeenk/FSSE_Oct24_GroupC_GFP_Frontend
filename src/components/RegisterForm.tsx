@@ -1,27 +1,31 @@
 "use client";
 
 import React, { useState } from "react";
-import { z } from "zod";
-import { registerSchema, RegisterFormData } from "../lib/validations";
-import { registerUser } from "../lib/auth";
-import { mapAPIRoleToUIRole } from "../lib/utils/roleMapper";
+import authService, { RegisterData } from "../services/api/auth";
 
 interface RegisterFormProps {
   onRegister: (userData: any) => void;
   error?: string;
-  initialRole?: 'buyer' | 'seller';
+  initialRole?: 'customer' | 'vendor';
 }
 
-export default function RegisterForm({ onRegister, error, initialRole = 'buyer' }: RegisterFormProps) {
-  const [formData, setFormData] = useState<RegisterFormData>({
+interface FormData {
+  email: string;
+  password: string;
+  confirmPassword: string;
+  firstName: string;
+  lastName: string;
+  role: 'customer' | 'vendor';
+}
+
+export default function RegisterForm({ onRegister, error, initialRole = 'customer' }: RegisterFormProps) {
+  const [formData, setFormData] = useState<FormData>({
     email: "",
     password: "",
     confirmPassword: "",
     firstName: "",
     lastName: "",
-    role: initialRole, // Use the provided initialRole
-    name: "", // Add name field required by API
-    phone: "+62", // Initialize phone with country code
+    role: 'customer', // Default to customer role
   });
   const [showPassword, setShowPassword] = useState(false);
   const [loading, setLoading] = useState(false);
@@ -32,7 +36,7 @@ export default function RegisterForm({ onRegister, error, initialRole = 'buyer' 
   const handleChange = (e: React.ChangeEvent<HTMLInputElement | HTMLSelectElement>) => {
     const { name, value } = e.target;
     setFormData(prev => ({ ...prev, [name]: value }));
-    
+
     // Clear validation error when user types
     if (validationErrors[name]) {
       setValidationErrors(prev => {
@@ -43,92 +47,31 @@ export default function RegisterForm({ onRegister, error, initialRole = 'buyer' 
     }
   };
 
-  const validateStep1 = (): boolean => {
-    try {
-      // Use the schema directly from validations.ts for consistency
-      // This validates email and password
-      const step1Schema = z.object({
-        email: z.string().email('Please enter a valid email address'),
-        password: z.string()
-          .min(8, 'Password must be at least 8 characters')
-          .regex(/[A-Z]/, 'Password must contain at least one uppercase letter')
-          .regex(/[a-z]/, 'Password must contain at least one lowercase letter')
-          .regex(/[0-9]/, 'Password must contain at least one number'),
-        confirmPassword: z.string()
-      }).refine((data) => data.password === data.confirmPassword, {
-        message: "Passwords don't match",
-        path: ["confirmPassword"],
-      });
-      
-      // Validate all fields at once
-      step1Schema.parse(formData);
-      
-      setValidationErrors({});
-      return true;
-    } catch (error) {
-      if (error instanceof z.ZodError) {
-        const errors: Record<string, string> = {};
-        error.errors.forEach(err => {
-          if (err.path[0]) {
-            errors[err.path[0] as string] = err.message;
-          }
-        });
-        setValidationErrors(errors);
-        
-        // Focus on the first field with an error
-        const firstErrorField = error.errors[0]?.path[0] as string;
-        if (firstErrorField && document.getElementsByName(firstErrorField)[0]) {
-          document.getElementsByName(firstErrorField)[0].focus();
-        }
-      } else if (error instanceof Error) {
-        setValidationErrors({ confirmPassword: error.message });
-      }
-      return false;
-    }
-  };
-
-  const validateStep2 = (): boolean => {
-    try {
-      // Use a schema for step 2 validation
-      const step2Schema = z.object({
-        firstName: z.string().min(1, 'First name is required'),
-        lastName: z.string().min(1, 'Last name is required'),
-        phone: z.string().regex(/^\+62[0-9]{8,12}$/, 'Phone number must start with +62 followed by 8-12 digits'),
-        role: z.enum(['buyer', 'seller'], {
-          errorMap: () => ({ message: 'Please select a valid role' }),
-        })
-      });
-      
-      // Validate all fields at once
-      step2Schema.parse(formData);
-      
-      setValidationErrors({});
-      return true;
-    } catch (error) {
-      if (error instanceof z.ZodError) {
-        const errors: Record<string, string> = {};
-        error.errors.forEach(err => {
-          if (err.path[0]) {
-            errors[err.path[0] as string] = err.message;
-          }
-        });
-        setValidationErrors(errors);
-        
-        // Focus on the first field with an error
-        const firstErrorField = error.errors[0]?.path[0] as string;
-        if (firstErrorField && document.getElementsByName(firstErrorField)[0]) {
-          document.getElementsByName(firstErrorField)[0].focus();
-        }
-      }
-      return false;
-    }
-  };
-
   const handleNextStep = () => {
-    if (!validateStep1()) {
+    // Simple validation
+    const errors: Record<string, string> = {};
+    
+    if (!formData.email) {
+      errors.email = 'Email is required';
+    }
+    
+    if (!formData.password) {
+      errors.password = 'Password is required';
+    } else if (formData.password.length < 8) {
+      errors.password = 'Password must be at least 8 characters';
+    }
+    
+    if (formData.password !== formData.confirmPassword) {
+      errors.confirmPassword = "Passwords don't match";
+    }
+    
+    if (Object.keys(errors).length > 0) {
+      setValidationErrors(errors);
       return;
     }
+    
     setFormError(null);
+    setValidationErrors({});
     setStep(2);
   };
 
@@ -141,47 +84,56 @@ export default function RegisterForm({ onRegister, error, initialRole = 'buyer' 
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
     
-    if (!validateStep2()) {
+    // Simple validation for step 2
+    const errors: Record<string, string> = {};
+    
+    if (!formData.firstName) {
+      errors.firstName = 'First name is required';
+    }
+    
+    if (!formData.lastName) {
+      errors.lastName = 'Last name is required';
+    }
+    
+    if (Object.keys(errors).length > 0) {
+      setValidationErrors(errors);
       return;
     }
-
+    
     setLoading(true);
     setFormError(null);
-
+    
     try {
-      // Use the centralized auth service
-      const userData = await registerUser(formData);
+      // Prepare data for API in the format expected by the backend
+      const apiUserData: RegisterData = {
+        email: formData.email,
+        password: formData.password,
+        first_name: formData.firstName,
+        last_name: formData.lastName,
+        role: formData.role
+      };
       
-      // Map any role in the response back to UI roles if needed
-      if (userData && userData.role) {
-        userData.role = mapAPIRoleToUIRole(userData.role);
+      // Call the auth service to register the user
+      const response = await authService.register(apiUserData);
+      
+      // After successful registration, automatically log in the user
+      if (response.success) {
+        const loginResponse = await authService.login({
+          email: formData.email,
+          password: formData.password
+        });
+        
+        // Pass the user data to the parent component
+        onRegister(loginResponse.data);
       }
-      
-      onRegister(userData);
     } catch (err: any) {
-      // Check if the error is related to email (already exists)
-      if (err?.message?.toLowerCase().includes('email') || 
-          err?.message?.toLowerCase().includes('already exists')) {
-        setStep(1); // Go back to first step if there's an error with the email
-        setValidationErrors(prev => ({ ...prev, email: err?.message || "This email may already be registered" }));
-      } else if (err?.message?.includes('role: Invalid enum value')) {
-        // Special handling for role validation errors
-        // Use type assertion to avoid TypeScript errors since we're handling API values
-        const roleValue = formData.role as string;
-        const fixedRole = roleValue === 'customer' ? 'buyer' : roleValue === 'vendor' ? 'seller' : roleValue;
-        
-        // Update the form data with the correct role
-        setFormData(prev => ({ ...prev, role: fixedRole as 'buyer' | 'seller' }));
-        
-        // Automatically retry the submission with the corrected role
-        setTimeout(() => {
-          handleSubmit(e);
-        }, 100);
-        
-        // Show a temporary message
-        setFormError("Fixing role value and retrying...");
+      // Handle registration errors
+      if (err?.response?.data?.message) {
+        setFormError(err.response.data.message);
+      } else if (err?.message) {
+        setFormError(err.message);
       } else {
-        setFormError(err?.message || "Registration failed. Please try again.");
+        setFormError('Registration failed. Please try again.');
       }
     } finally {
       setLoading(false);
@@ -194,13 +146,13 @@ export default function RegisterForm({ onRegister, error, initialRole = 'buyer' 
         <h2 className="text-2xl font-bold text-white mb-2">Create Account</h2>
         <p className="text-white/60">Join our community of coffee enthusiasts</p>
       </div>
-      
+
       {(formError || error) && (
         <div className="bg-red-900/20 border border-red-500/50 text-red-400 px-4 py-3 rounded-sm mb-6 text-center">
           {formError || error}
         </div>
       )}
-      
+
       <form onSubmit={step === 1 ? (e) => { e.preventDefault(); handleNextStep(); } : handleSubmit}>
         {step === 1 ? (
           // Step 1: Account Information
@@ -227,7 +179,7 @@ export default function RegisterForm({ onRegister, error, initialRole = 'buyer' 
                 <p className="mt-1 text-red-400 text-sm">{validationErrors.email}</p>
               )}
             </div>
-            
+
             <div className="mb-6">
               <label className="block text-white/80 text-sm font-medium mb-2">Password</label>
               <div className="relative">
@@ -259,7 +211,7 @@ export default function RegisterForm({ onRegister, error, initialRole = 'buyer' 
               )}
               <p className="text-white/40 text-xs mt-1">Must be at least 8 characters</p>
             </div>
-            
+
             <div className="mb-8">
               <label className="block text-white/80 text-sm font-medium mb-2">Confirm Password</label>
               <div className="relative">
@@ -308,7 +260,7 @@ export default function RegisterForm({ onRegister, error, initialRole = 'buyer' 
                 <p className="mt-1 text-red-400 text-sm">{validationErrors.firstName}</p>
               )}
             </div>
-            
+
             <div className="mb-6">
               <label className="block text-white/80 text-sm font-medium mb-2">Last Name</label>
               <div className="relative">
@@ -331,79 +283,53 @@ export default function RegisterForm({ onRegister, error, initialRole = 'buyer' 
                 <p className="mt-1 text-red-400 text-sm">{validationErrors.lastName}</p>
               )}
             </div>
-            
-            <div className="mb-6">
-              <label className="block text-white/80 text-sm font-medium mb-2">Phone Number</label>
-              <div className="relative">
-                <div className="absolute inset-y-0 left-0 pl-3 flex items-center pointer-events-none">
-                  <svg className="h-5 w-5 text-white/30" fill="none" viewBox="0 0 24 24" stroke="currentColor">
-                    <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={1.5} d="M3 5a2 2 0 012-2h3.28a1 1 0 01.948.684l1.498 4.493a1 1 0 01-.502 1.21l-2.257 1.13a11.042 11.042 0 005.516 5.516l1.13-2.257a1 1 0 011.21-.502l4.493 1.498a1 1 0 01.684.949V19a2 2 0 01-2 2h-1C9.716 21 3 14.284 3 6V5z" />
-                  </svg>
-                </div>
-                <input
-                  type="tel"
-                  name="phone"
-                  className={`bg-black/50 border ${validationErrors.phone ? 'border-red-500' : 'border-white/10'} rounded-sm pl-10 pr-3 py-3 w-full text-white placeholder:text-white/30 focus:outline-none focus:border-amber-500/50`}
-                  value={formData.phone}
-                  onChange={handleChange}
-                  placeholder="+628xxxxxxxxxx"
-                  pattern="\+62[0-9]{8,12}"
-                  title="Phone number must start with +62 followed by 8-12 digits"
-                />
-              </div>
-              {validationErrors.phone && (
-                <p className="mt-1 text-red-400 text-sm">{validationErrors.phone}</p>
-              )}
-            </div>
-            
+
+
+
             <div className="mb-8">
               <label className="block text-white/80 text-sm font-medium mb-2">I am a</label>
               <div className="grid grid-cols-1 md:grid-cols-2 gap-4 mt-2">
-                <div 
-                  className={`border rounded-sm p-4 cursor-pointer flex items-center ${
-                    formData.role === 'buyer' 
-                      ? 'border-amber-500 bg-amber-500/10' 
-                      : 'border-white/10 bg-black/30 hover:bg-black/50'
-                  }`}
-                  onClick={() => setFormData(prev => ({ ...prev, role: 'buyer' }))}
+                <div
+                  className={`border rounded-sm p-4 cursor-pointer flex items-center ${formData.role === 'customer'
+                    ? 'border-amber-500 bg-amber-500/10'
+                    : 'border-white/10 bg-black/30 hover:bg-black/50'
+                    }`}
+                  onClick={() => setFormData(prev => ({ ...prev, role: 'customer' }))}
                 >
-                  <input 
-                    type="radio" 
-                    name="role" 
-                    value="buyer" 
-                    checked={formData.role === 'buyer'}
+                  <input
+                    type="radio"
+                    name="role"
+                    value="customer"
+                    checked={formData.role === 'customer'}
                     onChange={handleChange}
                     className="sr-only"
                   />
-                  <div className={`w-4 h-4 rounded-full mr-3 flex items-center justify-center ${
-                    formData.role === 'buyer' ? 'bg-amber-500' : 'bg-white/10'
-                  }`}>
-                    {formData.role === 'buyer' && (
+                  <div className={`w-4 h-4 rounded-full mr-3 flex items-center justify-center ${formData.role === 'customer' ? 'bg-amber-500' : 'bg-white/10'
+                    }`}>
+                    {formData.role === 'customer' && (
                       <div className="w-2 h-2 rounded-full bg-black"></div>
                     )}
                   </div>
                   <span className="text-white">Coffee Buyer</span>
                 </div>
-                <div 
-                  className={`border rounded-sm p-4 cursor-pointer flex items-center ${
-                    formData.role === 'seller' 
-                      ? 'border-amber-500 bg-amber-500/10' 
-                      : 'border-white/10 bg-black/30 hover:bg-black/50'
-                  }`}
-                  onClick={() => setFormData(prev => ({ ...prev, role: 'seller' }))}
+                <div
+                  className={`border rounded-sm p-4 cursor-pointer flex items-center ${formData.role === 'vendor'
+                    ? 'border-amber-500 bg-amber-500/10'
+                    : 'border-white/10 bg-black/30 hover:bg-black/50'
+                    }`}
+                  onClick={() => setFormData(prev => ({ ...prev, role: 'vendor' }))}
                 >
-                  <input 
-                    type="radio" 
-                    name="role" 
-                    value="seller" 
-                    checked={formData.role === 'seller'}
+                  <input
+                    type="radio"
+                    name="role"
+                    value="vendor"
+                    checked={formData.role === 'vendor'}
                     onChange={handleChange}
                     className="sr-only"
                   />
-                  <div className={`w-4 h-4 rounded-full mr-3 flex items-center justify-center ${
-                    formData.role === 'seller' ? 'bg-amber-500' : 'bg-white/10'
-                  }`}>
-                    {formData.role === 'seller' && (
+                  <div className={`w-4 h-4 rounded-full mr-3 flex items-center justify-center ${formData.role === 'vendor' ? 'bg-amber-500' : 'bg-white/10'
+                    }`}>
+                    {formData.role === 'vendor' && (
                       <div className="w-2 h-2 rounded-full bg-black"></div>
                     )}
                   </div>
@@ -417,7 +343,7 @@ export default function RegisterForm({ onRegister, error, initialRole = 'buyer' 
             </div>
           </>
         )}
-        
+
         <div className={`flex ${step === 1 ? 'justify-end' : 'justify-between'} mt-8`}>
           {step === 2 && (
             <button
@@ -428,7 +354,7 @@ export default function RegisterForm({ onRegister, error, initialRole = 'buyer' 
               Back
             </button>
           )}
-          
+
           <button
             type={step === 1 ? "button" : "submit"}
             onClick={step === 1 ? handleNextStep : undefined}
@@ -449,7 +375,7 @@ export default function RegisterForm({ onRegister, error, initialRole = 'buyer' 
           </button>
         </div>
       </form>
-      
+
       <div className="mt-6 text-center">
         <p className="text-white/60 text-sm">
           Already have an account? <a href="/login" className="text-amber-500 hover:text-amber-400 transition-colors">Sign in</a>

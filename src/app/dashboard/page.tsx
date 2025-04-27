@@ -126,9 +126,9 @@ export default function DashboardPage() {
             <div className="bg-neutral-900/80 backdrop-blur-sm rounded-sm border border-white/10 p-8 mb-8">
               <div className="flex flex-col md:flex-row items-center">
                 <div className="w-24 h-24 rounded-full overflow-hidden border-4 border-amber-500/30 bg-neutral-800 flex items-center justify-center mb-4 md:mb-0 md:mr-8">
-                  {user?.firstName ? (
+                  {user?.first_name ? (
                     <span className="text-amber-500 font-bold text-3xl">
-                      {user.firstName.charAt(0)}{user.lastName?.charAt(0)}
+                      {user.first_name.charAt(0)}{user.last_name?.charAt(0)}
                     </span>
                   ) : (
                     <svg className="w-12 h-12 text-white/70" fill="none" viewBox="0 0 24 24" stroke="currentColor">
@@ -139,7 +139,7 @@ export default function DashboardPage() {
                 
                 <div className="text-center md:text-left">
                   <h1 className="text-2xl font-bold text-white mb-1">
-                    {user?.firstName} {user?.lastName}
+                    {user?.first_name} {user?.last_name}
                   </h1>
                   <p className="text-white/60 mb-2">{user?.email}</p>
                   <div className="flex flex-wrap justify-center md:justify-start gap-2">

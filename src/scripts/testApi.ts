@@ -1,26 +1,34 @@
 // src/scripts/testApi.ts
 // Script to test login for admin, vendor, and customer using centralized API
-import { api, apiPost } from '../lib/api';
+
+// Mock localStorage for Node.js environment
+if (typeof window === 'undefined') {
+  global.localStorage = {
+    getItem: (key: string) => global.localStorage[key] || null,
+    setItem: (key: string, value: string) => { global.localStorage[key] = value; },
+    removeItem: (key: string) => { delete global.localStorage[key]; },
+    clear: () => { Object.keys(global.localStorage).forEach(key => {
+      if (key !== 'getItem' && key !== 'setItem' && key !== 'removeItem' && key !== 'clear') {
+        delete global.localStorage[key];
+      }
+    }); },
+    key: (index: number) => Object.keys(global.localStorage)[index],
+    length: 0
+  } as Storage;
+}
+
+import { authService, productService, categoryService, orderService, cartService, feedbackService } from '../services/api';
 import type {
-  MeResponse,
+  AuthResponse,
   ProductsResponse,
   OrdersResponse,
   CategoriesResponse,
   CartResponse,
-  CartItemsResponse,
-  FeedbackResponse,
-  AssignProductCategoryResponse,
-  DeleteProductCategoryResponse,
-  RegisterResponse,
-  UsersResponse,
-  UserByIdResponse,
-  CategoryByIdResponse,
-  ProductByIdResponse,
-  ProductImagesResponse,
-  FeedbackByIdResponse,
-  UpdateOrderStatusResponse,
-  CartItem
-} from './types/apiResponses';
+  ReviewsResponse,
+  Product,
+  Category,
+  User
+} from '../types/apiResponses';
 
 const users = [
   {
@@ -29,9 +37,9 @@ const users = [
     password: 'adminpass123',
   },
   {
-    role: 'Seller',
+    role: 'Vendor',
     email: 'vendortest1@example.com',
-    password: 'pass123',
+    password: 'vendorpass123',
   },
   {
     role: 'Customer',
@@ -40,249 +48,196 @@ const users = [
   },
 ];
 
-function delay(ms: number) {
-  return new Promise(res => setTimeout(res, ms));
-}
-
-async function testMeEndpoint(token: string, role: string) {
-  try {
-    const me = await api.me({ headers: { Authorization: `Bearer ${token}` } });
-    console.log(`  [${role}] /me:`, me);
-  } catch (err) {
-    console.error(`  [${role}] /me failed:`, err);
-  }
-}
-
-async function testProductsEndpoint(token: string, role: string) {
-  try {
-    const products = await api.products({ headers: { Authorization: `Bearer ${token}` } });
-    console.log(`  [${role}] /products:`, products);
-  } catch (err) {
-    console.error(`  [${role}] /products failed:`, err);
-  }
-}
-
-async function testOrdersEndpoint(token: string, role: string) {
-  try {
-    const orders = await api.orders({ headers: { Authorization: `Bearer ${token}` } });
-    console.log(`  [${role}] /orders:`, orders);
-  } catch (err) {
-    console.error(`  [${role}] /orders failed:`, err);
-  }
-}
-
-async function testCategoriesEndpoint(token: string, role: string) {
-  try {
-    const categories = await api.categories({ headers: { Authorization: `Bearer ${token}` } });
-    console.log(`  [${role}] /categories:`, categories);
-  } catch (err) {
-    console.error(`  [${role}] /categories failed:`, err);
-  }
-}
-
-async function testCartEndpoint(token: string, role: string) {
-  try {
-    const cart = await api.cart({ headers: { Authorization: `Bearer ${token}` } });
-    console.log(`  [${role}] /cart:`, cart);
-  } catch (err) {
-    console.error(`  [${role}] /cart failed:`, err);
-  }
-}
-
-async function testFeedbackEndpoint(token: string, role: string) {
-  try {
-    const feedback = await api.feedback({ headers: { Authorization: `Bearer ${token}` } });
-    console.log(`  [${role}] /feedback:`, feedback);
-  } catch (err) {
-    console.error(`  [${role}] /feedback failed:`, err);
-  }
-}
-
-async function testCartItemsEndpoint(token: string, role: string) {
-  try {
-    const items = await api.cartItems({ headers: { Authorization: `Bearer ${token}` } });
-    console.log(`  [${role}] /cart/items:`, items);
-  } catch (err) {
-    console.error(`  [${role}] /cart/items failed:`, err);
-  }
-}
-
-async function testAddCartItem(token: string, role: string) {
-  try {
-    // Use dummy data for adding a cart item
-    const body = { product_id: 3, quantity: 1 };
-    const res = await apiPost('/cart/items', body, { headers: { Authorization: `Bearer ${token}`, 'Content-Type': 'application/json' } });
-    console.log(`  [${role}] POST /cart/items:`, res);
-  } catch (err) {
-    console.error(`  [${role}] POST /cart/items failed:`, err);
-  }
-}
-
-async function testDeleteCartItem(token: string, role: string) {
-  try {
-    // Try deleting cart item with id 1 (dummy)
-    const res = await fetch('https://indirect-yasmin-ananana-483e9951.koyeb.app/cart/items/1', { method: 'DELETE', headers: { Authorization: `Bearer ${token}` } });
-    console.log(`  [${role}] DELETE /cart/items/1:`, await res.text());
-  } catch (err) {
-    console.error(`  [${role}] DELETE /cart/items/1 failed:`, err);
-  }
-}
-
-async function testAssignProductCategory(token: string, role: string) {
-  try {
-    // Use dummy data for product/category assignment
-    const res = await api.assignProductCategory('3', { category_id: 2 }, { headers: { Authorization: `Bearer ${token}` } }) as AssignProductCategoryResponse;
-    console.log(`  [${role}] POST /products/3/categories:`, res);
-  } catch (err) {
-    console.error(`  [${role}] POST /products/3/categories failed:`, err);
-  }
-}
-
-async function testDeleteProductCategory(token: string, role: string) {
-  try {
-    const res = await api.deleteProductCategory('3', '2', { headers: { Authorization: `Bearer ${token}` } });
-    // Handle the response appropriately based on its type
-    console.log(`  [${role}] DELETE /products/3/categories/2:`, res);
-  } catch (err) {
-    console.error(`  [${role}] DELETE /products/3/categories/2 failed:`, err);
-  }
-}
-
-async function testFeedbackByProduct(token: string, role: string) {
-  try {
-    const res = await api.feedbackByProduct('3', { headers: { Authorization: `Bearer ${token}` } });
-    console.log(`  [${role}] /feedback/product/3:`, res);
-  } catch (err) {
-    console.error(`  [${role}] /feedback/product/3 failed:`, err);
-  }
-}
-
-async function testFeedbackByUser(token: string, role: string) {
-  try {
-    const res = await api.feedbackByUser('10', { headers: { Authorization: `Bearer ${token}` } });
-    console.log(`  [${role}] /feedback/user/10:`, res);
-  } catch (err) {
-    console.error(`  [${role}] /feedback/user/10 failed:`, err);
-  }
-}
-
-async function testUpdateOrderStatus(token: string, role: string) {
-  try {
-    // Dummy order id and status
-    const res = await api.updateOrderStatus('1', { status: 'completed' }, { headers: { Authorization: `Bearer ${token}` } });
-    console.log(`  [${role}] POST /orders/1/status:`, res);
-  } catch (err) {
-    console.error(`  [${role}] POST /orders/1/status failed:`, err);
-  }
-}
-
-async function testRegisterEndpoint(token: string, role: string) {
-  try {
-    // Dummy registration data (randomized email)
-    const body = { email: `testuser_${Date.now()}@example.com`, password: 'Password123!', first_name: 'Test', last_name: 'User', role: 'customer' };
-    const res = await api.register(body, { headers: { Authorization: `Bearer ${token}` } });
-    console.log(`  [${role}] POST /register:`, res);
-  } catch (err) {
-    console.error(`  [${role}] POST /register failed:`, err);
-  }
-}
-
-async function testUsersEndpoint(token: string, role: string) {
-  try {
-    const res = await api.users({ headers: { Authorization: `Bearer ${token}` } });
-    console.log(`  [${role}] /users:`, res);
-  } catch (err) {
-    console.error(`  [${role}] /users failed:`, err);
-  }
-}
-
-async function testUserByIdEndpoint(token: string, role: string) {
-  try {
-    const res = await api.userById('10', { headers: { Authorization: `Bearer ${token}` } });
-    console.log(`  [${role}] /users/10:`, res);
-  } catch (err) {
-    console.error(`  [${role}] /users/10 failed:`, err);
-  }
-}
-
-async function testCategoryByIdEndpoint(token: string, role: string) {
-  try {
-    const res = await api.categoryById('2', { headers: { Authorization: `Bearer ${token}` } });
-    console.log(`  [${role}] /categories/2:`, res);
-  } catch (err) {
-    console.error(`  [${role}] /categories/2 failed:`, err);
-  }
-}
-
-async function testProductByIdEndpoint(token: string, role: string) {
-  try {
-    const res = await api.productById('3', { headers: { Authorization: `Bearer ${token}` } });
-    console.log(`  [${role}] /products/3:`, res);
-  } catch (err) {
-    console.error(`  [${role}] /products/3 failed:`, err);
-  }
-}
-
-async function testProductImagesEndpoint(token: string, role: string) {
-  try {
-    const res = await api.productImages('3', { headers: { Authorization: `Bearer ${token}` } });
-    console.log(`  [${role}] /products/3/images:`, res);
-  } catch (err) {
-    console.error(`  [${role}] /products/3/images failed:`, err);
-  }
-}
-
-async function testFeedbackByIdEndpoint(token: string, role: string) {
-  try {
-    const res = await api.feedbackById('2', { headers: { Authorization: `Bearer ${token}` } });
-    console.log(`  [${role}] /feedback/2:`, res);
-  } catch (err) {
-    console.error(`  [${role}] /feedback/2 failed:`, err);
-  }
-}
-
-async function tryLoginAndTestEndpoints(user: typeof users[number], maxAttempts = 3) {
-  let lastError;
-  for (let attempt = 1; attempt <= maxAttempts; attempt++) {
+// Test login for each user type
+async function testLogin() {
+  console.log('\n--- Testing Login ---');
+  
+  for (const user of users) {
     try {
-      const res = await api.login({ email: user.email, password: user.password }) as { access_token: string };
-      const token = res.access_token;
-      console.log(`✅ ${user.role} login success (attempt ${attempt}):`, res);
-      await testMeEndpoint(token, user.role);
-      await testProductsEndpoint(token, user.role);
-      await testOrdersEndpoint(token, user.role);
-      await testCategoriesEndpoint(token, user.role);
-      await testCartEndpoint(token, user.role);
-      await testFeedbackEndpoint(token, user.role);
-      await testCartItemsEndpoint(token, user.role);
-      await testAddCartItem(token, user.role);
-      await testDeleteCartItem(token, user.role);
-      await testAssignProductCategory(token, user.role);
-      await testDeleteProductCategory(token, user.role);
-      await testFeedbackByProduct(token, user.role);
-      await testFeedbackByUser(token, user.role);
-      await testUpdateOrderStatus(token, user.role);
-      await testRegisterEndpoint(token, user.role);
-      await testUsersEndpoint(token, user.role);
-      await testUserByIdEndpoint(token, user.role);
-      await testCategoryByIdEndpoint(token, user.role);
-      await testProductByIdEndpoint(token, user.role);
-      await testProductImagesEndpoint(token, user.role);
-      await testFeedbackByIdEndpoint(token, user.role);
-      return;
-    } catch (err) {
-      lastError = err;
-      console.error(`❌ ${user.role} login failed (attempt ${attempt}):`, err);
-      if (attempt < maxAttempts) await delay(1000);
+      console.log(`Attempting to login as ${user.role}...`);
+      const response = await authService.login({
+        email: user.email,
+        password: user.password
+      });
+      console.log(`Login successful for ${user.role}:`, response.success);
+      
+      // Store the token for subsequent requests
+      if (response.data?.token) {
+        localStorage.setItem('token', response.data.token);
+      }
+      
+      // Test getting user profile
+      try {
+        console.log(`Getting profile for ${user.role}...`);
+        const userResponse = await authService.getProfile();
+        console.log(`Profile retrieved for ${user.role}:`, userResponse.success);
+      } catch (error) {
+        console.error(`Error getting profile for ${user.role}:`, error);
+      }
+    } catch (error) {
+      console.error(`Login failed for ${user.role}:`, error);
     }
   }
-  console.error(`❌ ${user.role} login failed after ${maxAttempts} attempts. Last error:`, lastError);
 }
 
-async function testLogins() {
-  for (const user of users) {
-    await tryLoginAndTestEndpoints(user, 3);
+// Test products API
+async function testProducts() {
+  console.log('\n--- Testing Products API ---');
+  
+  try {
+    console.log('Getting all products...');
+    const productsResponse = await productService.getProducts();
+    console.log('Products retrieved:', productsResponse.success);
+    
+    if (productsResponse.data && productsResponse.data.length > 0) {
+      const productId = productsResponse.data[0].id;
+      
+      try {
+        console.log(`Getting product by ID: ${productId}...`);
+        const productResponse = await productService.getProduct(productId);
+        console.log('Product retrieved:', productResponse.success);
+      } catch (error) {
+        console.error('Error getting product by ID:', error);
+      }
+    }
+  } catch (error) {
+    console.error('Error getting products:', error);
   }
 }
 
-testLogins();
+// Test categories API
+async function testCategories() {
+  console.log('\n--- Testing Categories API ---');
+  
+  try {
+    console.log('Getting all categories...');
+    const categoriesResponse = await categoryService.getCategories();
+    console.log('Categories retrieved:', categoriesResponse.success);
+    
+    if (categoriesResponse.data && categoriesResponse.data.length > 0) {
+      const categoryId = categoriesResponse.data[0].id;
+      
+      try {
+        console.log(`Getting category by ID: ${categoryId}...`);
+        const categoryResponse = await categoryService.getCategory(categoryId);
+        console.log('Category retrieved:', categoryResponse.success);
+      } catch (error) {
+        console.error('Error getting category by ID:', error);
+      }
+    }
+  } catch (error) {
+    console.error('Error getting categories:', error);
+  }
+}
+
+// Test orders API
+async function testOrders() {
+  console.log('\n--- Testing Orders API ---');
+  
+  try {
+    console.log('Getting all orders...');
+    const ordersResponse = await orderService.getOrders();
+    console.log('Orders retrieved:', ordersResponse.success);
+    
+    if (ordersResponse.data && ordersResponse.data.length > 0) {
+      const orderId = ordersResponse.data[0].id;
+      
+      try {
+        console.log(`Getting order by ID: ${orderId}...`);
+        const orderResponse = await orderService.getOrder(orderId);
+        console.log('Order retrieved:', orderResponse.success);
+      } catch (error) {
+        console.error('Error getting order by ID:', error);
+      }
+    }
+  } catch (error) {
+    console.error('Error getting orders:', error);
+  }
+}
+
+// Test cart API
+async function testCart() {
+  console.log('\n--- Testing Cart API ---');
+  
+  try {
+    console.log('Getting cart...');
+    const cartResponse = await cartService.getCart();
+    console.log('Cart retrieved:', cartResponse.success);
+    
+    // Cart items are included in the cart response
+    if (cartResponse.data?.items) {
+      console.log('Cart items retrieved:', cartResponse.data.items.length);
+    } else {
+      console.log('No cart items found');
+    }
+  } catch (error) {
+    console.error('Error getting cart:', error);
+  }
+}
+
+// Test feedback API
+async function testFeedback() {
+  console.log('\n--- Testing Feedback API ---');
+  
+  try {
+    console.log('Getting all feedback...');
+    const feedbackResponse = await feedbackService.getAllFeedback();
+    console.log('Feedback retrieved:', feedbackResponse.success);
+    
+    if (feedbackResponse.data && feedbackResponse.data.length > 0) {
+      const feedbackId = feedbackResponse.data[0].id;
+      
+      try {
+        console.log(`Getting feedback by ID: ${feedbackId}...`);
+        const feedbackByIdResponse = await feedbackService.getFeedback(feedbackId);
+        console.log('Feedback retrieved:', feedbackByIdResponse.success);
+      } catch (error) {
+        console.error('Error getting feedback by ID:', error);
+      }
+    }
+  } catch (error) {
+    console.error('Error getting feedback:', error);
+  }
+}
+
+// Test registration
+async function testRegistration() {
+  console.log('\n--- Testing Registration ---');
+  
+  const testUser = {
+    email: `test${Date.now()}@example.com`,
+    password: 'testpass123',
+    first_name: 'Test',
+    last_name: 'User',
+    role: 'customer' as 'customer'
+  };
+  
+  try {
+    console.log(`Registering new user: ${testUser.email}...`);
+    const registerResponse = await authService.register(testUser);
+    console.log('Registration successful:', registerResponse.success);
+  } catch (error) {
+    console.error('Error registering user:', error);
+  }
+}
+
+// Run all tests
+async function runTests() {
+  try {
+    await testLogin();
+    await testProducts();
+    await testCategories();
+    await testOrders();
+    await testCart();
+    await testFeedback();
+    await testRegistration();
+    
+    console.log('\n--- All tests completed ---');
+  } catch (error) {
+    console.error('Error running tests:', error);
+  }
+}
+
+// Run the tests
+runTests();
+

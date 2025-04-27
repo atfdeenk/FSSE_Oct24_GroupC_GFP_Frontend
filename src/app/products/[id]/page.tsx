@@ -2,47 +2,49 @@
 
 import { useEffect, useState } from "react";
 import { useParams, useRouter } from "next/navigation";
-import { api } from "../../../lib/api";
-import type { ProductResponse } from "../../../types/apiResponses";
+import Image from "next/image";
+import Link from "next/link";
+import productService from '../../../services/api/products';
+import type { Product } from '../../../types/apiResponses';
 import Header from "../../../components/Header";
 import Footer from "../../../components/Footer";
-import { getImageUrl, handleImageError } from "../../../lib/utils/imageUtils";
+import { getImageUrl, handleImageError } from '../../../utils/imageUtils';
 
 export default function ProductDetail() {
   const params = useParams();
   const router = useRouter();
-  const [product, setProduct] = useState<ProductResponse | null>(null);
+  const [product, setProduct] = useState<Product | null>(null);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState("");
   const [quantity, setQuantity] = useState(1);
   const [activeTab, setActiveTab] = useState("description");
-  const [relatedProducts, setRelatedProducts] = useState<ProductResponse[]>([]);
+  const [relatedProducts, setRelatedProducts] = useState<Product[]>([]);
 
   useEffect(() => {
     const productId = params?.id as string;
     if (!productId) return;
 
     setLoading(true);
-    api.productById(productId)
+    productService.getProduct(productId)
       .then((res) => {
         if (!res) throw new Error("Product not found");
-        setProduct(res as ProductResponse);
-        // Fetch related products (mock implementation)
-        return api.products();
+        setProduct(res);
+        // Fetch related products
+        return productService.getProducts();
       })
       .then((res) => {
         // Filter out current product and get 3 random products
-        const productsData = res as { data: ProductResponse[] };
-        const otherProducts = productsData.data.filter(
-          (p: ProductResponse) => p.id !== parseInt(productId, 10)
+        if (!res || !res.products) throw new Error("Failed to load related products");
+        const otherProducts = res.products.filter(
+          (p: Product) => p.id !== parseInt(productId, 10)
         );
         const randomProducts = [...otherProducts]
           .sort(() => 0.5 - Math.random())
           .slice(0, 3);
         setRelatedProducts(randomProducts);
       })
-      .catch((e) => {
-        setError(e?.message || "Failed to load product.");
+      .catch((error: any) => {
+        setError(error?.message || "Failed to load product.");
       })
       .finally(() => {
         setLoading(false);
@@ -112,10 +114,10 @@ export default function ProductDetail() {
           {/* Product Images */}
           <div className="space-y-6">
             <div className="relative h-80 overflow-hidden bg-neutral-900 rounded-t-sm">
-              <img 
-                src={getImageUrl(product.image_url)} 
-                alt={product.name} 
-                className="w-full h-full object-cover"
+              <img
+                src={getImageUrl(product.image_url)}
+                alt={product.name}
+                className="w-full h-full object-cover rounded-md"
                 onError={handleImageError()}
               />
             </div>
@@ -127,13 +129,10 @@ export default function ProductDetail() {
                   className={`aspect-square overflow-hidden rounded-sm cursor-pointer border ${i === 0 ? 'border-amber-500' : 'border-white/10'} bg-neutral-900/50`}
                 >
                   <img
-                    src={product.image_url || "/coffee-placeholder.jpg"}
+                    src={getImageUrl(product.image_url)}
                     alt={`${product.name} view ${i + 1}`}
                     className="w-full h-full object-cover"
-                    onError={(e) => {
-                      const target = e.target as HTMLImageElement;
-                      target.src = '/coffee-placeholder.jpg';
-                    }}
+                    onError={handleImageError()}
                   />
                 </div>
               ))}
@@ -156,10 +155,8 @@ export default function ProductDetail() {
                 </div>
                 <span className="ml-2 text-white/60 text-sm">(24 reviews)</span>
               </div>
-              <h1 className="text-3xl md:text-4xl font-bold text-white mb-2">{product.name}</h1>
-              <p className="text-2xl font-mono text-amber-500 font-bold">
-                {product.price} {product.currency}
-              </p>
+              <h1 className="text-3xl font-bold text-white">{product.name}</h1>
+              <p className="text-xl font-bold text-amber-500">{product.currency || 'IDR'} {product.price.toFixed(2)}</p>
             </div>
 
             {/* Tabs */}
@@ -189,9 +186,8 @@ export default function ProductDetail() {
             {/* Tab Content */}
             <div className="min-h-[200px]">
               {activeTab === "description" && (
-                <div className="space-y-4 text-white/80">
+                <div className="prose prose-invert max-w-none">
                   <p>{product.description}</p>
-                  <p>This premium coffee is sourced directly from local farmers who use sustainable farming practices. Each batch is carefully selected and roasted to perfection to bring out the unique flavor profile.</p>
                 </div>
               )}
 
@@ -233,9 +229,9 @@ export default function ProductDetail() {
                                 </svg>
                               ))}
                             </div>
-                            <p className="font-medium">Customer {i}</p>
+                            <h3 className="text-lg font-medium text-white">{product.name}</h3>
                           </div>
-                          <p className="text-white/60 text-sm">2 weeks ago</p>
+                          <p className="text-white/60 text-sm mb-2">2 weeks ago</p>
                         </div>
                         <div className="bg-amber-500/10 text-amber-500 text-xs px-2 py-1 rounded-sm">
                           Verified Purchase
@@ -314,7 +310,7 @@ export default function ProductDetail() {
                 </div>
                 <div>
                   <p className="font-medium">Local Seller</p>
-                  <p className="text-white/60 text-sm">{product.location}</p>
+                  <p className="text-white/60">{product.location || 'Location not specified'}</p>
                 </div>
                 <button className="ml-auto text-amber-500 font-medium hover:text-amber-400 transition-colors">
                   View Profile
@@ -347,7 +343,7 @@ export default function ProductDetail() {
                   <div className="p-4 flex flex-col flex-grow">
                     <div className="flex justify-between items-start mb-2">
                       <h3 className="font-bold text-white group-hover:text-amber-400 transition-colors duration-300">{relatedProduct.name}</h3>
-                      <span className="font-mono text-amber-500 font-bold text-sm">{relatedProduct.price} {relatedProduct.currency}</span>
+                      <span className="font-mono text-amber-500 font-bold text-sm">{relatedProduct.currency || 'IDR'} {relatedProduct.price.toFixed(2)}</span>
                     </div>
 
                     <p className="text-white/60 text-xs mb-2 line-clamp-2">{relatedProduct.description}</p>

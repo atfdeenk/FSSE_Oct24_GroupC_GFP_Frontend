@@ -1,42 +1,28 @@
-/**
- * Utility functions for handling images in the application
- */
-
-const IMAGE_BASE_URL = 'https://indirect-yasmin-ananana-483e9951.koyeb.app/uploads/';
-const PLACEHOLDER_IMAGE = '/coffee-placeholder.jpg';
+// src/lib/utils/imageUtils.ts
 
 /**
- * Formats an image URL to ensure it's properly constructed
- * @param imagePath The image path or URL from the API
- * @returns A fully formatted image URL
+ * Get the full image URL for a product image
+ * @param imageUrl The image URL from the API
+ * @returns The full image URL
  */
-export const getImageUrl = (imagePath?: string): string => {
-  if (!imagePath) return PLACEHOLDER_IMAGE;
+export const getImageUrl = (imageUrl: string | undefined): string => {
+  if (!imageUrl) return '/images/placeholder.jpg';
   
-  // If the URL already includes the base URL, return it as is
-  if (imagePath.startsWith('http://') || imagePath.startsWith('https://')) {
-    return imagePath;
+  // If the URL is already absolute, return it
+  if (imageUrl.startsWith('http')) {
+    return imageUrl;
   }
   
-  // Otherwise, prepend the base URL
-  return `${IMAGE_BASE_URL}${imagePath}`;
+  // Otherwise, construct the URL using our API endpoint
+  return `/products/upload/${imageUrl}`;
 };
 
 /**
- * Creates an onError handler for image elements
- * @param fallbackImage Optional custom fallback image path
- * @returns An onError handler function for React image elements
+ * Handle image loading errors by setting a fallback image
+ * @param event The error event
  */
-export const handleImageError = (fallbackImage = PLACEHOLDER_IMAGE) => {
-  return (e: React.SyntheticEvent<HTMLImageElement, Event>) => {
-    e.currentTarget.src = fallbackImage;
-  };
-};
-
-/**
- * Constants for image handling
- */
-export const ImageConstants = {
-  BASE_URL: IMAGE_BASE_URL,
-  PLACEHOLDER: PLACEHOLDER_IMAGE
+export const handleImageError = (event: React.SyntheticEvent<HTMLImageElement, Event>): void => {
+  const target = event.target as HTMLImageElement;
+  target.src = '/images/placeholder.jpg';
+  target.onerror = null; // Prevent infinite loop
 };

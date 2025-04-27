@@ -1,29 +1,38 @@
 "use client";
 import { useEffect, useState } from "react";
 import dynamic from "next/dynamic";
-import { api } from '../../lib/api';
-import type { ProductResponse, ProductsResponse } from '../../types/apiResponses';
+import productService from '../../services/api/products';
+import type { Product, ProductsResponse } from '../../types/apiResponses';
 import Header from "../../components/Header";
 import Footer from "../../components/Footer";
-import { getImageUrl, handleImageError } from "../../lib/utils/imageUtils";
+import { getImageUrl, handleImageError } from '../../utils/imageUtils';
 const LoginForm = dynamic(() => import("../../components/LoginForm"), { ssr: false });
 
 export default function ProductsPage() {
-  const [products, setProducts] = useState<ProductResponse[]>([]);
+  const [products, setProducts] = useState<Product[]>([]);
   const [error, setError] = useState('');
   const [search, setSearch] = useState('');
   const [sort, setSort] = useState('');
   const [page, setPage] = useState(1);
+  const [loading, setLoading] = useState(false);
   const pageSize = 8;
 
   useEffect(() => {
-    api.products()
-      .then(res => {
-        const response = res as ProductsResponse;
-        setProducts(response.data || []);
+    setLoading(true);
+    productService.getProducts()
+      .then(response => {
+        if (response.products) {
+          setProducts(response.products || []);
+        } else {
+          setError(response.message || 'Failed to load products.');
+        }
       })
       .catch(e => {
         setError(e?.message || 'Failed to load products.');
+        console.error('Error loading products:', e);
+      })
+      .finally(() => {
+        setLoading(false);
       });
   }, []);
 

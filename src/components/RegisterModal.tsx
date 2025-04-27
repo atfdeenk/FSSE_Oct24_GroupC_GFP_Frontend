@@ -9,7 +9,7 @@ import { RegisterFormData } from "../lib/validations";
 interface RegisterModalProps {
   show: boolean;
   onClose: () => void;
-  initialRole: 'consumer' | 'seller';
+  initialRole: 'customer' | 'vendor';
   onRegisterComplete: () => void;
 }
 

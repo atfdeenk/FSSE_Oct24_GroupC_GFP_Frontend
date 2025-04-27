@@ -18,15 +18,15 @@ export default function Home() {
     const router = useRouter();
     const [showSellerModal, setShowSellerModal] = useState(false);
     const [showRegisterModal, setShowRegisterModal] = useState(false);
-    const [registerRole, setRegisterRole] = useState<'consumer' | 'seller'>('consumer');
+    const [registerRole, setRegisterRole] = useState<'customer' | 'vendor'>('customer');
 
     const handleBecomeSeller = () => {
-        setRegisterRole('seller');
+        setRegisterRole('vendor');
         setShowRegisterModal(true);
     };
 
     const handleJoinCommunity = () => {
-        setRegisterRole('consumer');
+        setRegisterRole('customer');
         setShowRegisterModal(true);
     };
 

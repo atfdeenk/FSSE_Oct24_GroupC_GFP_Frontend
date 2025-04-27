@@ -2,8 +2,8 @@
 
 import React, { useState } from "react";
 import { z } from "zod";
-import { loginSchema, LoginFormData } from "../lib/validations";
-import { loginUser } from "../lib/auth";
+import { loginSchema, LoginFormData } from "../lib/schemas/auth";
+import { authService } from "../services/api/auth";
 
 interface LoginFormProps {
   onLogin: (userData: any) => void;
@@ -71,11 +71,31 @@ export default function LoginForm({ onLogin, error }: LoginFormProps) {
     setFormError(null);
     
     try {
-      // Use the centralized auth service
-      const userData = await loginUser(formData);
-      onLogin(userData);
+      // Use the Axios-based auth service
+      const response = await authService.login({
+        email: formData.email,
+        password: formData.password
+      });
+      
+      // Our auth service now always returns a success property
+      if (response.success) {
+        onLogin(response.data);
+      } else {
+        setFormError(response.message || "Login failed. Please check your credentials.");
+      }
     } catch (err: any) {
-      setFormError(err?.message || "Login failed. Please check your credentials.");
+      console.error('Login error:', err);
+      
+      // Handle API error responses
+      if (err?.response?.data?.msg) {
+        setFormError(err.response.data.msg);
+      } else if (err?.response?.data?.message) {
+        setFormError(err.response.data.message);
+      } else if (err?.message) {
+        setFormError(err.message);
+      } else {
+        setFormError("Login failed. Please check your credentials.");
+      }
     } finally {
       setLoading(false);
     }

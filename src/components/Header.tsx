@@ -3,7 +3,7 @@
 import { useState, useEffect, useRef } from "react";
 import Link from "next/link";
 import { useRouter } from "next/navigation";
-import { isAuthenticated, getCurrentUser, logout, AuthUser } from "@/lib/auth";
+import { isAuthenticated, getCurrentUser, logout, AuthUser } from "../lib/auth";
 
 export default function Header() {
   const router = useRouter();
@@ -123,9 +123,9 @@ export default function Header() {
                 aria-haspopup="true"
               >
                 <div className="w-10 h-10 rounded-full overflow-hidden border-2 border-amber-500/30 bg-neutral-800 flex items-center justify-center">
-                  {user?.firstName ? (
+                  {user?.first_name ? (
                     <span className="text-amber-500 font-bold">
-                      {user.firstName.charAt(0)}{user.lastName?.charAt(0)}
+                      {user.first_name.charAt(0)}{user.last_name?.charAt(0)}
                     </span>
                   ) : (
                     <svg className="w-6 h-6 text-white/70" fill="none" viewBox="0 0 24 24" stroke="currentColor">
@@ -142,7 +142,7 @@ export default function Header() {
               {showUserMenu && (
                 <div className="absolute right-0 mt-2 w-48 bg-neutral-900 border border-white/10 rounded-sm shadow-xl z-50 animate-fade-in-down">
                   <div className="p-3 border-b border-white/10">
-                    <p className="text-white font-medium">{user?.firstName} {user?.lastName}</p>
+                    <p className="text-white font-medium">{user?.first_name} {user?.last_name}</p>
                     <p className="text-white/60 text-sm truncate">{user?.email}</p>
                   </div>
                   <ul>
