@@ -59,20 +59,19 @@ async function testLogin() {
         email: user.email,
         password: user.password
       });
-      console.log(`Login successful for ${user.role}:`, response.success);
       
-      // Store the token for subsequent requests
-      if (response.data?.token) {
-        localStorage.setItem('token', response.data.token);
-      }
+      // The API returns { access_token: string } on success
+      // Our auth service transforms this to { success: true, data: { token: string, user: null }, message: string }
+      console.log(`Login successful for ${user.role}:`, response.data?.token ? 'token received' : 'no token');
       
       // Test getting user profile
       try {
         console.log(`Getting profile for ${user.role}...`);
         const userResponse = await authService.getProfile();
-        console.log(`Profile retrieved for ${user.role}:`, userResponse.success);
+        // The /me endpoint returns the user object directly, not wrapped in a response object
+        console.log(`Profile retrieved for ${user.role}:`, userResponse?.id ? 'success' : 'failed');
       } catch (error) {
-        console.error(`Error getting profile for ${user.role}:`, error);
+        console.error(`Get profile error:`, error);
       }
     } catch (error) {
       console.error(`Login failed for ${user.role}:`, error);
@@ -111,9 +110,8 @@ async function testCategories() {
   
   try {
     console.log('Getting all categories...');
-    const categoriesResponse = await categoryService.getCategories();
-    // Handle both old and new response formats
-    const categories = categoriesResponse.data || categoriesResponse.categories || [];
+    const categories = await categoryService.getCategories();
+    // The API returns an array of categories directly
     console.log('Categories retrieved:', categories.length > 0 ? 'success' : 'failed');
     
     if (categories.length > 0) {
@@ -138,9 +136,8 @@ async function testOrders() {
   
   try {
     console.log('Getting all orders...');
-    const ordersResponse = await orderService.getOrders();
-    // Handle both old and new response formats
-    const orders = ordersResponse.data || ordersResponse.orders || [];
+    const orders = await orderService.getOrders();
+    // The API returns an array of orders directly
     console.log('Orders retrieved:', orders.length > 0 ? 'success' : 'failed');
     
     if (orders.length > 0) {

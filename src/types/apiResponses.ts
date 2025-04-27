@@ -21,12 +21,23 @@ export interface PaginatedResponse<T> extends BaseResponse {
 }
 
 // User types
-export interface User {
+// Base user interface with minimal fields returned by /users endpoint
+export interface BaseUser {
+  id: number | string;
+  email: string;
+  username: string;
+  role: string;
+  is_active: boolean;
+  created_at: string;
+}
+
+// Extended user interface with all fields returned by /me endpoint
+export interface User extends Partial<BaseUser> {
   id: number | string;
   email: string;
   username?: string;
-  first_name: string;
-  last_name: string;
+  first_name?: string;
+  last_name?: string;
   role: string;
   phone?: string;
   date_of_birth?: string;
@@ -35,16 +46,16 @@ export interface User {
   state?: string;
   country?: string;
   zip_code?: string;
-  image_url?: string;
+  image_url?: string | null;
   created_at?: string;
   updated_at?: string;
 }
 
-export interface UserResponse extends BaseResponse {
-  data: User;
-}
+// The API returns a user object directly for the /me endpoint
+export type UserResponse = User;
 
-export interface UsersResponse extends PaginatedResponse<User> {}
+// The /users endpoint returns an array of BaseUser objects
+export type UsersResponse = BaseUser[];
 
 // Auth responses
 export interface AuthData {
@@ -55,41 +66,42 @@ export interface AuthData {
   expires_in?: number;
 }
 
-export interface AuthResponse extends BaseResponse {
+// Internal interface for standardizing API responses in our application
+export interface AuthResponse {
+  success: boolean;
   data: AuthData;
+  message: string;
 }
 
+// The API returns just an access_token on successful login
 export interface LoginResponse {
   access_token: string;
   msg?: string;
 }
 
-export interface RegisterResponse extends AuthResponse {}
+// The API returns a message on successful registration
+export interface RegisterResponse {
+  msg: string;
+}
 
 // Category types
 export interface Category {
   id: number | string;
   name: string;
+  slug: string;
+  image_url: string | null;
+  parent_id: number | string | null;
+  vendor_id: number | string;
   description?: string;
-  image?: string;
-  parent_id?: number | string;
   created_at?: string;
   updated_at?: string;
 }
 
-export interface CategoryResponse extends BaseResponse {
-  data: Category;
-}
+// The API returns a category object directly, not wrapped in a response object
+export interface CategoryResponse extends Category {}
 
-export interface CategoriesResponse {
-  limit?: number;
-  page?: number;
-  categories?: Category[];
-  data?: Category[];
-  total?: number;
-  success?: boolean;
-  message?: string;
-}
+// The API returns an array of categories directly
+export type CategoriesResponse = Category[];
 
 // Product types
 export interface Product {
@@ -127,41 +139,44 @@ export interface ProductsResponse {
 
 // Order types
 export interface OrderItem {
-  id: number | string;
   product_id: number | string;
-  order_id: number | string;
   quantity: number;
-  price: number;
+  unit_price: number;
+  id?: number | string;
+  order_id?: number | string;
   subtotal?: number;
   product?: Product;
 }
 
-export interface Order {
+// Basic order interface returned by /orders endpoint
+export interface BasicOrder {
   id: number | string;
-  user_id: number | string;
   status: 'pending' | 'processing' | 'shipped' | 'delivered' | 'cancelled';
-  total: number;
+  total_amount: string; // API returns as string, not number
+  created_at: string;
+}
+
+// Full order interface returned by /orders/:id endpoint
+export interface Order extends Partial<BasicOrder> {
+  id: number | string;
+  status: 'pending' | 'processing' | 'shipped' | 'delivered' | 'cancelled';
   items?: OrderItem[];
+  user_id?: number | string;
   shipping_address?: string;
+  shipping_method?: string;
+  total_amount?: string; // API returns as string, not number
   payment_method?: string;
   payment_status?: 'pending' | 'paid' | 'failed';
   created_at?: string;
   updated_at?: string;
 }
 
-export interface OrderResponse extends BaseResponse {
-  data: Order;
+export interface OrderResponse {
+  order: Order;
 }
 
-export interface OrdersResponse {
-  limit?: number;
-  page?: number;
-  orders?: OrderResponse[];
-  data?: OrderResponse[];
-  total?: number;
-  success?: boolean;
-  message?: string;
-}
+// The /orders endpoint returns an array of BasicOrder objects
+export type OrdersResponse = BasicOrder[];
 
 // Cart types
 export interface CartItem {

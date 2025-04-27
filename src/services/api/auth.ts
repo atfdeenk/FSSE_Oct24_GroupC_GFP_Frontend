@@ -88,7 +88,8 @@ export const authService = {
   getProfile: async () => {
     try {
       // Real API call
-      const response = await axiosInstance.get(API_CONFIG.ENDPOINTS.auth.me);
+      const response = await axiosInstance.get<User>(API_CONFIG.ENDPOINTS.auth.me);
+      // The /me endpoint returns the user object directly, not wrapped in a response object
       return response.data;
     } catch (error) {
       console.error('Get profile error:', error);
