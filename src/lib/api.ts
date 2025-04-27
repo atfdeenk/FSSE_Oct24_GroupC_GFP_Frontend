@@ -1,82 +1,74 @@
 // src/lib/api.ts
 // Centralized API service for https://indirect-yasmin-ananana-483e9951.koyeb.app/
-// Add all API-related functions here for clean, DRY, and maintainable code.
+// This file now serves as a compatibility layer for the new modular API structure
 
-export const BASE_URL = "/api/";
+// Import from the new modular API structure
+import { 
+  api as modularApi, 
+  apiGet as modularApiGet, 
+  apiPost as modularApiPost, 
+  BASE_URL 
+} from './api/index';
 
+// Re-export the BASE_URL to maintain compatibility
+export { BASE_URL };
+
+// Re-export the apiGet and apiPost functions with the same interface
 export async function apiGet<T>(endpoint: string, options?: RequestInit): Promise<T> {
-  // Remove leading slash from endpoint if present
+  // Ensure leading slash is handled correctly for backward compatibility
   const cleanEndpoint = endpoint.startsWith("/") ? endpoint.slice(1) : endpoint;
-  const res = await fetch(BASE_URL + cleanEndpoint, {
-    ...options,
-    headers: {
-      'Content-Type': 'application/json',
-      ...(options?.headers || {}),
-    },
-  });
-  if (!res.ok) {
-    throw new Error(`API GET ${endpoint} failed: ${res.status}`);
-  }
-  return res.json();
+  return modularApiGet<T>(cleanEndpoint, options);
 }
 
 export async function apiPost<T>(endpoint: string, body: any, options?: RequestInit): Promise<T> {
+  // Ensure leading slash is handled correctly for backward compatibility
   const cleanEndpoint = endpoint.startsWith("/") ? endpoint.slice(1) : endpoint;
-  const res = await fetch(BASE_URL + cleanEndpoint, {
-    method: 'POST',
-    body: JSON.stringify(body),
-    ...options,
-    headers: {
-      'Content-Type': 'application/json',
-      ...(options?.headers || {}),
-    },
-  });
-  if (!res.ok) {
-    throw new Error(`API POST ${endpoint} failed: ${res.status}`);
-  }
-  return res.json();
+  return modularApiPost<T>(cleanEndpoint, body, options);
 }
 
 // --- Centralized API Endpoints ---
+// Create a compatibility layer that matches the original API interface
 
 export const api = {
   // Auth
-  login: (body: any, options?: RequestInit) => apiPost('/login', body, options),
-  register: (body: any, options?: RequestInit) => apiPost('/register', body, options),
-  me: (options?: RequestInit) => apiGet('/me', options),
-  users: (options?: RequestInit) => apiGet('/users', options),
-  userById: (id: string, options?: RequestInit) => apiGet(`/users/${id}`, options),
+  login: (body: any, options?: RequestInit) => modularApi.login(body, options),
+  register: (body: any, options?: RequestInit) => modularApi.register(body, options),
+  me: (options?: RequestInit) => modularApi.me(options),
+  users: (options?: RequestInit) => modularApi.users(options),
+  userById: (id: string, options?: RequestInit) => modularApi.userById(id, options),
 
   // Categories
-  categories: (options?: RequestInit) => apiGet('/categories', options),
-  categoryById: (id: string, options?: RequestInit) => apiGet(`/categories/${id}`, options),
+  categories: (options?: RequestInit) => modularApi.categories(options),
+  categoryById: (id: string, options?: RequestInit) => modularApi.categoryById(id, options),
 
   // Assign categories and delete
-  assignProductCategory: (productId: string, body: any, options?: RequestInit) => apiPost(`/products/${productId}/categories`, body, options),
-  deleteProductCategory: (productId: string, categoryId: string, options?: RequestInit) => fetch(BASE_URL + `products/${productId}/categories/${categoryId}`, { method: 'DELETE', ...(options || {}) }),
+  assignProductCategory: (productId: string, body: any, options?: RequestInit) => 
+    modularApi.assignProductCategory(productId, body, options),
+  deleteProductCategory: (productId: string, categoryId: string, options?: RequestInit) => 
+    modularApi.deleteProductCategory(productId, categoryId, options),
 
   // Products
-  products: (options?: RequestInit) => apiGet('/products', options),
-  productById: (id: string, options?: RequestInit) => apiGet(`/products/${id}`, options),
+  products: (options?: RequestInit) => modularApi.products(options),
+  productById: (id: string, options?: RequestInit) => modularApi.productById(id, options),
 
   // Product images
-  productImages: (id: string, options?: RequestInit) => apiGet(`/products/${id}/images`, options),
+  productImages: (id: string, options?: RequestInit) => modularApi.productImages(id, options),
 
   // Cart
-  cart: (options?: RequestInit) => apiGet('/cart', options),
-  cartItems: (options?: RequestInit) => apiGet('/cart/items', options),
-  cartItemById: (id: string, options?: RequestInit) => apiGet(`/cart/items/${id}`, options),
+  cart: (options?: RequestInit) => modularApi.cart(options),
+  cartItems: (options?: RequestInit) => modularApi.cartItems(options),
+  cartItemById: (id: string, options?: RequestInit) => apiGet(`cart/items/${id}`, options), // Not in modular API
 
   // Feedback/review
-  feedback: (options?: RequestInit) => apiGet('/feedback', options),
-  feedbackById: (id: string, options?: RequestInit) => apiGet(`/feedback/${id}`, options),
-  feedbackByProduct: (productId: string, options?: RequestInit) => apiGet(`/feedback/product/${productId}`, options),
-  feedbackByUser: (userId: string, options?: RequestInit) => apiGet(`/feedback/user/${userId}`, options),
+  feedback: (options?: RequestInit) => modularApi.feedback(options),
+  feedbackById: (id: string, options?: RequestInit) => modularApi.feedbackById(id, options),
+  feedbackByProduct: (productId: string, options?: RequestInit) => modularApi.feedbackByProduct(productId, options),
+  feedbackByUser: (userId: string, options?: RequestInit) => modularApi.feedbackByUser(userId, options),
 
   // Orders
-  orders: (options?: RequestInit) => apiGet('/orders', options),
-  orderById: (id: string, options?: RequestInit) => apiGet(`/orders/${id}`, options),
-  updateOrderStatus: (id: string, body: any, options?: RequestInit) => apiPost(`/orders/${id}/status`, body, options),
+  orders: (options?: RequestInit) => modularApi.orders(options),
+  orderById: (id: string, options?: RequestInit) => apiGet(`orders/${id}`, options), // Not in modular API
+  updateOrderStatus: (id: string, body: any, options?: RequestInit) => modularApi.updateOrderStatus(id, body, options),
 };
 
 // Usage: import { api } from '@/lib/api'; then use api.login(), api.products(), etc.

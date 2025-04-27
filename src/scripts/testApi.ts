@@ -141,7 +141,8 @@ async function testAssignProductCategory(token: string, role: string) {
 async function testDeleteProductCategory(token: string, role: string) {
   try {
     const res = await api.deleteProductCategory('3', '2', { headers: { Authorization: `Bearer ${token}` } });
-    console.log(`  [${role}] DELETE /products/3/categories/2:`, await res.text());
+    // Handle the response appropriately based on its type
+    console.log(`  [${role}] DELETE /products/3/categories/2:`, res);
   } catch (err) {
     console.error(`  [${role}] DELETE /products/3/categories/2 failed:`, err);
   }
