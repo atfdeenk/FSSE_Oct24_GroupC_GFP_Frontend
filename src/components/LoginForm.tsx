@@ -1,94 +1,184 @@
+"use client";
+
 import React, { useState } from "react";
+import { z } from "zod";
+import { loginSchema, LoginFormData } from "../lib/validations";
+import { loginUser } from "../lib/auth";
 
 interface LoginFormProps {
-  onLogin: (token: string) => void;
+  onLogin: (userData: any) => void;
   error?: string;
 }
 
 export default function LoginForm({ onLogin, error }: LoginFormProps) {
   const [showPassword, setShowPassword] = useState(false);
-  const [email, setEmail] = useState("");
-  const [password, setPassword] = useState("");
+  const [formData, setFormData] = useState<LoginFormData>({
+    email: "",
+    password: "",
+  });
   const [loading, setLoading] = useState(false);
   const [formError, setFormError] = useState<string | null>(null);
+  const [validationErrors, setValidationErrors] = useState<Record<string, string>>({});
+
+  const handleChange = (e: React.ChangeEvent<HTMLInputElement>) => {
+    const { name, value } = e.target;
+    setFormData(prev => ({ ...prev, [name]: value }));
+    
+    // Clear validation error when user types
+    if (validationErrors[name]) {
+      setValidationErrors(prev => {
+        const newErrors = { ...prev };
+        delete newErrors[name];
+        return newErrors;
+      });
+    }
+  };
+
+  const validateForm = (): boolean => {
+    try {
+      loginSchema.parse(formData);
+      setValidationErrors({});
+      return true;
+    } catch (error) {
+      if (error instanceof z.ZodError) {
+        const errors: Record<string, string> = {};
+        error.errors.forEach(err => {
+          if (err.path[0]) {
+            errors[err.path[0] as string] = err.message;
+          }
+        });
+        setValidationErrors(errors);
+      }
+      return false;
+    }
+  };
 
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
+    
+    // Validate form
+    if (!validateForm()) {
+      return;
+    }
+    
     setLoading(true);
     setFormError(null);
-    let lastError = "";
-    for (let attempt = 1; attempt <= 3; attempt++) {
-      try {
-        const res = await fetch(`/api/login`, {
-          method: "POST",
-          headers: { "Content-Type": "application/json" },
-          body: JSON.stringify({ email, password }),
-        });
-        let data: any = {};
-        try {
-          data = await res.json();
-        } catch (e) {
-          // ignore JSON parse error
-        }
-        if (res.ok && data.access_token) {
-          onLogin(data.access_token);
-          setLoading(false);
-          return;
-        } else {
-          lastError = data && data.message ? data.message : "Login failed. Please check your credentials.";
-        }
-      } catch (err: any) {
-        lastError = "Network error. Please check your connection or try again later.";
-      }
-      // Wait 500ms before retrying
-      if (attempt < 3) await new Promise(res => setTimeout(res, 500));
+    
+    try {
+      // Use the centralized auth service
+      const userData = await loginUser(formData);
+      onLogin(userData);
+    } catch (err: any) {
+      setFormError(err?.message || "Login failed. Please check your credentials.");
+    } finally {
+      setLoading(false);
     }
-    setFormError(lastError);
-    setLoading(false);
   };
 
   return (
-    <form onSubmit={handleSubmit} className="bg-white p-6 rounded shadow-md w-full max-w-sm mx-auto">
-      <h2 className="text-xl font-bold mb-4 text-center">Login</h2>
-      {(formError || error) && <div className="text-red-600 mb-2 text-center">{formError || error}</div>}
-      <div className="mb-4">
-        <label className="block text-sm font-medium mb-1">Email</label>
-        <input
-          type="email"
-          className="border rounded px-3 py-2 w-full"
-          value={email}
-          onChange={e => setEmail(e.target.value)}
-          required
-          placeholder="you@example.com"
-        />
+    <form onSubmit={handleSubmit} className="bg-neutral-900/80 backdrop-blur-sm p-8 rounded-sm border border-white/10 w-full max-w-md mx-auto">
+      <div className="text-center mb-8">
+        <h2 className="text-2xl font-bold text-white mb-2">Welcome Back</h2>
+        <p className="text-white/60">Sign in to your account to continue</p>
       </div>
-      <div className="mb-4">
-        <label className="block text-sm font-medium mb-1">Password</label>
-        <div className="relative flex items-center">
+      
+      {(formError || error) && (
+        <div className="bg-red-900/20 border border-red-500/50 text-red-400 px-4 py-3 rounded-sm mb-6 text-center">
+          {formError || error}
+        </div>
+      )}
+      
+      <div className="mb-6">
+        <label className="block text-white/80 text-sm font-medium mb-2">Email Address</label>
+        <div className="relative">
+          <div className="absolute inset-y-0 left-0 pl-3 flex items-center pointer-events-none">
+            <svg className="h-5 w-5 text-white/30" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+              <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={1.5} d="M16 12a4 4 0 10-8 0 4 4 0 008 0zm0 0v1.5a2.5 2.5 0 005 0V12a9 9 0 10-9 9m4.5-1.206a8.959 8.959 0 01-4.5 1.207" />
+            </svg>
+          </div>
+          <input
+            type="email"
+            name="email"
+            className={`bg-black/50 border ${validationErrors.email ? 'border-red-500' : 'border-white/10'} rounded-sm pl-10 pr-3 py-3 w-full text-white placeholder:text-white/30 focus:outline-none focus:border-amber-500/50`}
+            value={formData.email}
+            onChange={handleChange}
+            required
+            placeholder="you@example.com"
+          />
+        </div>
+        {validationErrors.email && (
+          <p className="mt-1 text-red-400 text-sm">{validationErrors.email}</p>
+        )}
+      </div>
+      
+      <div className="mb-8">
+        <div className="flex justify-between items-center mb-2">
+          <label className="block text-white/80 text-sm font-medium">Password</label>
+          <a href="#" className="text-amber-500 text-sm hover:text-amber-400 transition-colors">Forgot Password?</a>
+        </div>
+        <div className="relative">
+          <div className="absolute inset-y-0 left-0 pl-3 flex items-center pointer-events-none">
+            <svg className="h-5 w-5 text-white/30" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+              <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={1.5} d="M12 15v2m-6 4h12a2 2 0 002-2v-6a2 2 0 00-2-2H6a2 2 0 00-2 2v6a2 2 0 002 2zm10-10V7a4 4 0 00-8 0v4h8z" />
+            </svg>
+          </div>
           <input
             type={showPassword ? "text" : "password"}
-            className="border rounded px-3 py-2 w-full pr-20"
-            value={password}
-            onChange={e => setPassword(e.target.value)}
+            name="password"
+            className={`bg-black/50 border ${validationErrors.password ? 'border-red-500' : 'border-white/10'} rounded-sm pl-10 pr-12 py-3 w-full text-white placeholder:text-white/30 focus:outline-none focus:border-amber-500/50`}
+            value={formData.password}
+            onChange={handleChange}
             required
+            placeholder="••••••••"
           />
           <button
             type="button"
-            className="absolute right-2 top-1/2 -translate-y-1/2 text-xs text-green-700 bg-green-100 px-2 py-1 rounded hover:bg-green-200"
+            className="absolute right-3 top-1/2 -translate-y-1/2 text-xs text-amber-500/70 hover:text-amber-500 transition-colors"
             onClick={() => setShowPassword((v) => !v)}
             tabIndex={-1}
           >
             {showPassword ? "Hide" : "Show"}
           </button>
         </div>
+        {validationErrors.password && (
+          <p className="mt-1 text-red-400 text-sm">{validationErrors.password}</p>
+        )}
+        <div className="flex justify-between mt-2">
+          <div className="flex items-center">
+            <input 
+              type="checkbox" 
+              id="remember" 
+              className="h-4 w-4 border border-white/10 rounded bg-black/50 text-amber-500 focus:ring-amber-500/50"
+            />
+            <label htmlFor="remember" className="ml-2 text-sm text-white/60">Remember me</label>
+          </div>
+          <a href="#" className="text-sm text-amber-500 hover:text-amber-400 transition-colors">Forgot password?</a>
+        </div>
       </div>
+      
       <button
         type="submit"
-        className="bg-green-600 text-white w-full py-2 rounded hover:bg-green-700 transition"
+        className="bg-amber-500 text-black w-full py-3 rounded-sm font-bold hover:bg-amber-400 transition-colors flex items-center justify-center"
         disabled={loading}
       >
-        {loading ? "Logging in..." : "Login"}
+        {loading ? (
+          <>
+            <svg className="animate-spin -ml-1 mr-2 h-4 w-4 text-black" fill="none" viewBox="0 0 24 24">
+              <circle className="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" strokeWidth="4"></circle>
+              <path className="opacity-75" fill="currentColor" d="M4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4zm2 5.291A7.962 7.962 0 014 12H0c0 3.042 1.135 5.824 3 7.938l3-2.647z"></path>
+            </svg>
+            Signing in...
+          </>
+        ) : (
+          "Sign in"
+        )}
       </button>
+      
+      <div className="mt-6 text-center">
+        <p className="text-white/60 text-sm">
+          Don't have an account? <a href="/register" className="text-amber-500 hover:text-amber-400 transition-colors">Create one</a>
+        </p>
+      </div>
     </form>
   );
 }

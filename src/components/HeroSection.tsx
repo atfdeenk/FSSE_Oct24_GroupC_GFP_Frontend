@@ -1,6 +1,11 @@
 "use client";
 
-export default function HeroSection({ onBecomeSeller }: { onBecomeSeller: () => void }) {
+interface HeroSectionProps {
+  onBecomeSeller: () => void;
+  onJoinCommunity: () => void;
+}
+
+export default function HeroSection({ onBecomeSeller, onJoinCommunity }: HeroSectionProps) {
   return (
     <section className="w-full min-h-screen flex flex-col md:flex-row relative overflow-hidden bg-black">
       {/* Left side - Image with overlay */}
@@ -54,16 +59,28 @@ export default function HeroSection({ onBecomeSeller }: { onBecomeSeller: () => 
                 <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M14 5l7 7m0 0l-7 7m7-7H3" />
               </svg>
             </a>
-            <button
-              className="group relative px-10 py-4 border border-white/30 text-white hover:bg-white/10 transition-all duration-300 outline-none rounded-sm flex items-center"
-              onClick={onBecomeSeller}
-              type="button"
-            >
-              <span>Become a Seller</span>
-              <svg className="w-5 h-5 ml-2 transition-transform group-hover:translate-x-1" fill="none" viewBox="0 0 24 24" stroke="currentColor">
-                <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M12 6v6m0 0v6m0-6h6m-6 0H6" />
-              </svg>
-            </button>
+            <div className="flex flex-col sm:flex-row gap-4">
+              <button
+                className="group relative px-8 py-4 border border-amber-500/50 text-amber-500 hover:bg-amber-500/10 transition-all duration-300 outline-none rounded-sm flex items-center"
+                onClick={onJoinCommunity}
+                type="button"
+              >
+                <span>Join Community</span>
+                <svg className="w-5 h-5 ml-2 transition-transform group-hover:translate-x-1" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                  <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M12 4.354a4 4 0 110 5.292M15 21H3v-1a6 6 0 0112 0v1zm0 0h6v-1a6 6 0 00-9-5.197M13 7a4 4 0 11-8 0 4 4 0 018 0z" />
+                </svg>
+              </button>
+              <button
+                className="group relative px-8 py-4 border border-white/30 text-white hover:bg-white/10 transition-all duration-300 outline-none rounded-sm flex items-center"
+                onClick={onBecomeSeller}
+                type="button"
+              >
+                <span>Become a Seller</span>
+                <svg className="w-5 h-5 ml-2 transition-transform group-hover:translate-x-1" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                  <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M14 5l7 7m0 0l-7 7m7-7H3" />
+                </svg>
+              </button>
+            </div>
           </div>
           
           <a href="#how-it-works" className="inline-flex items-center text-amber-400 mt-12 group animate-fade-in delay-500">
