@@ -1,6 +1,10 @@
 "use client";
 
-export default function TestimonialsAndPress() {
+interface TestimonialsAndPressProps {
+  onJoinCommunity: () => void;
+}
+
+export default function TestimonialsAndPress({ onJoinCommunity }: TestimonialsAndPressProps) {
   return (
     <section className="w-full bg-black px-6 py-24 relative overflow-hidden">
       {/* Background elements */}
@@ -120,12 +124,15 @@ export default function TestimonialsAndPress() {
         {/* Testimonial CTA */}
         <div className="text-center mt-16 animate-fade-in delay-600">
           <p className="text-white/70 mb-6">Join thousands of satisfied customers and producers on our platform</p>
-          <a href="/products" className="inline-flex items-center px-8 py-3 bg-amber-500 text-black rounded-sm hover:bg-amber-400 font-bold transition-all duration-300">
+          <button 
+            onClick={onJoinCommunity}
+            className="inline-flex items-center px-8 py-3 bg-amber-500 text-black rounded-sm hover:bg-amber-400 font-bold transition-all duration-300"
+          >
             <span>Join Our Community</span>
             <svg className="w-5 h-5 ml-2" fill="none" viewBox="0 0 24 24" stroke="currentColor">
               <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M14 5l7 7m0 0l-7 7m7-7H3" />
             </svg>
-          </a>
+          </button>
         </div>
       </div>
     </section>

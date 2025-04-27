@@ -9,7 +9,7 @@ export default function HeroSection({ onBecomeSeller, onJoinCommunity }: HeroSec
   return (
     <section className="w-full min-h-screen flex flex-col md:flex-row relative overflow-hidden bg-black">
       {/* Left side - Image with overlay */}
-      <div className="w-full md:w-1/2 h-screen relative overflow-hidden">
+      <div className="w-full md:w-1/2 h-[70vh] md:h-screen relative overflow-hidden">
         <div className="absolute inset-0 bg-black/40 z-10"></div>
         <div className="absolute inset-0 bg-gradient-to-r from-black via-transparent to-transparent z-20"></div>
         <div 
@@ -32,52 +32,81 @@ export default function HeroSection({ onBecomeSeller, onJoinCommunity }: HeroSec
             <span className="block">bumi</span>
             <span className="block text-amber-500">brew</span>
           </h1>
-          <p className="text-white/80 max-w-xs mx-auto">Connecting local producers with coffee enthusiasts</p>
+          <p className="text-white/80 max-w-xs mx-auto mb-8">Connecting local producers with coffee enthusiasts</p>
+          
+          {/* Mobile buttons */}
+          <div className="flex flex-col gap-4 w-full max-w-xs">
+            <a href="/products" className="group relative px-6 py-3 bg-amber-500 text-black rounded-sm hover:bg-amber-400 font-bold transition-all duration-300 text-base outline-none overflow-hidden flex items-center justify-center">
+              <span>Explore Products</span>
+              <svg className="w-4 h-4 ml-2 transition-transform group-hover:translate-x-1" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M14 5l7 7m0 0l-7 7m7-7H3" />
+              </svg>
+            </a>
+            <div className="flex gap-3 w-full">
+              <button
+                className="flex-1 group relative px-3 py-3 border border-amber-500/50 text-amber-500 hover:bg-amber-500/10 transition-all duration-300 outline-none rounded-sm flex items-center justify-center text-sm"
+                onClick={onJoinCommunity}
+              >
+                <span>Join Us</span>
+              </button>
+              <button
+                className="flex-1 group relative px-3 py-3 border border-amber-500/50 text-amber-500 hover:bg-amber-500/10 transition-all duration-300 outline-none rounded-sm flex items-center justify-center text-sm"
+                onClick={onBecomeSeller}
+              >
+                <span>Sell</span>
+              </button>
+            </div>
+          </div>
         </div>
       </div>
       
       {/* Right side - Content */}
-      <div className="w-full md:w-1/2 flex flex-col justify-center p-8 md:p-16 lg:p-24 bg-gradient-to-br from-neutral-900 to-black">
+      <div className="w-full md:w-1/2 flex flex-col justify-center p-8 md:p-12 lg:p-16 xl:p-24 bg-gradient-to-br from-neutral-900 to-black">
         {/* Hidden on mobile, shown on desktop */}
         <div className="hidden md:block">
           <span className="inline-block text-amber-400 font-bold tracking-widest uppercase text-sm mb-4 animate-fade-in">Local • Fresh • Sustainable</span>
-          <h1 className="text-6xl lg:text-7xl xl:text-8xl font-black text-white mb-6 leading-none animate-fade-in">
+          <h1 className="text-5xl lg:text-6xl xl:text-7xl font-black text-white mb-6 leading-none animate-fade-in">
             <span className="block">bumi</span>
             <span className="block text-amber-500">brew</span>
           </h1>
-          <p className="text-2xl text-white/80 max-w-md mb-8 animate-fade-in delay-100">Connecting local producers with coffee enthusiasts</p>
+          <p className="text-xl lg:text-2xl text-white/80 max-w-md mb-8 animate-fade-in delay-100">Connecting local producers with coffee enthusiasts</p>
           
           <div className="h-1 w-24 bg-amber-500 mb-8 animate-fade-in delay-200"></div>
           
-          <p className="text-white/70 max-w-md mb-12 animate-fade-in delay-300">
+          <p className="text-white/70 max-w-md mb-10 animate-fade-in delay-300">
             Discover exceptional coffee directly from local farmers. Support sustainable practices, reduce your carbon footprint, and experience the freshest flavors your community has to offer.
           </p>
-          <div className="flex flex-col sm:flex-row gap-6 animate-fade-in delay-400">
-            <a href="/products" className="group relative px-10 py-4 bg-amber-500 text-black rounded-sm hover:bg-amber-400 font-bold transition-all duration-300 text-lg outline-none overflow-hidden flex items-center">
-              <span>Explore Products</span>
-              <svg className="w-5 h-5 ml-2 transition-transform group-hover:translate-x-1" fill="none" viewBox="0 0 24 24" stroke="currentColor">
-                <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M14 5l7 7m0 0l-7 7m7-7H3" />
-              </svg>
-            </a>
-            <div className="flex flex-col sm:flex-row gap-4">
+          
+          {/* Desktop buttons - Improved layout */}
+          <div className="animate-fade-in delay-400">
+            {/* Primary CTA */}
+            <div className="mb-6">
+              <a href="/products" className="inline-flex items-center px-8 py-4 bg-amber-500 text-black rounded-sm hover:bg-amber-400 font-bold transition-all duration-300 text-lg outline-none overflow-hidden">
+                <span>Explore Products</span>
+                <svg className="w-5 h-5 ml-2 transition-transform group-hover:translate-x-1" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                  <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M14 5l7 7m0 0l-7 7m7-7H3" />
+                </svg>
+              </a>
+            </div>
+            
+            {/* Secondary CTAs */}
+            <div className="flex flex-wrap gap-4">
               <button
-                className="group relative px-8 py-4 border border-amber-500/50 text-amber-500 hover:bg-amber-500/10 transition-all duration-300 outline-none rounded-sm flex items-center"
+                className="group relative px-6 py-3 border border-amber-500/50 text-amber-500 hover:bg-amber-500/10 transition-all duration-300 outline-none rounded-sm flex items-center"
                 onClick={onJoinCommunity}
-                type="button"
               >
                 <span>Join Community</span>
                 <svg className="w-5 h-5 ml-2 transition-transform group-hover:translate-x-1" fill="none" viewBox="0 0 24 24" stroke="currentColor">
-                  <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M12 4.354a4 4 0 110 5.292M15 21H3v-1a6 6 0 0112 0v1zm0 0h6v-1a6 6 0 00-9-5.197M13 7a4 4 0 11-8 0 4 4 0 018 0z" />
+                  <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M17 20h5v-2a3 3 0 00-5.356-1.857M17 20H7m10 0v-2c0-.656-.126-1.283-.356-1.857M7 20H2v-2a3 3 0 015.356-1.857M7 20v-2c0-.656.126-1.283.356-1.857m0 0a5.002 5.002 0 019.288 0M15 7a3 3 0 11-6 0 3 3 0 016 0zm6 3a2 2 0 11-4 0 2 2 0 014 0zM7 10a2 2 0 11-4 0 2 2 0 014 0z" />
                 </svg>
               </button>
               <button
-                className="group relative px-8 py-4 border border-white/30 text-white hover:bg-white/10 transition-all duration-300 outline-none rounded-sm flex items-center"
+                className="group relative px-6 py-3 border border-amber-500/50 text-amber-500 hover:bg-amber-500/10 transition-all duration-300 outline-none rounded-sm flex items-center"
                 onClick={onBecomeSeller}
-                type="button"
               >
                 <span>Become a Seller</span>
                 <svg className="w-5 h-5 ml-2 transition-transform group-hover:translate-x-1" fill="none" viewBox="0 0 24 24" stroke="currentColor">
-                  <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M14 5l7 7m0 0l-7 7m7-7H3" />
+                  <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M3 3h2l.4 2M7 13h10l4-8H5.4M7 13L5.4 5M7 13l-2.293 2.293c-.63.63-.184 1.707.707 1.707H17m0 0a2 2 0 100 4 2 2 0 000-4zm-8 2a2 2 0 11-4 0 2 2 0 014 0z" />
                 </svg>
               </button>
             </div>
@@ -116,7 +145,7 @@ export default function HeroSection({ onBecomeSeller, onJoinCommunity }: HeroSec
       </div>
       
       {/* Scroll indicator - absolutely positioned at the bottom center */}
-      <div className="absolute left-1/2 -translate-x-1/2 bottom-8 hidden md:flex flex-col items-center animate-fade-in delay-700 pointer-events-none select-none z-50" aria-hidden="true">
+      <div className="absolute left-1/2 -translate-x-1/2 bottom-8 hidden md:flex flex-col items-center animate-fade-in delay-700 z-50">
         <span className="text-white/60 text-xs mb-1">Scroll down</span>
         <svg className="animate-bounce w-6 h-6 text-amber-500" fill="none" viewBox="0 0 24 24" stroke="currentColor">
           <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M19 14l-7 7m0 0l-7-7m7 7V3" />

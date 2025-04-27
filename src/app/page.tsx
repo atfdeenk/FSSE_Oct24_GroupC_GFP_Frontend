@@ -12,6 +12,7 @@ import SolutionSection from "@/components/SolutionSection";
 import FeaturesSection from "@/components/FeaturesSection";
 import HowItWorks from "@/components/HowItWorks";
 import RegisterModal from "@/components/RegisterModal";
+import Header from "@/components/Header";
 
 export default function Home() {
     const router = useRouter();
@@ -36,15 +37,18 @@ export default function Home() {
 
     return (
         <div className="min-h-screen flex flex-col bg-black font-sans">
-            <HeroSection
-                onBecomeSeller={handleBecomeSeller}
-                onJoinCommunity={handleJoinCommunity}
-            />
-            <TestimonialsAndPress />
-            <ProblemStatement />
-            <SolutionSection />
-            <FeaturesSection />
-            <HowItWorks />
+            <Header />
+            <main>
+                <HeroSection
+                    onBecomeSeller={handleBecomeSeller}
+                    onJoinCommunity={handleJoinCommunity}
+                />
+                <TestimonialsAndPress onJoinCommunity={handleJoinCommunity} />
+                <ProblemStatement />
+                <SolutionSection />
+                <FeaturesSection />
+                <HowItWorks />
+            </main>
             <Footer />
             <SellerModal show={showSellerModal} onClose={() => setShowSellerModal(false)} />
             <RegisterModal
