@@ -5,6 +5,7 @@ import { useParams, useRouter } from "next/navigation";
 import Image from "next/image";
 import Link from "next/link";
 import productService from '../../../services/api/products';
+import cartService from '../../../services/api/cart';
 import type { Product } from '../../../types/apiResponses';
 import Header from "../../../components/Header";
 import Footer from "../../../components/Footer";
@@ -56,10 +57,50 @@ export default function ProductDetail() {
       });
   }, [params?.id]);
 
-  const handleAddToCart = () => {
-    // TODO: Implement real cart API integration
-    // This would use cartService.addToCart() in a real implementation
-    alert(`Added ${quantity} ${product?.name} to cart`);
+  const [addingToCart, setAddingToCart] = useState(false);
+  const [cartMessage, setCartMessage] = useState<{ type: 'success' | 'error', text: string } | null>(null);
+
+  const handleAddToCart = async () => {
+    if (!product) return;
+    
+    setAddingToCart(true);
+    setCartMessage(null);
+    
+    try {
+      const response = await cartService.addToCart({
+        product_id: product.id,
+        quantity: quantity
+      });
+      
+      if (response.success) {
+        setCartMessage({ 
+          type: 'success', 
+          text: `Added ${quantity} ${product.name} to cart!` 
+        });
+        
+        // Refresh the header cart count
+        const event = new CustomEvent('cart-updated');
+        window.dispatchEvent(event);
+      } else {
+        setCartMessage({ 
+          type: 'error', 
+          text: response.message || 'Failed to add item to cart' 
+        });
+      }
+    } catch (error: any) {
+      console.error('Error adding to cart:', error);
+      setCartMessage({ 
+        type: 'error', 
+        text: error?.message || 'Failed to add item to cart' 
+      });
+    } finally {
+      setAddingToCart(false);
+    }
+    
+    // Clear success message after 3 seconds
+    if (cartMessage?.type === 'success') {
+      setTimeout(() => setCartMessage(null), 3000);
+    }
   };
 
   const handleQuantityChange = (e: React.ChangeEvent<HTMLInputElement>) => {
@@ -81,19 +122,19 @@ export default function ProductDetail() {
   if (error || !product) {
     return (
       <div className="min-h-screen bg-black flex flex-col items-center justify-center px-6 py-12">
-        <svg className="w-20 h-20 text-amber-500/50 mb-6" fill="none" viewBox="0 0 24 24" stroke="currentColor">
-          <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={1} d="M9.172 16.172a4 4 0 015.656 0M9 10h.01M15 10h.01M21 12a9 9 0 11-18 0 9 9 0 0118 0z" />
-        </svg>
-        <h1 className="text-3xl font-bold text-white mb-4">Product Not Found</h1>
-        <p className="text-white/60 mb-8 text-center max-w-md">
-          {error || "We couldn't find the product you're looking for. It may have been removed or is temporarily unavailable."}
-        </p>
-        <button
-          onClick={() => router.push("/products")}
-          className="px-6 py-3 bg-amber-500 text-black font-bold rounded-sm hover:bg-amber-400 transition-colors"
-        >
-          Back to Products
-        </button>
+        <div className="text-center max-w-md">
+          <svg className="w-16 h-16 text-amber-500 mx-auto mb-6" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+            <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={1.5} d="M9.172 16.172a4 4 0 015.656 0M9 10h.01M15 10h.01M21 12a9 9 0 11-18 0 9 9 0 0118 0z" />
+          </svg>
+          <h1 className="text-2xl font-bold text-white mb-4">Product Not Found</h1>
+          <p className="text-white/60 mb-8">{error || "We couldn't find the product you're looking for. It might have been removed or is temporarily unavailable."}</p>
+          <button
+            onClick={() => router.push("/products")}
+            className="px-6 py-3 bg-amber-500 text-black font-bold rounded-sm hover:bg-amber-400 transition-colors"
+          >
+            Back to Products
+          </button>
+        </div>
       </div>
     );
   }
@@ -259,44 +300,75 @@ export default function ProductDetail() {
 
             {/* Add to Cart */}
             <div className="pt-6 border-t border-white/10">
-              <div className="flex flex-col sm:flex-row space-y-4 sm:space-y-0 sm:space-x-4">
-                <div className="relative w-full sm:w-32">
-                  <input
-                    type="number"
-                    min="1"
-                    value={quantity}
-                    onChange={handleQuantityChange}
-                    className="w-full bg-black/50 border border-white/10 rounded-sm px-4 py-3 focus:outline-none focus:border-amber-500/50 text-white"
-                  />
-                  <div className="absolute right-0 top-0 h-full flex flex-col border-l border-white/10">
-                    <button
-                      className="flex-1 px-3 hover:bg-white/5 text-white/60 hover:text-white"
-                      onClick={() => setQuantity(q => q + 1)}
-                    >
-                      +
-                    </button>
-                    <button
-                      className="flex-1 px-3 hover:bg-white/5 text-white/60 hover:text-white border-t border-white/10"
-                      onClick={() => setQuantity(q => Math.max(1, q - 1))}
-                    >
-                      -
-                    </button>
+              <div className="flex flex-col space-y-4 mt-6">
+                <div className="flex items-center space-x-4">
+                  <div className="relative w-24">
+                    <input
+                      type="number"
+                      min="1"
+                      value={quantity}
+                      onChange={handleQuantityChange}
+                      className="w-full bg-black/50 border border-white/10 rounded-sm px-3 py-2 text-white focus:outline-none focus:border-amber-500/50 disabled:opacity-50"
+                      disabled={addingToCart}
+                    />
+                    <div className="absolute right-0 top-0 h-full flex flex-col border-l border-white/10">
+                      <button
+                        className="flex-1 px-3 hover:bg-white/5 text-white/60 hover:text-white"
+                        onClick={() => setQuantity(q => q + 1)}
+                        disabled={addingToCart}
+                      >
+                        +
+                      </button>
+                      <button
+                        className="flex-1 px-3 hover:bg-white/5 text-white/60 hover:text-white border-t border-white/10"
+                        onClick={() => setQuantity(q => Math.max(1, q - 1))}
+                        disabled={addingToCart}
+                      >
+                        -
+                      </button>
+                    </div>
                   </div>
+                  <button
+                    onClick={handleAddToCart}
+                    disabled={addingToCart}
+                    className={`flex-grow py-2 px-6 rounded-sm font-bold transition-all duration-300 flex items-center justify-center space-x-2 ${addingToCart ? 'bg-amber-700 text-white/70 cursor-wait' : 'bg-amber-500 text-black hover:bg-amber-400 hover:shadow-lg hover:shadow-amber-500/20 transform hover:translate-y-[-1px]'}`}
+                  >
+                    {addingToCart ? (
+                      <>
+                        <svg className="animate-spin w-5 h-5 mr-2" xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24">
+                          <circle className="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" strokeWidth="4"></circle>
+                          <path className="opacity-75" fill="currentColor" d="M4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4zm2 5.291A7.962 7.962 0 014 12H0c0 3.042 1.135 5.824 3 7.938l3-2.647z"></path>
+                        </svg>
+                        <span>Adding to Cart...</span>
+                      </>
+                    ) : (
+                      <>
+                        <svg className="w-4 h-4 mr-2" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                          <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M3 3h2l.4 2M7 13h10l4-8H5.4M7 13L5.4 5M7 13l-2.293 2.293c-.63.63-.184 1.707.707 1.707H17m0 0a2 2 0 100 4 2 2 0 000-4zm-8 2a2 2 0 11-4 0 2 2 0 014 0z" />
+                        </svg>
+                        <span>Add to Cart</span>
+                      </>
+                    )}
+                  </button>
                 </div>
-                <button
-                  onClick={handleAddToCart}
-                  className="flex-1 bg-amber-500 text-black font-bold py-3 px-6 rounded-sm hover:bg-amber-400 transition-colors flex items-center justify-center"
-                >
-                  <svg className="w-5 h-5 mr-2" fill="none" viewBox="0 0 24 24" stroke="currentColor">
-                    <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M3 3h2l.4 2M7 13h10l4-8H5.4M7 13L5.4 5M7 13l-2.293 2.293c-.63.63-.184 1.707.707 1.707H17m0 0a2 2 0 100 4 2 2 0 000-4zm-8 2a2 2 0 11-4 0 2 2 0 014 0z" />
-                  </svg>
-                  Add to Cart
-                </button>
-                <button className="w-12 h-12 flex items-center justify-center rounded-sm border border-white/10 hover:border-amber-500/30 hover:bg-white/5 transition-colors">
-                  <svg className="w-5 h-5 text-white/60 hover:text-amber-500" fill="none" viewBox="0 0 24 24" stroke="currentColor">
-                    <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M4.318 6.318a4.5 4.5 0 000 6.364L12 20.364l7.682-7.682a4.5 4.5 0 00-6.364-6.364L12 7.636l-1.318-1.318a4.5 4.5 0 00-6.364 0z" />
-                  </svg>
-                </button>
+                
+                {/* Cart Message */}
+                {cartMessage && (
+                  <div className="mt-4">
+                    <div className={`p-3 rounded-sm text-sm flex items-center ${cartMessage.type === 'success' ? 'bg-green-500/20 text-green-400' : 'bg-red-500/20 text-red-400'}`}>
+                      {cartMessage.type === 'success' ? (
+                        <svg className="w-4 h-4 mr-2" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                          <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M5 13l4 4L19 7" />
+                        </svg>
+                      ) : (
+                        <svg className="w-4 h-4 mr-2" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                          <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M12 8v4m0 4h.01M21 12a9 9 0 11-18 0 9 9 0 0118 0z" />
+                        </svg>
+                      )}
+                      {cartMessage?.text}
+                    </div>
+                  </div>
+                )}
               </div>
             </div>
 

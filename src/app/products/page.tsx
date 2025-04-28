@@ -25,7 +25,14 @@ export default function ProductsPage() {
 
   // Fetch products with pagination and filtering
   const fetchProducts = async () => {
+    // Set loading state
     setLoading(true);
+    
+    // Clear products when changing search or sort to show loading state
+    if (debouncedSearch || sort) {
+      setProducts([]);
+    }
+    
     try {
       // Prepare filters for API call
       const filters: any = {
@@ -109,11 +116,12 @@ export default function ProductsPage() {
             <input
               type="text"
               placeholder="Search products..."
-              className="w-full bg-black/50 border border-white/10 rounded-sm px-4 py-3 focus:outline-none focus:border-amber-500/50 text-white placeholder-white/40"
+              className="w-full bg-black/50 border border-white/10 rounded-sm px-4 py-3 focus:outline-none focus:border-amber-500/50 text-white placeholder-white/40 disabled:opacity-50"
               value={searchInput}
               onChange={e => setSearchInput(e.target.value)}
+              disabled={loading}
             />
-            {searchInput !== debouncedSearch && (
+            {(searchInput !== debouncedSearch || loading) && (
               <span className="absolute right-10 top-3.5 w-4 h-4">
                 <svg className="animate-spin text-amber-500/50" xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24">
                   <circle className="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" strokeWidth="4"></circle>
@@ -128,9 +136,10 @@ export default function ProductsPage() {
 
           <div className="relative w-full md:w-48">
             <select
-              className="w-full appearance-none bg-black/50 border border-white/10 rounded-sm px-4 py-3 focus:outline-none focus:border-amber-500/50 text-white"
+              className="w-full appearance-none bg-black/50 border border-white/10 rounded-sm px-4 py-3 focus:outline-none focus:border-amber-500/50 text-white disabled:opacity-50"
               value={sort}
               onChange={e => setSort(e.target.value)}
+              disabled={loading}
             >
               <option value="">Sort by</option>
               <option value="name">Name</option>
@@ -166,10 +175,21 @@ export default function ProductsPage() {
         </div>
 
         {/* Products grid */}
+        {/* Loading overlay */}
+        {loading && (
+          <div className="fixed inset-0 bg-black/40 backdrop-blur-sm z-10 flex items-center justify-center">
+            <div className="bg-black/80 p-6 rounded-sm border border-amber-500/20 shadow-lg flex items-center space-x-4">
+              <div className="animate-spin rounded-full h-10 w-10 border-t-2 border-b-2 border-amber-500"></div>
+              <div className="text-white font-medium">Loading products...</div>
+            </div>
+          </div>
+        )}
+        
         <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4 gap-6">
           {loading && products.length === 0 && (
-            <div className="col-span-full flex justify-center py-20">
-              <div className="animate-spin rounded-full h-12 w-12 border-t-2 border-b-2 border-amber-500"></div>
+            <div className="col-span-full flex flex-col items-center justify-center py-20">
+              <div className="animate-spin rounded-full h-12 w-12 border-t-2 border-b-2 border-amber-500 mb-4"></div>
+              <p className="text-white/60">Fetching products...</p>
             </div>
           )}
           
@@ -215,7 +235,7 @@ export default function ProductsPage() {
           ))}
         </div>
 
-        {/* Empty state */}
+        {/* Empty state - only show when not loading */}
         {products.length === 0 && !loading && (
           <div className="text-center py-16">
             <svg className="w-16 h-16 mx-auto text-white/20 mb-4" fill="none" viewBox="0 0 24 24" stroke="currentColor">
