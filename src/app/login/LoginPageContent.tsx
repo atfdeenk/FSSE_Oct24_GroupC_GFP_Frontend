@@ -24,12 +24,25 @@ export default function LoginPageContent() {
   }, [router, searchParams]);
 
   return (
-    <div className="flex flex-col min-h-screen">
-      <main className="flex-grow flex flex-col items-center justify-center">
-        <h1 className="text-2xl font-bold mb-6">Login</h1>
-        {message && <div className="mb-4 text-green-600">{message}</div>}
-        {error && <div className="mb-4 text-red-600">{error}</div>}
-        <LoginForm />
+    <div className="min-h-screen flex flex-col bg-black">
+      {/* Header/Navigation */}
+      <header className="w-full bg-black border-b border-white/10 py-4">
+        <div className="max-w-6xl mx-auto px-6 flex justify-between items-center">
+          <a href="/" className="text-2xl font-bold text-white">bumibrew</a>
+          <nav>
+            <ul className="flex space-x-6">
+              <li><a href="/" className="text-white/70 hover:text-amber-400 transition-colors">Home</a></li>
+              <li><a href="/products" className="text-white/70 hover:text-amber-400 transition-colors">Shop</a></li>
+              <li><a href="/login" className="text-amber-500 hover:text-amber-400 transition-colors">Login</a></li>
+            </ul>
+          </nav>
+        </div>
+      </header>
+      <main className="flex-grow flex items-center justify-center px-6 py-12 bg-[url('/coffee-farm-dark.jpg')] bg-cover bg-center">
+        <div className="absolute inset-0 bg-black/70"></div>
+        <div className="relative z-10 w-full max-w-md">
+          <LoginForm error={error || undefined} />
+        </div>
       </main>
       <Footer />
     </div>
