@@ -2,9 +2,8 @@
 
 import { useState, useEffect } from "react";
 import { useRouter } from "next/navigation";
-import RegisterForm from "../../components/RegisterForm";
-import Footer from "../../components/Footer";
-import { isAuthenticated } from "../../lib/auth";
+import { RegisterForm, Footer } from "@/components";
+import { isAuthenticated } from "@/lib/auth";
 
 export default function RegisterPage() {
   const router = useRouter();

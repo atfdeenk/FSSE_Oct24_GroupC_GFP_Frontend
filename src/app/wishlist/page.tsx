@@ -3,8 +3,7 @@
 import { useState, useEffect, useCallback } from "react";
 import { useRouter } from "next/navigation";
 import Link from "next/link";
-import Header from "@/components/Header";
-import Footer from "@/components/Footer";
+import { Header, Footer, SelectionControls } from "@/components";
 import { isAuthenticated } from "@/lib/auth";
 import wishlistService, { WishlistItem } from "@/services/api/wishlist";
 import productService from "@/services/api/products";
@@ -12,7 +11,6 @@ import cartService from "@/services/api/cart";
 import { getProductImageUrl, handleProductImageError } from "@/utils/imageUtils";
 import { Product } from "@/types/apiResponses";
 import { isProductInStock, hasInStockProperty } from "@/utils/products";
-import SelectionControls from "@/components/SelectionControls";
 
 // Extended wishlist item with product details
 interface WishlistItemWithDetails extends WishlistItem {
@@ -32,25 +30,25 @@ export default function WishlistPage() {
   const [loading, setLoading] = useState(true);
   const [showOrderSummary, setShowOrderSummary] = useState(true);
   const [addingToCart, setAddingToCart] = useState<Set<string | number>>(new Set());
-  const [actionMessage, setActionMessage] = useState<{type: 'success' | 'error', text: string} | null>(null);
+  const [actionMessage, setActionMessage] = useState<{ type: 'success' | 'error', text: string } | null>(null);
   const [filterBy, setFilterBy] = useState<'all' | 'inStock' | 'outOfStock'>('all');
   const [sortBy, setSortBy] = useState<'default' | 'priceAsc' | 'priceDesc' | 'nameAsc'>('default');
 
   const fetchWishlist = useCallback(async () => {
     setLoading(true);
     setActionMessage(null);
-    
+
     try {
       const wishlistResponse = await wishlistService.getWishlist();
-      
+
       if (wishlistResponse?.data?.items) {
         const wishlistItems = wishlistResponse.data.items;
-        
+
         if (wishlistItems.length === 0) {
           setWishlistItems([]);
           return;
         }
-        
+
         const itemsWithDetails = await Promise.all(
           wishlistItems.map(async (item) => {
             try {
@@ -74,9 +72,9 @@ export default function WishlistPage() {
             }
           })
         );
-        
+
         setWishlistItems(itemsWithDetails);
-        
+
         // Select all in-stock items by default
         const inStockItemIds = new Set(
           itemsWithDetails
@@ -107,7 +105,7 @@ export default function WishlistPage() {
       router.push('/login?redirect=wishlist');
       return;
     }
-    
+
     fetchWishlist();
   }, [router, fetchWishlist]);
 
@@ -115,23 +113,23 @@ export default function WishlistPage() {
     try {
       const itemToRemove = wishlistItems.find(item => item.id === id);
       if (!itemToRemove) return;
-      
+
       // Optimistic UI update
       setWishlistItems(prev => prev.filter(item => item.id !== id));
-      
+
       // Remove from selected items if it was selected
       if (selectedItems.has(id)) {
         const newSelectedItems = new Set(selectedItems);
         newSelectedItems.delete(id);
         setSelectedItems(newSelectedItems);
       }
-      
+
       // Show success message
       setActionMessage({
         type: 'success',
         text: `${itemToRemove.name || 'Item'} removed from wishlist`
       });
-      
+
       // Call API
       await wishlistService.removeFromWishlist(id);
     } catch (error) {
@@ -140,12 +138,12 @@ export default function WishlistPage() {
         type: 'error',
         text: 'Failed to remove item from wishlist'
       });
-      
+
       // Revert optimistic update on error
       fetchWishlist();
     }
   };
-  
+
   // Toggle selection of an item
   const toggleSelectItem = (id: number | string) => {
     setSelectedItems(prev => {
@@ -170,18 +168,18 @@ export default function WishlistPage() {
   const clearAllSelections = () => {
     setSelectedItems(new Set());
   };
-  
+
   // Get filtered items based on current filter
   const getFilteredItems = useCallback(() => {
     let filtered = [...wishlistItems];
-    
+
     // Apply filter
     if (filterBy === 'inStock') {
       filtered = filtered.filter(item => item.inStock);
     } else if (filterBy === 'outOfStock') {
       filtered = filtered.filter(item => !item.inStock);
     }
-    
+
     // Apply sort
     if (sortBy === 'priceAsc') {
       filtered.sort((a, b) => (a.price || 0) - (b.price || 0));
@@ -190,13 +188,13 @@ export default function WishlistPage() {
     } else if (sortBy === 'nameAsc') {
       filtered.sort((a, b) => (a.name || '').localeCompare(b.name || ''));
     }
-    
+
     return filtered;
   }, [wishlistItems, filterBy, sortBy]);
-  
+
   // Check if all items are selected
   const areAllItemsSelected = wishlistItems.length > 0 && selectedItems.size === wishlistItems.length;
-  
+
   // Toggle order summary visibility
   const toggleOrderSummary = () => {
     setShowOrderSummary(prev => !prev);
@@ -206,26 +204,26 @@ export default function WishlistPage() {
     try {
       // Add to loading set to show loading state for this specific item
       setAddingToCart(prev => new Set(prev).add(productId));
-      
+
       const itemToAdd = wishlistItems.find(item => item.product_id === productId);
       if (!itemToAdd) return;
-      
+
       const response = await cartService.addToCart({
         product_id: productId,
         quantity: 1
       });
-      
+
       if (response.success) {
         // Refresh the header cart count
         const event = new CustomEvent('cart-updated');
         window.dispatchEvent(event);
-        
+
         // Show success message
         setActionMessage({
           type: 'success',
           text: `${itemToAdd.name || 'Item'} added to cart`
         });
-        
+
         // Clear success message after 3 seconds
         setTimeout(() => {
           setActionMessage(null);
@@ -276,17 +274,17 @@ export default function WishlistPage() {
   const calculateTotalValue = useCallback(() => {
     return wishlistItems.reduce((total, item) => total + (item.price || 0), 0);
   }, [wishlistItems]);
-  
+
   // Add all selected items to cart
   const addSelectedToCart = async () => {
     const selectedIds = Array.from(selectedItems);
     if (selectedIds.length === 0) return;
-    
+
     setActionMessage({
       type: 'success',
       text: 'Adding selected items to cart...'
     });
-    
+
     for (const id of selectedIds) {
       const item = wishlistItems.find(item => item.id === id);
       if (item && item.inStock) {
@@ -294,19 +292,19 @@ export default function WishlistPage() {
       }
     }
   };
-  
+
   const selectedTotal = calculateSelectedTotal();
   const totalValue = calculateTotalValue();
 
   return (
     <div className="min-h-screen flex flex-col bg-black">
       <Header />
-      
+
       <main className="flex-grow py-12 px-6">
         <div className="max-w-6xl mx-auto">
           <h1 className="text-3xl font-bold text-white mb-2">Your Wishlist</h1>
           <p className="text-white/60 mb-8">{wishlistItems.length} {wishlistItems.length === 1 ? 'item' : 'items'} saved for later</p>
-          
+
           {loading ? (
             <div className="flex justify-center items-center h-64">
               <div className="animate-spin rounded-full h-12 w-12 border-t-2 border-b-2 border-amber-500"></div>
@@ -350,7 +348,7 @@ export default function WishlistPage() {
                         </svg>
                       </div>
                     </div>
-                    
+
                     {/* Sort dropdown */}
                     <div className="relative">
                       <select
@@ -369,7 +367,7 @@ export default function WishlistPage() {
                         </svg>
                       </div>
                     </div>
-                    
+
                     {/* Selection controls */}
                     <div className="flex items-center">
                       <SelectionControls
@@ -380,8 +378,8 @@ export default function WishlistPage() {
                         buttonOnly={true}
                       />
                     </div>
-                    
-                    <button 
+
+                    <button
                       onClick={toggleOrderSummary}
                       className="text-sm text-white/70 hover:text-amber-400 transition-colors flex items-center gap-1"
                     >
@@ -403,7 +401,7 @@ export default function WishlistPage() {
                     </button>
                   </div>
                 </div>
-                
+
                 {/* Order Summary Panel */}
                 {showOrderSummary && (
                   <div className="mt-6 p-5 bg-neutral-900/80 rounded-md border border-white/5 animate-fade-in">
@@ -411,26 +409,26 @@ export default function WishlistPage() {
                       <h3 className="text-white font-medium text-lg">Order Summary</h3>
                       <span className="text-white/60 text-sm">{selectedItems.size} of {wishlistItems.length} selected</span>
                     </div>
-                    
+
                     <div className="space-y-3 text-sm">
                       <div className="flex justify-between">
                         <span className="text-white/70">Selected items</span>
                         <span className="text-white">{formatCurrency(selectedTotal)}</span>
                       </div>
-                      
+
                       {selectedItems.size < wishlistItems.length && (
                         <div className="flex justify-between text-white/50">
                           <span>Unselected items</span>
                           <span>{formatCurrency(totalValue - selectedTotal)}</span>
                         </div>
                       )}
-                      
+
                       <div className="pt-3 border-t border-white/10 flex justify-between">
                         <span className="text-white font-medium">Total value</span>
                         <span className="text-amber-500 font-medium">{formatCurrency(totalValue)}</span>
                       </div>
                     </div>
-                    
+
                     <div className="mt-5 grid grid-cols-2 gap-3">
                       {selectedItems.size > 0 && (
                         <button
@@ -457,14 +455,14 @@ export default function WishlistPage() {
                   </div>
                 )}
               </div>
-              
+
               <div className="grid grid-cols-1 md:grid-cols-2 xl:grid-cols-3 gap-6 mt-8">
                 {getFilteredItems().length > 0 ? (
                   getFilteredItems().map((item, index) => (
-                    <div 
-                      key={item.id} 
+                    <div
+                      key={item.id}
                       className={`group bg-neutral-900/80 backdrop-blur-sm rounded-md border overflow-hidden shadow-lg transition-all duration-300 hover:border-amber-500/20 animate-fade-in ${selectedItems.has(item.id) ? 'border-amber-500/50' : 'border-white/10'}`}
-                      style={{animationDelay: `${index * 100}ms`}}
+                      style={{ animationDelay: `${index * 100}ms` }}
                     >
                       <div className="p-4">
                         <div className="flex items-center">
@@ -479,13 +477,13 @@ export default function WishlistPage() {
                               <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={1.5} d="M5 13l4 4L19 7" />
                             </svg>
                           </label>
-                          
+
                           <div className="w-16 h-16 bg-neutral-800 rounded-md overflow-hidden mr-4 flex-shrink-0">
                             <Link href={`/products/${item.product_id}`} className="block w-full h-full">
                               {item.image_url ? (
-                                <img 
-                                  src={getProductImageUrl(item.image_url)} 
-                                  alt={item.name} 
+                                <img
+                                  src={getProductImageUrl(item.image_url)}
+                                  alt={item.name}
                                   className="w-full h-full object-cover group-hover:scale-110 transition-transform duration-700 ease-in-out"
                                   onError={handleProductImageError}
                                 />
@@ -498,9 +496,9 @@ export default function WishlistPage() {
                               )}
                             </Link>
                           </div>
-                          
+
                           <div className="flex-grow mr-4">
-                            <Link 
+                            <Link
                               href={`/products/${item.product_id}`}
                               className="text-white font-medium hover:text-amber-400 transition-colors block mb-1"
                             >
@@ -523,10 +521,10 @@ export default function WishlistPage() {
                               </div>
                             )}
                           </div>
-                          
+
                           <div className="flex flex-col items-end space-y-2">
                             <div className="text-amber-500 font-bold">{formatCurrency(item.price || 0)}</div>
-                            
+
                             <div className="flex space-x-2">
                               <button
                                 onClick={() => addToCart(item.product_id)}
@@ -545,8 +543,8 @@ export default function WishlistPage() {
                                   </svg>
                                 )}
                               </button>
-                              
-                              <button 
+
+                              <button
                                 onClick={() => removeItem(item.id)}
                                 className="w-8 h-8 rounded-full bg-black/30 flex items-center justify-center text-white/40 hover:text-red-400 hover:bg-black/50 transition-all duration-300"
                                 aria-label="Remove from wishlist"
@@ -581,7 +579,7 @@ export default function WishlistPage() {
           )}
         </div>
       </main>
-      
+
       <Footer />
     </div>
   );

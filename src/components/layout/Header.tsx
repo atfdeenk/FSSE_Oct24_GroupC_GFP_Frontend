@@ -3,10 +3,10 @@
 import { useState, useEffect, useRef } from "react";
 import Link from "next/link";
 import { useRouter } from "next/navigation";
-import { isAuthenticated, getCurrentUser, logout, AuthUser } from "../lib/auth";
-import cartService from "../services/api/cart";
-import wishlistService from "../services/api/wishlist";
-import { TOKEN_EXPIRED_EVENT } from "../services/api/axios";
+import { isAuthenticated, getCurrentUser, logout, AuthUser } from "@/lib/auth";
+import cartService from "@/services/api/cart";
+import wishlistService from "@/services/api/wishlist";
+import { TOKEN_EXPIRED_EVENT } from "@/services/api/axios";
 
 export default function Header() {
   const router = useRouter();

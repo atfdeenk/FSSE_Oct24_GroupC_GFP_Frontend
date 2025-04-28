@@ -1,8 +1,8 @@
 "use client";
 
 import React, { useState } from "react";
-import authService, { RegisterData } from "../services/api/auth";
-import BackToHomeButton from "./BackToHomeButton";
+import authService, { RegisterData } from "@/services/api/auth";
+import { BackToHomeButton } from "../index";
 
 interface RegisterFormProps {
   onRegister: (userData: any) => void;

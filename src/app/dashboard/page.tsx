@@ -3,8 +3,7 @@
 import { useState, useEffect } from "react";
 import { useRouter } from "next/navigation";
 import Link from "next/link";
-import Header from "@/components/Header";
-import Footer from "@/components/Footer";
+import { Header, Footer } from "@/components";
 import { isAuthenticated, getCurrentUser, AuthUser } from "@/lib/auth";
 
 // Mock order data
@@ -30,8 +29,11 @@ export default function DashboardPage() {
     }
 
     // Get current user
-    const currentUser = getCurrentUser();
-    setUser(currentUser);
+    const fetchUser = async () => {
+      const currentUser = await getCurrentUser();
+      setUser(currentUser);
+    };
+    fetchUser();
 
     // Simulate API call to get recent orders
     const fetchRecentOrders = async () => {

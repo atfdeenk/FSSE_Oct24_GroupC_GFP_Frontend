@@ -1,16 +1,16 @@
 'use client';
 
 import { useEffect, useState } from 'react';
-import RoleGuard from '@/components/RoleGuard';
+import RoleGuard from '@/components/guards/RoleGuard';
 import { getUserRole } from '@/lib/auth';
 
 export default function AdminDashboardPage() {
   const [userRole, setUserRole] = useState<string | null>(null);
-  
+
   useEffect(() => {
     setUserRole(getUserRole());
   }, []);
-  
+
   return (
     <RoleGuard allowedRoles={['admin']}>
       <div className="container mx-auto px-4 py-8">

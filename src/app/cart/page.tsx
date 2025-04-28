@@ -3,14 +3,12 @@
 import { useState, useEffect } from "react";
 import { useRouter } from "next/navigation";
 import Link from "next/link";
-import Header from "@/components/Header";
-import Footer from "@/components/Footer";
+import { Header, Footer, SelectionControls } from "@/components";
 import { isAuthenticated, getCurrentUser } from "@/lib/auth";
 import cartService from "@/services/api/cart";
 import productService from "@/services/api/products";
 import { getProductImageUrl, handleProductImageError } from "@/utils/imageUtils";
 import { isProductInStock } from "@/utils/products";
-import SelectionControls from "@/components/SelectionControls";
 import { CartItem as ApiCartItem } from "@/types/apiResponses";
 
 // Extended cart item with product details

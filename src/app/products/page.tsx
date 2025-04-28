@@ -1,13 +1,11 @@
 "use client";
 import { useEffect, useState } from "react";
 import dynamic from "next/dynamic";
-import productService from '../../services/api/products';
-import type { Product, ProductsResponse } from '../../types/apiResponses';
-import Header from "../../components/Header";
-import Footer from "../../components/Footer";
-import { getImageUrl, handleImageError } from '../../utils/imageUtils';
-import useDebounce from '../../utils/hooks/useDebounce';
-const LoginForm = dynamic(() => import("../../components/LoginForm"), { ssr: false });
+import productService from '@/services/api/products';
+import type { Product, ProductsResponse } from '@/types/apiResponses';
+import { Header, Footer, LoginForm } from '@/components';
+import { getImageUrl, handleImageError } from '@/utils/imageUtils';
+import useDebounce from '@/utils/hooks/useDebounce';
 
 export default function ProductsPage() {
   const [products, setProducts] = useState<Product[]>([]);

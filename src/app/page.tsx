@@ -3,16 +3,20 @@ import "./globals.css";
 import "./animations.css";
 import { useState, useEffect } from "react";
 import { useRouter } from "next/navigation";
-import HeroSection from "@/components/HeroSection";
-import Footer from "@/components/Footer";
-import SellerModal from "@/components/SellerModal";
-import TestimonialsAndPress from "@/components/TestimonialsAndPress";
-import ProblemStatement from "@/components/ProblemStatement";
-import SolutionSection from "@/components/SolutionSection";
-import FeaturesSection from "@/components/FeaturesSection";
-import HowItWorks from "@/components/HowItWorks";
-import RegisterModal from "@/components/RegisterModal";
-import Header from "@/components/Header";
+
+// Import components using the centralized exports
+import { 
+  Header, 
+  Footer,
+  HeroSection,
+  RegisterModal,
+  SellerModal,
+  TestimonialsAndPress,
+  ProblemStatement,
+  SolutionSection,
+  FeaturesSection,
+  HowItWorks 
+} from "@/components";
 
 export default function Home() {
     const router = useRouter();

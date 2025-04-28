@@ -2,9 +2,9 @@
 
 import React, { useEffect, useState } from "react";
 import { createPortal } from "react-dom";
-import RegisterForm from "./RegisterForm";
-import { AuthUser } from "../lib/auth";
-import { RegisterFormData } from "../lib/validations";
+import { RegisterForm } from "@/components";
+import { AuthUser } from "@/lib/auth";
+import { RegisterFormData } from "@/lib/validations";
 
 interface RegisterModalProps {
   show: boolean;

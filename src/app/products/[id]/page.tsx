@@ -4,12 +4,11 @@ import { useEffect, useState } from "react";
 import { useParams, useRouter } from "next/navigation";
 import Image from "next/image";
 import Link from "next/link";
-import productService from '../../../services/api/products';
-import cartService from '../../../services/api/cart';
-import type { Product } from '../../../types/apiResponses';
-import Header from "../../../components/Header";
-import Footer from "../../../components/Footer";
-import { getImageUrl, handleImageError } from '../../../utils/imageUtils';
+import productService from '@/services/api/products';
+import cartService from '@/services/api/cart';
+import type { Product } from '@/types/apiResponses';
+import { Header, Footer } from '@/components';
+import { getImageUrl, handleImageError } from '@/utils/imageUtils';
 
 export default function ProductDetail() {
   const params = useParams();

@@ -1,11 +1,11 @@
 "use client";
 
 import React, { useState } from "react";
-import BackToHomeButton from "./BackToHomeButton";
+import { BackToHomeButton } from "../index";
 import { z } from "zod";
-import { loginSchema, LoginFormData } from "../lib/schemas/auth";
-import { authService } from "../services/api/auth";
-import { storeAuthData } from "../lib/auth";
+import { loginSchema, LoginFormData } from "@/lib/schemas/auth";
+import { authService } from "@/services/api/auth";
+import { storeAuthData } from "@/lib/auth";
 import { useRouter } from "next/navigation";
 
 interface LoginFormProps {
