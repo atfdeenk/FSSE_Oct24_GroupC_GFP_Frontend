@@ -16,47 +16,68 @@ export default function ProductsPage() {
   const [sort, setSort] = useState('');
   const [page, setPage] = useState(1);
   const [loading, setLoading] = useState(false);
+  const [totalProducts, setTotalProducts] = useState(0);
+  const [totalPages, setTotalPages] = useState(1);
   
   // Debounce search input to prevent excessive filtering on every keystroke
   const debouncedSearch = useDebounce(searchInput, 300);
   const pageSize = 8;
 
-  useEffect(() => {
+  // Fetch products with pagination and filtering
+  const fetchProducts = async () => {
     setLoading(true);
-    productService.getProducts()
-      .then(response => {
-        if (response && response.products) {
-          setProducts(response.products || []);
-        } else {
-          setError('Failed to load products.');
+    try {
+      // Prepare filters for API call
+      const filters: any = {
+        page,
+        limit: pageSize
+      };
+      
+      // Add search filter if present
+      if (debouncedSearch) {
+        filters.search = debouncedSearch;
+      }
+      
+      // Add sorting if selected
+      if (sort) {
+        if (sort === 'name') {
+          filters.sort_by = 'name';
+          filters.sort_order = 'asc';
+        } else if (sort === 'priceLow') {
+          filters.sort_by = 'price';
+          filters.sort_order = 'asc';
+        } else if (sort === 'priceHigh') {
+          filters.sort_by = 'price';
+          filters.sort_order = 'desc';
         }
-      })
-      .catch(e => {
-        setError(e?.message || 'Failed to load products.');
-        console.error('Error loading products:', e);
-      })
-      .finally(() => {
-        setLoading(false);
-      });
-  }, []);
+      }
+      
+      const response = await productService.getProducts(filters);
+      
+      if (response && response.products) {
+        setProducts(response.products || []);
+        setTotalProducts(response.total || 0);
+        setTotalPages(Math.ceil((response.total || 0) / pageSize));
+      } else {
+        setError('Failed to load products.');
+      }
+    } catch (e: any) {
+      setError(e?.message || 'Failed to load products.');
+      console.error('Error loading products:', e);
+    } finally {
+      setLoading(false);
+    }
+  };
+  
+  // Fetch products when page, sort, or search changes
+  useEffect(() => {
+    fetchProducts();
+  }, [page, sort, debouncedSearch]);
 
-  // Filter products based on debounced search value
-  const filteredProducts = products.filter(product =>
-    product.name.toLowerCase().includes(debouncedSearch.toLowerCase()) ||
-    product.description.toLowerCase().includes(debouncedSearch.toLowerCase())
-  );
-
-  // Sort
-  const sortedProducts = [...filteredProducts].sort((a, b) => {
-    if (sort === 'name') return a.name.localeCompare(b.name);
-    if (sort === 'priceLow') return a.price - b.price;
-    if (sort === 'priceHigh') return b.price - a.price;
-    return 0;
-  });
-
-  // Pagination
-  const paginatedProducts = sortedProducts.slice((page - 1) * pageSize, page * pageSize);
-  const totalPages = Math.ceil(filteredProducts.length / pageSize);
+  // Reset to page 1 when search changes
+  useEffect(() => {
+    setPage(1);
+  }, [debouncedSearch]);
 
   return (
     <div className="min-h-screen bg-black text-white">
@@ -135,7 +156,7 @@ export default function ProductsPage() {
             <button
               className="w-10 h-10 flex items-center justify-center rounded-sm bg-amber-500/10 text-amber-500 border border-amber-500/20 hover:bg-amber-500/20 disabled:opacity-30 disabled:hover:bg-amber-500/10 transition-colors"
               onClick={() => setPage(p => p + 1)}
-              disabled={page * pageSize >= filteredProducts.length}
+              disabled={page >= totalPages || loading}
             >
               <svg className="w-5 h-5" fill="none" viewBox="0 0 24 24" stroke="currentColor">
                 <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M9 5l7 7-7 7" />
@@ -145,8 +166,14 @@ export default function ProductsPage() {
         </div>
 
         {/* Products grid */}
-        <div className="grid gap-8 grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4">
-          {paginatedProducts.map(product => (
+        <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4 gap-6">
+          {loading && products.length === 0 && (
+            <div className="col-span-full flex justify-center py-20">
+              <div className="animate-spin rounded-full h-12 w-12 border-t-2 border-b-2 border-amber-500"></div>
+            </div>
+          )}
+          
+          {products.map(product => (
             <a
               key={product.id}
               href={`/products/${product.id}`}
@@ -189,7 +216,7 @@ export default function ProductsPage() {
         </div>
 
         {/* Empty state */}
-        {filteredProducts.length === 0 && !loading && (
+        {products.length === 0 && !loading && (
           <div className="text-center py-16">
             <svg className="w-16 h-16 mx-auto text-white/20 mb-4" fill="none" viewBox="0 0 24 24" stroke="currentColor">
               <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={1} d="M3 3h2l.4 2M7 13h10l4-8H5.4M7 13L5.4 5M7 13l-2.293 2.293c-.63.63-.184 1.707.707 1.707H17m0 0a2 2 0 100 4 2 2 0 000-4zm-8 2a2 2 0 11-4 0 2 2 0 014 0z" />
@@ -200,23 +227,28 @@ export default function ProductsPage() {
         )}
 
         {/* Bottom pagination for mobile */}
-        {filteredProducts.length > 0 && (
+        {products.length > 0 && (
           <div className="flex justify-center mt-12">
             <div className="flex items-center space-x-4">
               <button
                 className="w-10 h-10 flex items-center justify-center rounded-sm bg-amber-500/10 text-amber-500 border border-amber-500/20 hover:bg-amber-500/20 disabled:opacity-30 disabled:hover:bg-amber-500/10 transition-colors"
                 onClick={() => setPage(p => Math.max(1, p - 1))}
-                disabled={page === 1}
+                disabled={page === 1 || loading}
               >
                 <svg className="w-5 h-5" fill="none" viewBox="0 0 24 24" stroke="currentColor">
                   <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M15 19l-7-7 7-7" />
                 </svg>
               </button>
-              <span className="text-white/70">Page {page} of {totalPages || 1}</span>
+              <span className="text-white/70">
+                Page {page} of {totalPages || 1}
+                {totalProducts > 0 && (
+                  <span className="ml-2 text-white/50 text-xs">({totalProducts} items)</span>
+                )}
+              </span>
               <button
                 className="w-10 h-10 flex items-center justify-center rounded-sm bg-amber-500/10 text-amber-500 border border-amber-500/20 hover:bg-amber-500/20 disabled:opacity-30 disabled:hover:bg-amber-500/10 transition-colors"
                 onClick={() => setPage(p => p + 1)}
-                disabled={page * pageSize >= filteredProducts.length}
+                disabled={page >= totalPages || loading}
               >
                 <svg className="w-5 h-5" fill="none" viewBox="0 0 24 24" stroke="currentColor">
                   <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M9 5l7 7-7 7" />
