@@ -21,10 +21,10 @@ export default function ProductsPage() {
     setLoading(true);
     productService.getProducts()
       .then(response => {
-        if (response.products) {
+        if (response && response.products) {
           setProducts(response.products || []);
         } else {
-          setError(response.message || 'Failed to load products.');
+          setError('Failed to load products.');
         }
       })
       .catch(e => {

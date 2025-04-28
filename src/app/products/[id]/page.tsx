@@ -30,11 +30,15 @@ export default function ProductDetail() {
         if (!res) throw new Error("Product not found");
         setProduct(res);
         // Fetch related products
-        return productService.getProducts();
+        return productService.getProducts({ limit: 4 });
       })
       .then((res) => {
         // Filter out current product and get 3 random products
-        if (!res || !res.products) throw new Error("Failed to load related products");
+        if (!res || !res.products) {
+          // Handle empty response gracefully
+          setRelatedProducts([]);
+          return;
+        }
         const otherProducts = res.products.filter(
           (p: Product) => p.id !== parseInt(productId, 10)
         );
@@ -44,6 +48,7 @@ export default function ProductDetail() {
         setRelatedProducts(randomProducts);
       })
       .catch((error: any) => {
+        console.error('Error loading product:', error);
         setError(error?.message || "Failed to load product.");
       })
       .finally(() => {
@@ -52,7 +57,8 @@ export default function ProductDetail() {
   }, [params?.id]);
 
   const handleAddToCart = () => {
-    // Mock implementation - would connect to cart API
+    // TODO: Implement real cart API integration
+    // This would use cartService.addToCart() in a real implementation
     alert(`Added ${quantity} ${product?.name} to cart`);
   };
 

@@ -50,9 +50,21 @@ export const API_CONFIG = {
     
     // Cart endpoints
     cart: {
-      get: '/cart',
-      items: '/cart/items',
-      item: (id: string | number) => `/cart/items/${id}`
+      get: '/cart',  // GET for retrieving cart
+      add: '/cart/items', // POST for adding items
+      items: '/cart/items', // GET for retrieving cart items, POST for adding items
+      item: (id: string | number) => `/cart/items/${id}`, // PATCH for updating, DELETE for removing
+      update: (id: string | number) => `/cart/items/${id}`, // PATCH for updating
+      delete: (id: string | number) => `/cart/items/${id}` // DELETE for removing
+    },
+
+    // Wishlist endpoints
+    wishlist: {
+      list: '/wishlist/',  // GET for retrieving wishlist
+      add: '/wishlist/add', // POST for adding items
+      remove: '/wishlist/remove', // POST for removing items
+      clear: '/wishlist/clear', // POST for clearing wishlist
+      item: (id: string | number) => `/wishlist/${id}` // DELETE for removing specific item
     },
     
     // Feedback/review endpoints

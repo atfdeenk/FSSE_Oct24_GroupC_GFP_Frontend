@@ -1,6 +1,7 @@
 // src/services/api/auth.ts
 import axiosInstance from './axios';
 import { API_CONFIG } from './config';
+import { User, LoginResponse, RegisterResponse } from '../../types/apiResponses';
 
 // Types for authentication
 export interface LoginCredentials {
@@ -14,16 +15,6 @@ export interface RegisterData {
   first_name: string;
   last_name: string;
   role: 'customer' | 'vendor';
-}
-
-export interface User {
-  id: number;
-  email: string;
-  first_name: string;
-  last_name: string;
-  role: string;
-  created_at: string;
-  updated_at: string;
 }
 
 export interface AuthResponse {
@@ -40,8 +31,8 @@ export const authService = {
   // Login user
   login: async (credentials: LoginCredentials) => {
     try {
-      // Real API call
-      const response = await axiosInstance.post<{ access_token: string }>(
+      // Real API call to login endpoint
+      const response = await axiosInstance.post<LoginResponse>(
         API_CONFIG.ENDPOINTS.auth.login, 
         credentials
       );
@@ -51,20 +42,51 @@ export const authService = {
         if (typeof window !== 'undefined') {
           localStorage.setItem('token', response.data.access_token);
         }
+        
+        try {
+          // Fetch user profile after successful login
+          const userResponse = await axiosInstance.get<User>(API_CONFIG.ENDPOINTS.auth.me);
+          
+          return {
+            success: true,
+            data: {
+              token: response.data.access_token,
+              user: userResponse.data
+            },
+            message: response.data.msg || 'Login successful'
+          };
+        } catch (profileError) {
+          console.error('Error fetching user profile after login:', profileError);
+          // Return success with token but without user data
+          return {
+            success: true,
+            data: {
+              token: response.data.access_token,
+              user: null
+            },
+            message: response.data.msg || 'Login successful, but unable to fetch user profile'
+          };
+        }
+      } else {
+        return {
+          success: false,
+          data: {
+            token: '',
+            user: null
+          },
+          message: 'Invalid login response from server'
+        };
       }
-      
+    } catch (error: any) {
+      console.error('Login error:', error);
       return {
-        success: true,
+        success: false,
         data: {
-          token: response.data.access_token,
-          // We'll need to fetch user data separately since it's not included in the login response
+          token: '',
           user: null
         },
-        message: 'Login successful'
+        message: error?.response?.data?.msg || error?.message || 'Login failed'
       };
-    } catch (error) {
-      console.error('Login error:', error);
-      throw error;
     }
   },
   
@@ -72,38 +94,73 @@ export const authService = {
   register: async (userData: RegisterData) => {
     try {
       // Real API call
-      const response = await axiosInstance.post(
+      const response = await axiosInstance.post<RegisterResponse>(
         API_CONFIG.ENDPOINTS.auth.register, 
         userData
       );
       
-      return response.data;
-    } catch (error) {
+      return {
+        success: true,
+        message: response.data.msg || 'Registration successful'
+      };
+    } catch (error: any) {
       console.error('Registration error:', error);
-      throw error;
+      return {
+        success: false,
+        message: error?.response?.data?.msg || error?.message || 'Registration failed'
+      };
     }
   },
   
   // Get current user profile
-  getProfile: async () => {
+  getProfile: async (): Promise<User | null> => {
     try {
       // Real API call
       const response = await axiosInstance.get<User>(API_CONFIG.ENDPOINTS.auth.me);
-      // The /me endpoint returns the user object directly, not wrapped in a response object
       return response.data;
-    } catch (error) {
+    } catch (error: any) {
       console.error('Get profile error:', error);
-      throw error;
+      return null;
+    }
+  },
+  
+  // Get user by ID
+  getUserById: async (id: string | number): Promise<User | null> => {
+    try {
+      const response = await axiosInstance.get<User>(
+        API_CONFIG.ENDPOINTS.auth.user(id)
+      );
+      return response.data;
+    } catch (error: any) {
+      console.error(`Get user ${id} error:`, error);
+      return null;
+    }
+  },
+  
+  // Get all users (admin only)
+  getUsers: async (): Promise<User[]> => {
+    try {
+      const response = await axiosInstance.get<User[]>(
+        API_CONFIG.ENDPOINTS.auth.users
+      );
+      return response.data;
+    } catch (error: any) {
+      console.error('Get users error:', error);
+      return [];
     }
   },
   
   // Logout user
   logout: () => {
-    localStorage.removeItem('token');
+    if (typeof window !== 'undefined') {
+      localStorage.removeItem('token');
+      localStorage.removeItem('user');
+    }
   },
   
   // Check if user is authenticated
   isAuthenticated: () => {
+    if (typeof window === 'undefined') return false;
     return !!localStorage.getItem('token');
   }
 };

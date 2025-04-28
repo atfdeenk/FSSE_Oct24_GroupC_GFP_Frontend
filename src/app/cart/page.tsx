@@ -5,22 +5,24 @@ import { useRouter } from "next/navigation";
 import Link from "next/link";
 import Header from "@/components/Header";
 import Footer from "@/components/Footer";
-import { isAuthenticated } from "@/lib/auth";
+import { isAuthenticated, getCurrentUser } from "@/lib/auth";
+import cartService from "@/services/api/cart";
+import productService from "@/services/api/products";
+import { getProductImageUrl, handleProductImageError } from "@/utils/imageUtils";
+import { CartItem as ApiCartItem } from "@/types/apiResponses";
 
-// Mock cart data
-interface CartItem {
-  id: number;
-  productId: number;
-  name: string;
-  price: number;
-  quantity: number;
-  image: string;
-  seller: string;
+// Extended cart item with product details
+interface CartItemWithDetails extends ApiCartItem {
+  name?: string;
+  image_url?: string;
+  seller?: string;
+  unit_price: number;
+  product_id: number | string;
 }
 
 export default function CartPage() {
   const router = useRouter();
-  const [cartItems, setCartItems] = useState<CartItem[]>([]);
+  const [cartItems, setCartItems] = useState<CartItemWithDetails[]>([]);
   const [loading, setLoading] = useState(true);
   const [promoCode, setPromoCode] = useState("");
   const [promoDiscount, setPromoDiscount] = useState(0);
@@ -33,37 +35,60 @@ export default function CartPage() {
       return;
     }
 
-    // Simulate API call to get cart items
+    // Fetch cart items from API
     const fetchCart = async () => {
       setLoading(true);
       try {
-        // In a real app, we would fetch from an API
-        // For now, we'll use mock data
-        setTimeout(() => {
-          setCartItems([
-            {
-              id: 1,
-              productId: 101,
-              name: "Arabica Premium Beans",
-              price: 120000,
-              quantity: 2,
-              image: "https://images.unsplash.com/photo-1559056199-641a0ac8b55e?q=80&w=300",
-              seller: "Java Coffee Co."
-            },
-            {
-              id: 2,
-              productId: 203,
-              name: "Robusta Dark Roast",
-              price: 85000,
-              quantity: 1,
-              image: "https://images.unsplash.com/photo-1514432324607-a09d9b4aefdd?q=80&w=300",
-              seller: "Bali Bean Farmers"
-            }
-          ]);
-          setLoading(false);
-        }, 800);
+        console.log('Fetching cart...');
+        const cartResponse = await cartService.getCart();
+        console.log('Cart response:', cartResponse);
+        
+        // If cart is empty, we'll just show the empty state
+        if (!cartResponse?.data?.items?.length) {
+          console.log('Cart is empty');
+        }
+        
+        if (cartResponse && cartResponse.data && cartResponse.data.items && cartResponse.data.items.length > 0) {
+          console.log('Processing cart items:', cartResponse.data.items);
+          // Fetch product details for each cart item
+          const itemsWithDetails = await Promise.all(
+            cartResponse.data.items.map(async (item) => {
+              try {
+                console.log('Fetching product details for:', item.product_id);
+                const product = await productService.getProduct(item.product_id);
+                console.log('Product details:', product);
+                return {
+                  ...item,
+                  name: product?.name || 'Product not found',
+                  image_url: product?.image_url || '',
+                  seller: `Vendor ID: ${product?.vendor_id || 'Unknown'}`,
+                  unit_price: item.price || 0,
+                  product_id: item.product_id
+                };
+              } catch (error) {
+                console.error(`Error fetching product ${item.product_id}:`, error);
+                return {
+                  ...item,
+                  name: 'Product not found',
+                  image_url: '',
+                  seller: 'Unknown vendor',
+                  unit_price: item.price || 0,
+                  product_id: item.product_id
+                };
+              }
+            })
+          );
+          
+          console.log('Setting cart items:', itemsWithDetails);
+          setCartItems(itemsWithDetails);
+        } else {
+          console.log('No cart items found');
+          setCartItems([]);
+        }
       } catch (error) {
         console.error("Error fetching cart:", error);
+        setCartItems([]);
+      } finally {
         setLoading(false);
       }
     };
@@ -71,18 +96,38 @@ export default function CartPage() {
     fetchCart();
   }, [router]);
 
-  const updateQuantity = (id: number, newQuantity: number) => {
+  const updateQuantity = async (id: number | string, newQuantity: number) => {
     if (newQuantity < 1) return;
     
-    setCartItems(prevItems => 
-      prevItems.map(item => 
-        item.id === id ? { ...item, quantity: newQuantity } : item
-      )
-    );
+    try {
+      setLoading(true);
+      await cartService.updateCartItem(id, { quantity: newQuantity });
+      
+      // Update local state
+      setCartItems(prevItems => 
+        prevItems.map(item => 
+          item.id === id ? { ...item, quantity: newQuantity } : item
+        )
+      );
+    } catch (error) {
+      console.error(`Error updating quantity for item ${id}:`, error);
+    } finally {
+      setLoading(false);
+    }
   };
 
-  const removeItem = (id: number) => {
-    setCartItems(prevItems => prevItems.filter(item => item.id !== id));
+  const removeItem = async (id: number | string) => {
+    try {
+      setLoading(true);
+      await cartService.removeFromCart(id);
+      
+      // Update local state
+      setCartItems(prevItems => prevItems.filter(item => item.id !== id));
+    } catch (error) {
+      console.error(`Error removing item ${id} from cart:`, error);
+    } finally {
+      setLoading(false);
+    }
   };
 
   const applyPromoCode = () => {
@@ -99,7 +144,12 @@ export default function CartPage() {
     }
   };
 
-  const subtotal = cartItems.reduce((sum, item) => sum + (item.price * item.quantity), 0);
+  // Calculate subtotal from cart items
+  const subtotal = cartItems.reduce((sum, item) => {
+    const price = typeof item.unit_price === 'number' ? item.unit_price : 0;
+    const quantity = typeof item.quantity === 'number' ? item.quantity : 0;
+    return sum + (price * quantity);
+  }, 0);
   const discount = subtotal * (promoDiscount / 100);
   const total = subtotal - discount;
 
@@ -153,20 +203,21 @@ export default function CartPage() {
                 <ul className="divide-y divide-white/10">
                   {cartItems.map(item => (
                     <li key={item.id} className="p-6 flex flex-col sm:flex-row items-start sm:items-center">
-                      <div className="w-20 h-20 rounded-sm overflow-hidden mr-6 mb-4 sm:mb-0 flex-shrink-0 border border-white/10">
+                      <div className="flex-shrink-0 w-24 h-24 bg-neutral-800 rounded-sm overflow-hidden">
                         <img 
-                          src={item.image} 
-                          alt={item.name} 
+                          src={getProductImageUrl(item.image_url)} 
+                          alt={item.name || 'Product'}
                           className="w-full h-full object-cover"
+                          onError={handleProductImageError}
                         />
                       </div>
                       
                       <div className="flex-grow">
-                        <Link href={`/products/${item.productId}`} className="text-white font-medium hover:text-amber-400 transition-colors">
-                          {item.name}
+                        <Link href={`/products/${item.product_id}`} className="text-white font-medium hover:text-amber-400 transition-colors">
+                          <h3 className="font-medium text-white">{item.name || 'Product'}</h3>
                         </Link>
-                        <p className="text-white/60 text-sm mb-2">Seller: {item.seller}</p>
-                        <p className="text-amber-500 font-bold">{formatCurrency(item.price)}</p>
+                        <p className="text-white/60 text-sm">Seller: {item.seller || 'Unknown vendor'}</p>
+                        <div className="text-amber-500 font-mono">{formatCurrency(item.unit_price || 0)}</div>
                       </div>
                       
                       <div className="flex items-center mt-4 sm:mt-0">

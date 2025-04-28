@@ -5,13 +5,17 @@ import BackToHomeButton from "./BackToHomeButton";
 import { z } from "zod";
 import { loginSchema, LoginFormData } from "../lib/schemas/auth";
 import { authService } from "../services/api/auth";
+import { storeAuthData } from "../lib/auth";
+import { useRouter } from "next/navigation";
 
 interface LoginFormProps {
-  onLogin: (userData: any) => void;
+  onLogin?: (userData: any) => void;
   error?: string;
+  redirectUrl?: string;
 }
 
-export default function LoginForm({ onLogin, error }: LoginFormProps) {
+export default function LoginForm({ onLogin, error, redirectUrl = "/" }: LoginFormProps) {
+  const router = useRouter();
   const [showPassword, setShowPassword] = useState(false);
   const [formData, setFormData] = useState<LoginFormData>({
     email: "",
@@ -20,6 +24,17 @@ export default function LoginForm({ onLogin, error }: LoginFormProps) {
   const [loading, setLoading] = useState(false);
   const [formError, setFormError] = useState<string | null>(null);
   const [validationErrors, setValidationErrors] = useState<Record<string, string>>({});
+
+  // Pre-fill with test credentials for development
+  const fillTestCredentials = (role: 'admin' | 'vendor' | 'customer') => {
+    const credentials = {
+      admin: { email: "admintest1@example.com", password: "adminpass123" },
+      vendor: { email: "vendortest1@example.com", password: "pass123" },
+      customer: { email: "customertest1@example.com", password: "customerpass123" },
+    };
+    
+    setFormData(credentials[role]);
+  };
 
   const handleChange = (e: React.ChangeEvent<HTMLInputElement>) => {
     const { name, value } = e.target;
@@ -80,7 +95,18 @@ export default function LoginForm({ onLogin, error }: LoginFormProps) {
       
       // Our auth service now always returns a success property
       if (response.success) {
-        onLogin(response.data);
+        // Store the auth data
+        if (response.data.user && response.data.token) {
+          storeAuthData(response.data.user, response.data.token);
+        }
+        
+        // Call the onLogin callback if provided
+        if (onLogin) {
+          onLogin(response.data);
+        } else {
+          // Otherwise, redirect to the specified URL
+          router.push(redirectUrl);
+        }
       } else {
         setFormError(response.message || "Login failed. Please check your credentials.");
       }
@@ -108,6 +134,31 @@ export default function LoginForm({ onLogin, error }: LoginFormProps) {
       <div className="text-center mb-8">
         <h2 className="text-2xl font-bold text-white mb-2">Welcome Back</h2>
         <p className="text-white/60">Sign in to your account to continue</p>
+      </div>
+      
+      {/* Quick login buttons for testing */}
+      <div className="mb-6 flex flex-wrap gap-2 justify-center">
+        <button 
+          type="button" 
+          onClick={() => fillTestCredentials('admin')} 
+          className="text-xs px-2 py-1 bg-purple-900/50 text-purple-300 rounded hover:bg-purple-800/50"
+        >
+          Admin Test
+        </button>
+        <button 
+          type="button" 
+          onClick={() => fillTestCredentials('vendor')} 
+          className="text-xs px-2 py-1 bg-amber-900/50 text-amber-300 rounded hover:bg-amber-800/50"
+        >
+          Vendor Test
+        </button>
+        <button 
+          type="button" 
+          onClick={() => fillTestCredentials('customer')} 
+          className="text-xs px-2 py-1 bg-green-900/50 text-green-300 rounded hover:bg-green-800/50"
+        >
+          Customer Test
+        </button>
       </div>
       
       {(formError || error) && (

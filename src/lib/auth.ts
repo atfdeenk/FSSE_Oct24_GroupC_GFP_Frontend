@@ -22,15 +22,41 @@ export const isAuthenticated = (): boolean => {
 /**
  * Get the current authenticated user
  */
-export const getCurrentUser = (): AuthUser | null => {
+export const getCurrentUser = async (): Promise<AuthUser | null> => {
   if (typeof window === 'undefined') return null;
   
   try {
-    // Get user data from localStorage
+    // First try to get user data from localStorage
     const userData = localStorage.getItem('user');
-    if (!userData) return null;
+    const token = localStorage.getItem('token');
     
-    return JSON.parse(userData) as AuthUser;
+    if (userData && token) {
+      try {
+        // Return cached user data
+        return JSON.parse(userData) as AuthUser;
+      } catch (parseError) {
+        console.error('Error parsing user data:', parseError);
+      }
+    }
+    
+    // If no valid user data in localStorage but we have a token, fetch from API
+    if (token) {
+      try {
+        const user = await authService.getProfile();
+        if (user) {
+          // Store the fresh user data
+          const authUser: AuthUser = { ...user, token };
+          storeAuthData(authUser, token);
+          return authUser;
+        }
+      } catch (apiError) {
+        console.error('Error fetching user profile:', apiError);
+        // If API call fails, token might be invalid
+        logout();
+      }
+    }
+    
+    return null;
   } catch (error) {
     console.error('Error getting current user:', error);
     return null;
@@ -59,13 +85,16 @@ export const logout = (): void => {
 /**
  * Store authentication data
  */
-export const storeAuthData = (userData: AuthUser, token: string): void => {
+export const storeAuthData = (userData: AuthUser | User, token: string): void => {
   if (typeof window === 'undefined') return;
   
   try {
+    // Create a proper AuthUser object
+    const authUser: AuthUser = { ...userData, token };
+    
     // Store token and user data in localStorage and cookies
     localStorage.setItem('token', token);
-    localStorage.setItem('user', JSON.stringify(userData));
+    localStorage.setItem('user', JSON.stringify(authUser));
     
     // Also store token in cookies for middleware access
     setCookie('token', token, 7); // 7 days expiry
@@ -90,9 +119,14 @@ export const getToken = (): string | null => {
 };
 
 /**
- * Get the user role from the token
+ * Get the user role from the current user or token
  */
 export const getUserRole = (): string | null => {
+  // First try to get role from current user
+  const user = typeof window !== 'undefined' ? JSON.parse(localStorage.getItem('user') || '{}') : null;
+  if (user?.role) return user.role;
+  
+  // If not available, try to decode from token
   const token = getToken();
   if (!token) return null;
   
@@ -106,11 +140,26 @@ export const getUserRole = (): string | null => {
   }
 };
 
+/**
+ * Check if the current user has a specific role
+ */
+export const hasRole = (role: string | string[]): boolean => {
+  const userRole = getUserRole();
+  if (!userRole) return false;
+  
+  if (Array.isArray(role)) {
+    return role.includes(userRole);
+  }
+  
+  return userRole === role;
+};
+
 export default {
   isAuthenticated,
   getCurrentUser,
   logout,
   storeAuthData,
   getToken,
-  getUserRole
+  getUserRole,
+  hasRole
 };
