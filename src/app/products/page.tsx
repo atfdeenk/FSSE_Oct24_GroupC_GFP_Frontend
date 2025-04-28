@@ -6,15 +6,19 @@ import type { Product, ProductsResponse } from '../../types/apiResponses';
 import Header from "../../components/Header";
 import Footer from "../../components/Footer";
 import { getImageUrl, handleImageError } from '../../utils/imageUtils';
+import useDebounce from '../../utils/hooks/useDebounce';
 const LoginForm = dynamic(() => import("../../components/LoginForm"), { ssr: false });
 
 export default function ProductsPage() {
   const [products, setProducts] = useState<Product[]>([]);
   const [error, setError] = useState('');
-  const [search, setSearch] = useState('');
+  const [searchInput, setSearchInput] = useState('');
   const [sort, setSort] = useState('');
   const [page, setPage] = useState(1);
   const [loading, setLoading] = useState(false);
+  
+  // Debounce search input to prevent excessive filtering on every keystroke
+  const debouncedSearch = useDebounce(searchInput, 300);
   const pageSize = 8;
 
   useEffect(() => {
@@ -36,10 +40,10 @@ export default function ProductsPage() {
       });
   }, []);
 
-  // Filter
+  // Filter products based on debounced search value
   const filteredProducts = products.filter(product =>
-    product.name.toLowerCase().includes(search.toLowerCase()) ||
-    product.description.toLowerCase().includes(search.toLowerCase())
+    product.name.toLowerCase().includes(debouncedSearch.toLowerCase()) ||
+    product.description.toLowerCase().includes(debouncedSearch.toLowerCase())
   );
 
   // Sort
@@ -85,9 +89,17 @@ export default function ProductsPage() {
               type="text"
               placeholder="Search products..."
               className="w-full bg-black/50 border border-white/10 rounded-sm px-4 py-3 focus:outline-none focus:border-amber-500/50 text-white placeholder-white/40"
-              value={search}
-              onChange={e => setSearch(e.target.value)}
+              value={searchInput}
+              onChange={e => setSearchInput(e.target.value)}
             />
+            {searchInput !== debouncedSearch && (
+              <span className="absolute right-10 top-3.5 w-4 h-4">
+                <svg className="animate-spin text-amber-500/50" xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24">
+                  <circle className="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" strokeWidth="4"></circle>
+                  <path className="opacity-75" fill="currentColor" d="M4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4zm2 5.291A7.962 7.962 0 014 12H0c0 3.042 1.135 5.824 3 7.938l3-2.647z"></path>
+                </svg>
+              </span>
+            )}
             <svg className="absolute right-3 top-3.5 w-5 h-5 text-white/40" fill="none" viewBox="0 0 24 24" stroke="currentColor">
               <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M21 21l-6-6m2-5a7 7 0 11-14 0 7 7 0 0114 0z" />
             </svg>
@@ -177,7 +189,7 @@ export default function ProductsPage() {
         </div>
 
         {/* Empty state */}
-        {filteredProducts.length === 0 && (
+        {filteredProducts.length === 0 && !loading && (
           <div className="text-center py-16">
             <svg className="w-16 h-16 mx-auto text-white/20 mb-4" fill="none" viewBox="0 0 24 24" stroke="currentColor">
               <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={1} d="M3 3h2l.4 2M7 13h10l4-8H5.4M7 13L5.4 5M7 13l-2.293 2.293c-.63.63-.184 1.707.707 1.707H17m0 0a2 2 0 100 4 2 2 0 000-4zm-8 2a2 2 0 11-4 0 2 2 0 014 0z" />
