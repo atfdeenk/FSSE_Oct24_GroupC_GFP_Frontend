@@ -2,6 +2,7 @@
 import { authService } from '../services/api/auth';
 import { User } from '../types/apiResponses';
 import { setCookie, getCookie, deleteCookie } from '../utils/cookies';
+import { TOKEN_EXPIRED_EVENT } from '../services/api/axios';
 
 // Define the AuthUser type
 export interface AuthUser extends User {
@@ -111,10 +112,50 @@ export const getToken = (): string | null => {
   
   try {
     // Get token from localStorage or cookies
-    return localStorage.getItem('token') || getCookie('token');
+    const token = localStorage.getItem('token') || getCookie('token');
+    
+    // Check if token is expired before returning
+    if (token && isTokenExpired(token)) {
+      // Token is expired, trigger logout
+      const event = new CustomEvent(TOKEN_EXPIRED_EVENT, {
+        detail: { message: 'Your session has expired. Please log in again.' }
+      });
+      window.dispatchEvent(event);
+      return null;
+    }
+    
+    return token;
   } catch (error) {
     console.error('Error getting token:', error);
     return null;
+  }
+};
+
+/**
+ * Check if a JWT token is expired
+ */
+export const isTokenExpired = (token: string): boolean => {
+  try {
+    // Extract the payload from the JWT token
+    const base64Url = token.split('.')[1];
+    if (!base64Url) return true;
+    
+    // Decode the base64 string
+    const base64 = base64Url.replace(/-/g, '+').replace(/_/g, '/');
+    const payload = JSON.parse(atob(base64));
+    
+    // Check if the token has an expiration claim
+    if (!payload.exp) return false;
+    
+    // Convert exp to milliseconds and compare with current time
+    const expirationTime = payload.exp * 1000; // Convert seconds to milliseconds
+    const currentTime = Date.now();
+    
+    return currentTime >= expirationTime;
+  } catch (error) {
+    console.error('Error checking token expiration:', error);
+    // If we can't parse the token, consider it expired for safety
+    return true;
   }
 };
 
@@ -161,5 +202,6 @@ export default {
   storeAuthData,
   getToken,
   getUserRole,
-  hasRole
+  hasRole,
+  isTokenExpired
 };

@@ -11,6 +11,8 @@ import productService from "@/services/api/products";
 import cartService from "@/services/api/cart";
 import { getProductImageUrl, handleProductImageError } from "@/utils/imageUtils";
 import { Product } from "@/types/apiResponses";
+import { isProductInStock, hasInStockProperty } from "@/utils/products";
+import SelectionControls from "@/components/SelectionControls";
 
 // Extended wishlist item with product details
 interface WishlistItemWithDetails extends WishlistItem {
@@ -56,13 +58,13 @@ export default function WishlistPage() {
               if (productResponse) {
                 return {
                   ...item,
-                  name: productResponse.name || 'Product not found',
-                  price: productResponse.price || 0,
-                  image_url: productResponse.image_url || '',
-                  seller: `Vendor ID: ${productResponse.vendor_id || 'Unknown'}`,
-                  inStock: (productResponse.stock_quantity || 0) > 0,
-                  category: 'Uncategorized',
-                  rating: 0
+                  name: productResponse.name,
+                  price: productResponse.price,
+                  image_url: productResponse.image_url,
+                  seller: productResponse.vendor_id.toString(),
+                  inStock: isProductInStock(productResponse),
+                  category: productResponse.categories?.[0]?.name,
+                  rating: 4.5 // Placeholder for now
                 };
               }
               return item;
@@ -78,6 +80,7 @@ export default function WishlistPage() {
         // Select all in-stock items by default
         const inStockItemIds = new Set(
           itemsWithDetails
+            .filter(hasInStockProperty)
             .filter(item => item.inStock)
             .map(item => item.id)
         );
@@ -368,16 +371,15 @@ export default function WishlistPage() {
                     </div>
                     
                     {/* Selection controls */}
-                    {wishlistItems.length > 0 && (
-                      <div className="flex items-center">
-                        <button 
-                          onClick={areAllItemsSelected ? clearAllSelections : selectAllItems}
-                          className="bg-neutral-800 hover:bg-neutral-700 border border-white/10 rounded-md px-4 py-2 text-sm transition-colors"
-                        >
-                          {areAllItemsSelected ? 'Deselect All' : 'Select All'}
-                        </button>
-                      </div>
-                    )}
+                    <div className="flex items-center">
+                      <SelectionControls
+                        onSelectAll={selectAllItems}
+                        onDeselectAll={clearAllSelections}
+                        selectedCount={selectedItems.size}
+                        totalCount={wishlistItems.length}
+                        buttonOnly={true}
+                      />
+                    </div>
                     
                     <button 
                       onClick={toggleOrderSummary}

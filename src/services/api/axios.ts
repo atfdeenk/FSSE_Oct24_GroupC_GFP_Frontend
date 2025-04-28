@@ -2,10 +2,13 @@
 import axios, { AxiosInstance, AxiosRequestConfig, AxiosResponse, AxiosError } from 'axios';
 import { API_CONFIG } from './config';
 
+// Event for token expiration to trigger logout across the app
+export const TOKEN_EXPIRED_EVENT = 'token-expired';
+
 // Create a custom Axios instance with default configuration
 const axiosInstance: AxiosInstance = axios.create({
   baseURL: API_CONFIG.BASE_URL,
-  timeout: API_CONFIG.TIMEOUTS.default,
+  timeout: API_CONFIG.TIMEOUTS.long,
   headers: API_CONFIG.HEADERS
 });
 
@@ -39,7 +42,6 @@ axiosInstance.interceptors.request.use(
 // Response interceptor for handling common responses
 axiosInstance.interceptors.response.use(
   (response: AxiosResponse) => {
-    // For frontend-only app, we can mock some responses here
     return response;
   },
   (error: AxiosError) => {
@@ -47,11 +49,26 @@ axiosInstance.interceptors.response.use(
     if (error.response) {
       const { status } = error.response;
       
-      // Handle authentication errors
+      // Handle authentication errors (unauthorized or token expired)
       if (status === 401) {
-        // Clear token and redirect to login
-        localStorage.removeItem('token');
-        // In a real app, you might want to redirect to login
+        // Clear authentication data
+        if (typeof window !== 'undefined') {
+          localStorage.removeItem('token');
+          localStorage.removeItem('user');
+          
+          // Dispatch token expired event to notify the app
+          const event = new CustomEvent(TOKEN_EXPIRED_EVENT, {
+            detail: { message: 'Your session has expired. Please log in again.' }
+          });
+          window.dispatchEvent(event);
+          
+          // Redirect to login if not already there
+          const currentPath = window.location.pathname;
+          if (!currentPath.includes('/login')) {
+            // Add redirect parameter to return after login
+            window.location.href = `/login?redirect=${encodeURIComponent(currentPath)}`;
+          }
+        }
       }
       
       // Log all errors

@@ -6,6 +6,7 @@ import { useRouter } from "next/navigation";
 import { isAuthenticated, getCurrentUser, logout, AuthUser } from "../lib/auth";
 import cartService from "../services/api/cart";
 import wishlistService from "../services/api/wishlist";
+import { TOKEN_EXPIRED_EVENT } from "../services/api/axios";
 
 export default function Header() {
   const router = useRouter();
@@ -38,6 +39,19 @@ export default function Header() {
     };
     
     initializeUser();
+    
+    // Listen for token expiration events
+    const handleTokenExpired = (event: CustomEvent) => {
+      console.log('Token expired event received:', event.detail);
+      handleLogout(true);
+    };
+    
+    window.addEventListener(TOKEN_EXPIRED_EVENT, handleTokenExpired as EventListener);
+    
+    // Clean up event listener
+    return () => {
+      window.removeEventListener(TOKEN_EXPIRED_EVENT, handleTokenExpired as EventListener);
+    };
   }, []);
   
   // Fetch cart count from API
@@ -78,14 +92,24 @@ export default function Header() {
     };
   }, []);
 
-  const handleLogout = () => {
+  // Handle logout with optional parameter for token expiration
+  const handleLogout = (isExpiredOrEvent: boolean | React.MouseEvent = false) => {
     logout();
     setIsLoggedIn(false);
     setUser(null);
     setCartCount(0);
     setWishlistCount(0);
     setShowUserMenu(false);
-    router.push("/");
+    
+    // Determine if this was triggered by token expiration
+    const isExpired = typeof isExpiredOrEvent === 'boolean' && isExpiredOrEvent;
+    
+    // If token expired, redirect to login with message
+    if (isExpired) {
+      router.push("/login?message=Your session has expired. Please log in again.");
+    } else {
+      router.push("/");
+    }
   };
 
   return (
