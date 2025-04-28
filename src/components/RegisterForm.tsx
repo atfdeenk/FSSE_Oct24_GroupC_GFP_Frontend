@@ -2,6 +2,7 @@
 
 import React, { useState } from "react";
 import authService, { RegisterData } from "../services/api/auth";
+import BackToHomeButton from "./BackToHomeButton";
 
 interface RegisterFormProps {
   onRegister: (userData: any) => void;
@@ -141,7 +142,8 @@ export default function RegisterForm({ onRegister, error, initialRole = 'custome
   };
 
   return (
-    <div className="bg-neutral-900/80 backdrop-blur-sm p-8 rounded-sm border border-white/10 w-full max-w-md mx-auto">
+    <div className="relative bg-neutral-900/80 backdrop-blur-sm p-8 rounded-sm border border-white/10 w-full max-w-md mx-auto">
+      <BackToHomeButton className="absolute left-4 top-4" />
       <div className="text-center mb-8">
         <h2 className="text-2xl font-bold text-white mb-2">Create Account</h2>
         <p className="text-white/60">Join our community of coffee enthusiasts</p>

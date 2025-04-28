@@ -1,6 +1,7 @@
 "use client";
 
 import React, { useState } from "react";
+import BackToHomeButton from "./BackToHomeButton";
 import { z } from "zod";
 import { loginSchema, LoginFormData } from "../lib/schemas/auth";
 import { authService } from "../services/api/auth";
@@ -102,7 +103,8 @@ export default function LoginForm({ onLogin, error }: LoginFormProps) {
   };
 
   return (
-    <form onSubmit={handleSubmit} className="bg-neutral-900/80 backdrop-blur-sm p-8 rounded-sm border border-white/10 w-full max-w-md mx-auto">
+    <form onSubmit={handleSubmit} className="relative bg-neutral-900/80 backdrop-blur-sm p-8 rounded-sm border border-white/10 w-full max-w-md mx-auto">
+      <BackToHomeButton className="absolute left-4 top-4" />
       <div className="text-center mb-8">
         <h2 className="text-2xl font-bold text-white mb-2">Welcome Back</h2>
         <p className="text-white/60">Sign in to your account to continue</p>
