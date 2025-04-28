@@ -7,7 +7,7 @@ import {
   ProductsResponse,
   AssignProductCategoryResponse,
   DeleteProductCategoryResponse
-} from '../../types/apiResponses';
+} from '@/types';
 
 // Types for product requests
 export interface ProductFilters {
@@ -74,7 +74,7 @@ const productService = {
       
       return responseData;
     } catch (error) {
-      console.error('Get products error:', error);
+      console.error('Get products error:', error); // TODO: Centralize this error message if reused elsewhere
       throw error;
     }
   },

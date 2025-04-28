@@ -1,16 +1,18 @@
 // src/utils/imageUtils.ts
 // Centralized utility functions for handling images across the application
-import { API_CONFIG } from '../services/api/config';
+import { API_CONFIG } from '@/services/api/config';
 
 // Define image types for different contexts
 export type ImageType = 'product' | 'category' | 'user' | 'banner';
 
 // Default placeholder images for each type
+import { PLACEHOLDER_IMAGE_URL, PLACEHOLDER_CATEGORY_IMAGE_URL, PLACEHOLDER_USER_IMAGE_URL, PLACEHOLDER_BANNER_IMAGE_URL } from '@/constants';
+
 const PLACEHOLDER_IMAGES: Record<ImageType, string> = {
-  product: '/images/placeholder-product.jpg',
-  category: '/images/placeholder-category.jpg',
-  user: '/images/placeholder-user.jpg',
-  banner: '/images/placeholder-banner.jpg'
+  product: PLACEHOLDER_IMAGE_URL,
+  category: PLACEHOLDER_CATEGORY_IMAGE_URL,
+  user: PLACEHOLDER_USER_IMAGE_URL,
+  banner: PLACEHOLDER_BANNER_IMAGE_URL
 };
 
 /**

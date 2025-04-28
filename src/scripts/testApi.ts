@@ -17,7 +17,7 @@ if (typeof window === 'undefined') {
   } as Storage;
 }
 
-import { authService, productService, categoryService, orderService, cartService, feedbackService } from '../services/api';
+import { authService, productService, categoryService, orderService, cartService, feedbackService } from '@/services/api';
 import type {
   AuthResponse,
   ProductsResponse,
@@ -28,7 +28,7 @@ import type {
   Product,
   Category,
   User
-} from '../types/apiResponses';
+} from '@/types';
 
 const users = [
   {

@@ -1,6 +1,7 @@
 "use client";
 
 import React, { useState } from "react";
+import { ERROR_LOGIN_FAILED } from '@/constants';
 import { BackToHomeButton } from "../index";
 import { z } from "zod";
 import { loginSchema, LoginFormData } from "@/lib/schemas/auth";
@@ -108,7 +109,7 @@ export default function LoginForm({ onLogin, error, redirectUrl = "/" }: LoginFo
           router.push(redirectUrl);
         }
       } else {
-        setFormError(response.message || "Login failed. Please check your credentials.");
+        setFormError(response.message || ERROR_LOGIN_FAILED);
       }
     } catch (err: any) {
       console.error('Login error:', err);
@@ -121,7 +122,7 @@ export default function LoginForm({ onLogin, error, redirectUrl = "/" }: LoginFo
       } else if (err?.message) {
         setFormError(err.message);
       } else {
-        setFormError("Login failed. Please check your credentials.");
+        setFormError(ERROR_LOGIN_FAILED);
       }
     } finally {
       setLoading(false);

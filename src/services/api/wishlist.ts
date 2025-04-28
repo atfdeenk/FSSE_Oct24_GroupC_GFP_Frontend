@@ -4,7 +4,7 @@ import { API_CONFIG } from './config';
 import { 
   BaseResponse,
   Product
-} from '../../types/apiResponses';
+} from '@/types';
 
 // Types for wishlist requests
 export interface WishlistItem {

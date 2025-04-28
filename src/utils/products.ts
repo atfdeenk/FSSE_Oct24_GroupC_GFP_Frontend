@@ -1,5 +1,5 @@
 // src/utils/products.ts
-import { Product } from '../types/apiResponses';
+import { Product } from '@/types';
 
 /**
  * Check if a product is in stock

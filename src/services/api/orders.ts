@@ -6,7 +6,7 @@ import {
   OrderResponse, 
   OrdersResponse,
   BaseResponse
-} from '../../types/apiResponses';
+} from '@/types';
 
 // Types for order requests
 export interface OrderFilters {

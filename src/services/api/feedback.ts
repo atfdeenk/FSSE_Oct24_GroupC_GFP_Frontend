@@ -1,7 +1,7 @@
 // src/services/api/feedback.ts
 import axiosInstance from './axios';
 import { API_CONFIG } from './config';
-import { BaseResponse } from '../../types/apiResponses';
+import { BaseResponse } from '@/types';
 
 // Types for feedback
 export interface Feedback {

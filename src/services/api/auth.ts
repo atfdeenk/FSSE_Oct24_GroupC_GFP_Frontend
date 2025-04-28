@@ -1,7 +1,8 @@
 // src/services/api/auth.ts
 import axiosInstance from './axios';
 import { API_CONFIG } from './config';
-import { User, LoginResponse, RegisterResponse } from '../../types/apiResponses';
+import { User, LoginResponse, RegisterResponse } from '@/types';
+import { TOKEN_KEY, MSG_LOGIN_PROFILE_FAIL } from '@/constants';
 
 // Types for authentication
 export interface LoginCredentials {
@@ -40,7 +41,7 @@ export const authService = {
       // Store token in localStorage
       if (response.data && response.data.access_token) {
         if (typeof window !== 'undefined') {
-          localStorage.setItem('token', response.data.access_token);
+          localStorage.setItem(TOKEN_KEY, response.data.access_token);
         }
         
         try {
@@ -64,7 +65,7 @@ export const authService = {
               token: response.data.access_token,
               user: null
             },
-            message: response.data.msg || 'Login successful, but unable to fetch user profile'
+            message: response.data.msg || MSG_LOGIN_PROFILE_FAIL
           };
         }
       } else {

@@ -1,9 +1,10 @@
 // src/services/api/axios.ts
 import axios, { AxiosInstance, AxiosRequestConfig, AxiosResponse, AxiosError } from 'axios';
 import { API_CONFIG } from './config';
+import { TOKEN_KEY, USER_KEY, TOKEN_EXPIRED_EVENT, MSG_SESSION_EXPIRED } from '@/constants';
 
 // Event for token expiration to trigger logout across the app
-export const TOKEN_EXPIRED_EVENT = 'token-expired';
+// TOKEN_EXPIRED_EVENT is now imported from centralized constants
 
 // Create a custom Axios instance with default configuration
 const axiosInstance: AxiosInstance = axios.create({
@@ -16,7 +17,7 @@ const axiosInstance: AxiosInstance = axios.create({
 const getToken = (): string | null => {
   // Check if we're in a browser environment
   if (typeof window !== 'undefined' && window.localStorage) {
-    return localStorage.getItem('token');
+    return localStorage.getItem(TOKEN_KEY);
   }
   return null;
 };
@@ -53,12 +54,12 @@ axiosInstance.interceptors.response.use(
       if (status === 401) {
         // Clear authentication data
         if (typeof window !== 'undefined') {
-          localStorage.removeItem('token');
-          localStorage.removeItem('user');
+          localStorage.removeItem(TOKEN_KEY);
+          localStorage.removeItem(USER_KEY);
           
           // Dispatch token expired event to notify the app
           const event = new CustomEvent(TOKEN_EXPIRED_EVENT, {
-            detail: { message: 'Your session has expired. Please log in again.' }
+            detail: { message: MSG_SESSION_EXPIRED }
           });
           window.dispatchEvent(event);
           

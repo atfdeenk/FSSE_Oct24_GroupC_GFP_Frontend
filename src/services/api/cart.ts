@@ -6,7 +6,7 @@ import {
   CartItem,
   CartResponse,
   BaseResponse
-} from '../../types/apiResponses';
+} from '@/types';
 
 // Types for cart requests
 export interface AddToCartData {

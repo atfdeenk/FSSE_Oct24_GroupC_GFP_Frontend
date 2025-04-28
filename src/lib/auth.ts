@@ -1,8 +1,21 @@
 // src/lib/auth.ts
-import { authService } from '../services/api/auth';
-import { User } from '../types/apiResponses';
-import { setCookie, getCookie, deleteCookie } from '../utils/cookies';
-import { TOKEN_EXPIRED_EVENT } from '../services/api/axios';
+import { authService } from '@/services/api/auth';
+import { User } from '@/types';
+import { setCookie, getCookie, deleteCookie } from '@/utils';
+import {
+  TOKEN_KEY,
+  USER_KEY,
+  TOKEN_EXPIRED_EVENT,
+  MSG_SESSION_EXPIRED,
+  ERR_PARSING_USER_DATA,
+  ERR_FETCHING_USER_PROFILE,
+  ERR_GETTING_CURRENT_USER,
+  ERR_LOGGING_OUT,
+  ERR_STORING_AUTH_DATA,
+  ERR_GETTING_TOKEN,
+  ERR_CHECKING_TOKEN_EXPIRATION,
+  ERR_DECODING_TOKEN
+} from '@/constants';
 
 // Define the AuthUser type
 export interface AuthUser extends User {
@@ -28,15 +41,15 @@ export const getCurrentUser = async (): Promise<AuthUser | null> => {
   
   try {
     // First try to get user data from localStorage
-    const userData = localStorage.getItem('user');
-    const token = localStorage.getItem('token');
+    const userData = localStorage.getItem(USER_KEY);
+    const token = localStorage.getItem(TOKEN_KEY);
     
     if (userData && token) {
       try {
         // Return cached user data
         return JSON.parse(userData) as AuthUser;
       } catch (parseError) {
-        console.error('Error parsing user data:', parseError);
+        console.error(ERR_PARSING_USER_DATA, parseError);
       }
     }
     
@@ -51,7 +64,7 @@ export const getCurrentUser = async (): Promise<AuthUser | null> => {
           return authUser;
         }
       } catch (apiError) {
-        console.error('Error fetching user profile:', apiError);
+        console.error(ERR_FETCHING_USER_PROFILE, apiError);
         // If API call fails, token might be invalid
         logout();
       }
@@ -59,7 +72,7 @@ export const getCurrentUser = async (): Promise<AuthUser | null> => {
     
     return null;
   } catch (error) {
-    console.error('Error getting current user:', error);
+    console.error(ERR_GETTING_CURRENT_USER, error);
     return null;
   }
 };
@@ -72,14 +85,14 @@ export const logout = (): void => {
   
   try {
     // Clear auth data from localStorage and cookies
-    localStorage.removeItem('token');
-    localStorage.removeItem('user');
-    deleteCookie('token');
+    localStorage.removeItem(TOKEN_KEY);
+    localStorage.removeItem(USER_KEY);
+    deleteCookie(TOKEN_KEY);
     
     // Call the auth service logout method
     authService.logout();
   } catch (error) {
-    console.error('Error logging out:', error);
+    console.error(ERR_LOGGING_OUT, error);
   }
 };
 
@@ -94,13 +107,13 @@ export const storeAuthData = (userData: AuthUser | User, token: string): void =>
     const authUser: AuthUser = { ...userData, token };
     
     // Store token and user data in localStorage and cookies
-    localStorage.setItem('token', token);
-    localStorage.setItem('user', JSON.stringify(authUser));
+    localStorage.setItem(TOKEN_KEY, token);
+    localStorage.setItem(USER_KEY, JSON.stringify(authUser));
     
     // Also store token in cookies for middleware access
-    setCookie('token', token, 7); // 7 days expiry
+    setCookie(TOKEN_KEY, token, 7); // 7 days expiry
   } catch (error) {
-    console.error('Error storing auth data:', error);
+    console.error(ERR_STORING_AUTH_DATA, error);
   }
 };
 
@@ -118,7 +131,7 @@ export const getToken = (): string | null => {
     if (token && isTokenExpired(token)) {
       // Token is expired, trigger logout
       const event = new CustomEvent(TOKEN_EXPIRED_EVENT, {
-        detail: { message: 'Your session has expired. Please log in again.' }
+        detail: { message: MSG_SESSION_EXPIRED }
       });
       window.dispatchEvent(event);
       return null;
@@ -126,7 +139,7 @@ export const getToken = (): string | null => {
     
     return token;
   } catch (error) {
-    console.error('Error getting token:', error);
+    console.error(ERR_GETTING_TOKEN, error);
     return null;
   }
 };
@@ -153,7 +166,7 @@ export const isTokenExpired = (token: string): boolean => {
     
     return currentTime >= expirationTime;
   } catch (error) {
-    console.error('Error checking token expiration:', error);
+    console.error(ERR_CHECKING_TOKEN_EXPIRATION, error);
     // If we can't parse the token, consider it expired for safety
     return true;
   }
@@ -164,7 +177,7 @@ export const isTokenExpired = (token: string): boolean => {
  */
 export const getUserRole = (): string | null => {
   // First try to get role from current user
-  const user = typeof window !== 'undefined' ? JSON.parse(localStorage.getItem('user') || '{}') : null;
+  const user = typeof window !== 'undefined' ? JSON.parse(localStorage.getItem(USER_KEY) || '{}') : null;
   if (user?.role) return user.role;
   
   // If not available, try to decode from token
@@ -176,7 +189,7 @@ export const getUserRole = (): string | null => {
     const payload = JSON.parse(atob(token.split('.')[1]));
     return payload?.role || null;
   } catch (error) {
-    console.error('Error decoding token:', error);
+    console.error(ERR_DECODING_TOKEN, error);
     return null;
   }
 };

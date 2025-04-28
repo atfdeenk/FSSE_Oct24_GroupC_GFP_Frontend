@@ -6,8 +6,8 @@ import {
   CategoryResponse, 
   CategoriesResponse,
   BaseResponse
-} from '../../types/apiResponses';
-import { getCategoryImageUrl, handleCategoryImageError } from '../../utils/imageUtils';
+} from '@/types';
+import { getCategoryImageUrl, handleCategoryImageError } from '@/utils';
 
 // Types for category requests
 export interface CategoryFilters {

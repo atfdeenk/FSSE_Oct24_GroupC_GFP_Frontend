@@ -5,7 +5,7 @@ import productService from '@/services/api/products';
 import type { Product, ProductsResponse } from '@/types/apiResponses';
 import { Header, Footer, LoginForm } from '@/components';
 import { getImageUrl, handleImageError } from '@/utils/imageUtils';
-import useDebounce from '@/utils/hooks/useDebounce';
+import useDebounce from '@/hooks/useDebounce';
 
 export default function ProductsPage() {
   const [products, setProducts] = useState<Product[]>([]);
@@ -16,7 +16,7 @@ export default function ProductsPage() {
   const [loading, setLoading] = useState(false);
   const [totalProducts, setTotalProducts] = useState(0);
   const [totalPages, setTotalPages] = useState(1);
-  
+
   // Debounce search input to prevent excessive filtering on every keystroke
   const debouncedSearch = useDebounce(searchInput, 300);
   const pageSize = 8;
@@ -25,24 +25,24 @@ export default function ProductsPage() {
   const fetchProducts = async () => {
     // Set loading state
     setLoading(true);
-    
+
     // Clear products when changing search or sort to show loading state
     if (debouncedSearch || sort) {
       setProducts([]);
     }
-    
+
     try {
       // Prepare filters for API call
       const filters: any = {
         page,
         limit: pageSize
       };
-      
+
       // Add search filter if present
       if (debouncedSearch) {
         filters.search = debouncedSearch;
       }
-      
+
       // Add sorting if selected
       if (sort) {
         if (sort === 'name') {
@@ -56,9 +56,9 @@ export default function ProductsPage() {
           filters.sort_order = 'desc';
         }
       }
-      
+
       const response = await productService.getProducts(filters);
-      
+
       if (response && response.products) {
         setProducts(response.products || []);
         setTotalProducts(response.total || 0);
@@ -73,7 +73,7 @@ export default function ProductsPage() {
       setLoading(false);
     }
   };
-  
+
   // Fetch products when page, sort, or search changes
   useEffect(() => {
     fetchProducts();
@@ -182,7 +182,7 @@ export default function ProductsPage() {
             </div>
           </div>
         )}
-        
+
         <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4 gap-6">
           {loading && products.length === 0 && (
             <div className="col-span-full flex flex-col items-center justify-center py-20">
@@ -190,7 +190,7 @@ export default function ProductsPage() {
               <p className="text-white/60">Fetching products...</p>
             </div>
           )}
-          
+
           {products.map(product => (
             <a
               key={product.id}
@@ -198,9 +198,9 @@ export default function ProductsPage() {
               className="group bg-neutral-900/50 backdrop-blur-sm rounded-sm overflow-hidden border border-white/5 hover:border-amber-500/30 transition-all duration-300 flex flex-col h-full"
             >
               <div className="relative h-48 overflow-hidden bg-neutral-900 rounded-t-sm">
-                <img 
-                  src={getImageUrl(product.image_url)} 
-                  alt={product.name} 
+                <img
+                  src={getImageUrl(product.image_url)}
+                  alt={product.name}
                   className="w-full h-full object-cover transition-transform duration-500 group-hover:scale-110"
                   onError={handleImageError()}
                 />

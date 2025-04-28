@@ -1,6 +1,7 @@
 "use client";
 
 import React, { useState } from "react";
+import { ERROR_FIRST_NAME_REQUIRED, ERROR_LAST_NAME_REQUIRED, ERROR_REGISTRATION_FAILED } from '@/constants';
 import authService, { RegisterData } from "@/services/api/auth";
 import { BackToHomeButton } from "../index";
 
@@ -89,11 +90,11 @@ export default function RegisterForm({ onRegister, error, initialRole = 'custome
     const errors: Record<string, string> = {};
     
     if (!formData.firstName) {
-      errors.firstName = 'First name is required';
+      errors.firstName = ERROR_FIRST_NAME_REQUIRED;
     }
     
     if (!formData.lastName) {
-      errors.lastName = 'Last name is required';
+      errors.lastName = ERROR_LAST_NAME_REQUIRED;
     }
     
     if (Object.keys(errors).length > 0) {
@@ -134,7 +135,7 @@ export default function RegisterForm({ onRegister, error, initialRole = 'custome
       } else if (err?.message) {
         setFormError(err.message);
       } else {
-        setFormError('Registration failed. Please try again.');
+        setFormError(ERROR_REGISTRATION_FAILED);
       }
     } finally {
       setLoading(false);
