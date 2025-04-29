@@ -13,8 +13,7 @@ import SignUpIcon from "@/components/ui/SignUpIcon";
 import SignInIcon from "@/components/ui/SignInIcon";
 import { useRouter, usePathname } from "next/navigation";
 import { isAuthenticated, getCurrentUser, logout, AuthUser } from "@/lib/auth";
-import cartService from "@/services/api/cart";
-import wishlistService from "@/services/api/wishlist";
+import { fetchCartAndWishlistCounts } from "@/utils/fetchCounts";
 import { TOKEN_EXPIRED_EVENT } from "@/constants";
 
 export default function Header() {
@@ -40,8 +39,7 @@ export default function Header() {
           setUser(currentUser);
 
           // Fetch real cart and wishlist counts from API
-          fetchCartCount();
-          fetchWishlistCount();
+          fetchCounts();
         } catch (error) {
           console.error('Error getting current user:', error);
         }
@@ -64,28 +62,11 @@ export default function Header() {
     };
   }, []);
 
-  // Fetch cart count from API
-  const fetchCartCount = async () => {
-    try {
-      const cartResponse = await cartService.getCart();
-      if (cartResponse && cartResponse.data && cartResponse.data.items) {
-        setCartCount(cartResponse.data.items.length);
-      }
-    } catch (error) {
-      console.error('Error fetching cart count:', error);
-    }
-  };
-
-  // Fetch wishlist count from API
-  const fetchWishlistCount = async () => {
-    try {
-      const wishlistResponse = await wishlistService.getWishlist();
-      if (wishlistResponse && wishlistResponse.data && wishlistResponse.data.items) {
-        setWishlistCount(wishlistResponse.data.items.length);
-      }
-    } catch (error) {
-      console.error('Error fetching wishlist count:', error);
-    }
+  // Fetch both cart and wishlist counts in parallel
+  const fetchCounts = async () => {
+    const { cartCount, wishlistCount } = await fetchCartAndWishlistCounts();
+    setCartCount(cartCount);
+    setWishlistCount(wishlistCount);
   };
 
   useEffect(() => {
@@ -166,48 +147,51 @@ export default function Header() {
               userMenuRef={userMenuRef}
             />
           ) : (
-            <div className="relative" ref={userMenuRef}>
-              {/* Single avatar icon for mobile */}
-              <button
-                className="md:hidden flex items-center focus:outline-none"
-                onClick={() => setShowUserMenu(!showUserMenu)}
-                aria-expanded={showUserMenu}
-                aria-haspopup="true"
-                aria-label="Account menu"
-              >
-                <div className="w-10 h-10 rounded-full overflow-hidden border-2 border-white/20 bg-neutral-800 flex items-center justify-center">
-                  <AvatarIcon />
-                </div>
-              </button>
+            <>
+              <AuthButtons className="ml-2" />
+              <div className="relative md:hidden" ref={userMenuRef}>
+                {/* Single avatar icon for mobile */}
+                <button
+                  className="flex items-center focus:outline-none"
+                  onClick={() => setShowUserMenu(!showUserMenu)}
+                  aria-expanded={showUserMenu}
+                  aria-haspopup="true"
+                  aria-label="Account menu"
+                >
+                  <div className="w-10 h-10 rounded-full overflow-hidden border-2 border-white/20 bg-neutral-800 flex items-center justify-center">
+                    <AvatarIcon />
+                  </div>
+                </button>
 
-              {/* Dropdown Menu for non-logged in users - only for mobile */}
-              {showUserMenu && (
-                <div className="md:hidden absolute right-0 mt-2 w-48 bg-neutral-900 border border-white/10 rounded-sm shadow-xl z-50 animate-fade-in-down">
-                  <ul>
-                    <li>
-                      <Link
-                        href="/login"
-                        className="flex items-center px-4 py-3 text-white hover:bg-amber-500/10 hover:text-amber-500 transition-colors"
-                        onClick={() => setShowUserMenu(false)}
-                      >
-                        <SignInIcon className="w-5 h-5 mr-3 text-white/60" />
-                        <span>Sign In</span>
-                      </Link>
-                    </li>
-                    <li className="border-t border-white/10">
-                      <Link
-                        href="/register"
-                        className="flex items-center px-4 py-3 text-white hover:bg-amber-500/10 hover:text-amber-500 transition-colors"
-                        onClick={() => setShowUserMenu(false)}
-                      >
-                        <SignUpIcon className="w-5 h-5 mr-3 text-white/60" />
-                        <span>Sign Up</span>
-                      </Link>
-                    </li>
-                  </ul>
-                </div>
-              )}
-            </div>
+                {/* Dropdown Menu for non-logged in users - only for mobile */}
+                {showUserMenu && (
+                  <div className="absolute right-0 mt-2 w-48 bg-neutral-900 border border-white/10 rounded-sm shadow-xl z-50 animate-fade-in-down">
+                    <ul>
+                      <li>
+                        <Link
+                          href="/login"
+                          className="flex items-center px-4 py-3 text-white hover:bg-amber-500/10 hover:text-amber-500 transition-colors"
+                          onClick={() => setShowUserMenu(false)}
+                        >
+                          <SignInIcon className="w-5 h-5 mr-3 text-white/60" />
+                          <span>Sign In</span>
+                        </Link>
+                      </li>
+                      <li className="border-t border-white/10">
+                        <Link
+                          href="/register"
+                          className="flex items-center px-4 py-3 text-white hover:bg-amber-500/10 hover:text-amber-500 transition-colors"
+                          onClick={() => setShowUserMenu(false)}
+                        >
+                          <SignUpIcon className="w-5 h-5 mr-3 text-white/60" />
+                          <span>Sign Up</span>
+                        </Link>
+                      </li>
+                    </ul>
+                  </div>
+                )}
+              </div>
+            </>
           )}
         </div>
       </div>
