@@ -1,6 +1,7 @@
 "use client";
 
 import { useState, useEffect, useRef } from "react";
+import { useToggle } from "@/hooks/useToggle";
 import Link from "next/link";
 import Logo from "@/components/ui/Logo";
 import CartWidget from "@/components/ui/CartWidget";
@@ -8,59 +9,47 @@ import WishlistWidget from "@/components/ui/WishlistWidget";
 import AuthButtons from "@/components/ui/AuthButtons";
 import UserMenu from "@/components/ui/UserMenu";
 import AvatarIcon from "@/components/ui/AvatarIcon";
-import ChevronDownIcon from "@/components/ui/ChevronDownIcon";
 import SignUpIcon from "@/components/ui/SignUpIcon";
 import SignInIcon from "@/components/ui/SignInIcon";
 import { useRouter, usePathname } from "next/navigation";
-import { isAuthenticated, getCurrentUser, logout, AuthUser } from "@/lib/auth";
+import { logout } from "@/lib/auth";
+import { useAuthUser } from "@/hooks/useAuthUser";
+import { useTokenExpiryHandler } from "@/hooks/useTokenExpiryHandler";
+import { useClickOutside } from "@/hooks/useClickOutside";
+import { useLogout } from "@/hooks/useLogout";
 import { fetchCartAndWishlistCounts } from "@/utils/fetchCounts";
 import { TOKEN_EXPIRED_EVENT } from "@/constants";
 
 export default function Header() {
   const pathname = usePathname();
   const router = useRouter();
-  const [user, setUser] = useState<AuthUser | null>(null);
-  const [isLoggedIn, setIsLoggedIn] = useState(false);
-  const [showUserMenu, setShowUserMenu] = useState(false);
+  const { user, isLoggedIn, refreshUser, setUser, setIsLoggedIn } = useAuthUser();
+  const [showUserMenu, toggleUserMenu, setShowUserMenu] = useToggle(false);
   const [cartCount, setCartCount] = useState(0);
   const [wishlistCount, setWishlistCount] = useState(0);
   const userMenuRef = useRef<HTMLDivElement>(null);
 
+  const handleLogout = useLogout({
+    setIsLoggedIn,
+    setUser,
+    setCartCount,
+    setWishlistCount,
+    setShowUserMenu,
+  });
+
   useEffect(() => {
-    // Check authentication status and load user data
-    const initializeUser = async () => {
-      const authStatus = isAuthenticated();
-      setIsLoggedIn(authStatus);
-
-      if (authStatus) {
-        try {
-          // Properly await the Promise from getCurrentUser
-          const currentUser = await getCurrentUser();
-          setUser(currentUser);
-
-          // Fetch real cart and wishlist counts from API
-          fetchCounts();
-        } catch (error) {
-          console.error('Error getting current user:', error);
-        }
-      }
+    // Fetch user and counts on mount
+    const init = async () => {
+      await refreshUser();
+      fetchCounts();
     };
-
-    initializeUser();
-
-    // Listen for token expiration events
-    const handleTokenExpired = (event: CustomEvent) => {
-      console.log('Token expired event received:', event.detail);
-      handleLogout(true);
-    };
-
-    window.addEventListener(TOKEN_EXPIRED_EVENT, handleTokenExpired as EventListener);
-
-    // Clean up event listener
-    return () => {
-      window.removeEventListener(TOKEN_EXPIRED_EVENT, handleTokenExpired as EventListener);
-    };
+    init();
   }, []);
+
+  useTokenExpiryHandler((event: CustomEvent) => {
+    console.log('Token expired event received:', event.detail);
+    handleLogout(true);
+  });
 
   // Fetch both cart and wishlist counts in parallel
   const fetchCounts = async () => {
@@ -69,39 +58,11 @@ export default function Header() {
     setWishlistCount(wishlistCount);
   };
 
-  useEffect(() => {
-    // Handle clicks outside of user menu to close it
-    const handleClickOutside = (event: MouseEvent) => {
-      if (userMenuRef.current && !userMenuRef.current.contains(event.target as Node)) {
-        setShowUserMenu(false);
-      }
-    };
+  // Close user menu when clicking outside
 
-    document.addEventListener("mousedown", handleClickOutside);
-    return () => {
-      document.removeEventListener("mousedown", handleClickOutside);
-    };
-  }, []);
+  useClickOutside(userMenuRef, () => setShowUserMenu(false));
 
-  // Handle logout with optional parameter for token expiration
-  const handleLogout = (isExpiredOrEvent: boolean | React.MouseEvent = false) => {
-    logout();
-    setIsLoggedIn(false);
-    setUser(null);
-    setCartCount(0);
-    setWishlistCount(0);
-    setShowUserMenu(false);
 
-    // Determine if this was triggered by token expiration
-    const isExpired = typeof isExpiredOrEvent === 'boolean' && isExpiredOrEvent;
-
-    // If token expired, redirect to login with message
-    if (isExpired) {
-      router.push("/login?message=Your session has expired. Please log in again.");
-    } else {
-      router.push("/");
-    }
-  };
 
   return (
     <header className="w-full bg-black border-b border-white/10 py-4 sticky top-0 z-40">
@@ -142,7 +103,7 @@ export default function Header() {
             <UserMenu
               user={user}
               show={showUserMenu}
-              onToggle={() => setShowUserMenu(!showUserMenu)}
+              onToggle={toggleUserMenu}
               onLogout={handleLogout}
               userMenuRef={userMenuRef}
             />
