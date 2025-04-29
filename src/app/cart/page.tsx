@@ -8,6 +8,8 @@ import { Header, Footer, SelectionControls } from "@/components";
 import PromoCodeInput from "@/components/PromoCodeInput";
 import CartItem from "@/components/CartItem";
 import OrderSummary from "@/components/OrderSummary";
+import LoadingIndicator from "@/components/ui/LoadingIndicator";
+import EmptyState from "@/components/EmptyState";
 import { PROMO_CODES } from "@/constants/promoCodes";
 import { isAuthenticated, getCurrentUser } from "@/lib/auth";
 import { fetchCartWithDetails } from '@/services/cartLogic';
@@ -82,22 +84,17 @@ export default function CartPage() {
           <p className="text-white/60 mb-8">{cartItems.length} {cartItems.length === 1 ? 'item' : 'items'} in your cart</p>
 
           {loading ? (
-            <div className="flex justify-center items-center h-64">
-              <div className="animate-spin rounded-full h-12 w-12 border-t-2 border-b-2 border-amber-500"></div>
-            </div>
+            <LoadingIndicator />
           ) : cartItems.length === 0 ? (
-            <div className="text-center py-16 bg-neutral-900/80 backdrop-blur-sm rounded-sm border border-white/10 shadow-lg transform transition-all duration-300 hover:border-amber-500/30">
-              <div className="animate-fade-in-down">
-                <svg className="w-20 h-20 text-white/30 mx-auto mb-6" fill="none" viewBox="0 0 24 24" stroke="currentColor">
-                  <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={1.5} d="M3 3h2l.4 2M7 13h10l4-8H5.4M7 13L5.4 5M7 13l-2.293 2.293c-.63.63-.184 1.707.707 1.707H17m0 0a2 2 0 100 4 2 2 0 000-4zm-8 2a2 2 0 11-4 0 2 2 0 014 0z" />
-                </svg>
-                <h2 className="text-2xl font-bold text-white mb-3">Your cart is empty</h2>
-                <p className="text-white/70 mb-8 max-w-md mx-auto">Looks like you haven't added any items to your cart yet. Discover our local artisan products and add your favorites!</p>
-                <Link href="/products" className="bg-amber-500 text-black px-8 py-3 rounded-sm font-medium hover:bg-amber-400 transition-colors inline-block shadow-lg hover:shadow-amber-500/20">
-                  Explore Products
-                </Link>
-              </div>
-            </div>
+            <EmptyState message="Your cart is empty">
+              <svg className="w-20 h-20 text-white/30 mx-auto mb-6" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={1.5} d="M3 3h2l.4 2M7 13h10l4-8H5.4M7 13L5.4 5M7 13l-2.293 2.293c-.63.63-.184 1.707.707 1.707H17m0 0a2 2 0 100 4 2 2 0 000-4zm-8 2a2 2 0 11-4 0 2 2 0 014 0z" />
+              </svg>
+              <p className="text-white/70 mb-8 max-w-md mx-auto">Looks like you haven't added any items to your cart yet. Discover our local artisan products and add your favorites!</p>
+              <Link href="/products" className="bg-amber-500 text-black px-8 py-3 rounded-sm font-medium hover:bg-amber-400 transition-colors inline-block shadow-lg hover:shadow-amber-500/20">
+                Explore Products
+              </Link>
+            </EmptyState>
           ) : (
             <div className="grid grid-cols-1 lg:grid-cols-3 gap-8">
               {/* Cart Items */}
