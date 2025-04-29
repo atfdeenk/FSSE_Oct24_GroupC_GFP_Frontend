@@ -1,5 +1,6 @@
 import Link from "next/link";
 import React from "react";
+import Badge from "@/components/ui/Badge";
 
 interface WishlistWidgetProps {
   count: number;
@@ -16,9 +17,7 @@ const WishlistWidget: React.FC<WishlistWidgetProps> = ({ count, isLoggedIn }) =>
   <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={1.5} d="M4.318 6.318a4.5 4.5 0 000 6.364L12 20.364l7.682-7.682a4.5 4.5 0 00-6.364-6.364L12 7.636l-1.318-1.318a4.5 4.5 0 00-6.364 0z" />
 </svg>
     {isLoggedIn && count > 0 && (
-      <span className="absolute -top-2 -right-2 bg-amber-500 text-black text-xs font-bold rounded-full min-w-5 h-5 px-1 flex items-center justify-center animate-pulse">
-  {count > 99 ? '99+' : count}
-</span>
+      <Badge count={count} />
     )}
   </Link>
 );
