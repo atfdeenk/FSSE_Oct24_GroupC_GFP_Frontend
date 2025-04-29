@@ -4,6 +4,8 @@ import { useState, useEffect } from "react";
 import { useRouter } from "next/navigation";
 import Link from "next/link";
 import { Header, Footer, SelectionControls } from "@/components";
+import PromoCodeInput from "@/components/PromoCodeInput";
+import { PROMO_CODES } from "@/constants/promoCodes";
 import { isAuthenticated, getCurrentUser } from "@/lib/auth";
 import cartService from "@/services/api/cart";
 import productService from "@/services/api/products";
@@ -176,12 +178,11 @@ export default function CartPage() {
 
   const applyPromoCode = () => {
     setPromoError("");
-
-    // Mock promo code validation
-    if (promoCode.toUpperCase() === "WELCOME10") {
-      setPromoDiscount(10); // 10% discount
-    } else if (promoCode.toUpperCase() === "BUMI25") {
-      setPromoDiscount(25); // 25% discount
+    const found = PROMO_CODES.find(
+      (p) => p.code.toUpperCase() === promoCode.toUpperCase()
+    );
+    if (found) {
+      setPromoDiscount(found.discount);
     } else {
       setPromoError("Invalid promo code");
       setPromoDiscount(0);
@@ -412,31 +413,19 @@ export default function CartPage() {
                     </div>
 
                     {/* Promo Code */}
-                    <div className="mb-8">
-                      <label className="block text-white/70 text-sm mb-2">Promo Code</label>
-                      <div className="flex">
-                        <input
-                          type="text"
-                          value={promoCode}
-                          onChange={(e) => setPromoCode(e.target.value)}
-                          className="bg-black/50 border border-white/10 rounded-l-sm px-4 py-2 w-full text-white focus:outline-none focus:border-amber-500/50 focus:ring-1 focus:ring-amber-500/30"
-                          placeholder="Enter code"
-                        />
-                        <button
-                          onClick={applyPromoCode}
-                          className="bg-amber-500 text-black px-4 py-2 rounded-r-sm font-medium hover:bg-amber-400 transition-colors shadow-lg hover:shadow-amber-500/20"
-                        >
-                          Apply
-                        </button>
-                      </div>
-                      {promoError && <p className="text-red-400 text-sm mt-1 animate-fade-in">{promoError}</p>}
-                      {promoDiscount > 0 && <p className="text-amber-400 text-sm mt-1 animate-fade-in flex items-center gap-1">
-                        <svg className="w-4 h-4" fill="none" viewBox="0 0 24 24" stroke="currentColor">
-                          <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M5 13l4 4L19 7" />
-                        </svg>
-                        Promo code applied successfully!
-                      </p>}
-                    </div>
+                    <PromoCodeInput
+                      value={promoCode}
+                      onChange={setPromoCode}
+                      onApply={applyPromoCode}
+                      error={promoError}
+                      successMessage={promoDiscount > 0 ? "Promo code applied successfully!" : undefined}
+                      disabled={loading}
+                      onRemove={promoDiscount > 0 ? () => {
+                        setPromoCode("");
+                        setPromoDiscount(0);
+                        setPromoError("");
+                      } : undefined}
+                    />
 
                     <button
                       className={`w-full py-3 rounded-sm font-bold transform hover:translate-y-[-2px] transition-all duration-300 shadow-lg ${selectedItems.size > 0 ? 'bg-amber-500 text-black hover:bg-amber-400 hover:shadow-amber-500/20' : 'bg-neutral-700 text-white/50 cursor-not-allowed'}`}
