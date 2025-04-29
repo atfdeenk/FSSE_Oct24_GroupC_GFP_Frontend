@@ -5,6 +5,7 @@ import Link from "next/link";
 import Logo from "@/components/ui/Logo";
 import CartWidget from "@/components/ui/CartWidget";
 import WishlistWidget from "@/components/ui/WishlistWidget";
+import AuthButtons from "@/components/ui/AuthButtons";
 import { useRouter, usePathname } from "next/navigation";
 import { isAuthenticated, getCurrentUser, logout, AuthUser } from "@/lib/auth";
 import cartService from "@/services/api/cart";
@@ -283,20 +284,7 @@ export default function Header() {
               )}
 
               {/* Desktop buttons - only visible on md screens and up */}
-              <div className="hidden md:flex items-center space-x-4">
-                <Link
-                  href="/login"
-                  className="text-white/70 hover:text-amber-400 transition-colors"
-                >
-                  Sign In
-                </Link>
-                <Link
-                  href="/register"
-                  className="bg-amber-500 text-black px-4 py-2 rounded-sm font-medium hover:bg-amber-400 transition-colors"
-                >
-                  Sign Up
-                </Link>
-              </div>
+              <AuthButtons />
             </div>
           )}
         </div>
