@@ -2,6 +2,9 @@
 
 import { useState, useEffect, useRef } from "react";
 import Link from "next/link";
+import Logo from "@/components/ui/Logo";
+import CartWidget from "@/components/ui/CartWidget";
+import WishlistWidget from "@/components/ui/WishlistWidget";
 import { useRouter, usePathname } from "next/navigation";
 import { isAuthenticated, getCurrentUser, logout, AuthUser } from "@/lib/auth";
 import cartService from "@/services/api/cart";
@@ -117,9 +120,7 @@ export default function Header() {
     <header className="w-full bg-black border-b border-white/10 py-4 sticky top-0 z-40">
       <div className="max-w-6xl mx-auto px-6 flex justify-between items-center">
         <div className="flex items-center">
-          <Link href="/" className="text-2xl font-bold text-white mr-10">
-            bumibrew
-          </Link>
+          <Logo />
           <nav className="hidden md:block">
             <ul className="flex space-x-8">
               <li>
@@ -145,37 +146,9 @@ export default function Header() {
         </div>
 
         <div className="flex items-center space-x-6">
-          {/* Cart */}
-          <Link
-            href="/cart"
-            className="text-white/70 hover:text-amber-400 transition-colors relative"
-            aria-label="Shopping cart"
-          >
-            <svg className="w-6 h-6" fill="none" viewBox="0 0 24 24" stroke="currentColor">
-              <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={1.5} d="M3 3h2l.4 2M7 13h10l4-8H5.4M7 13L5.4 5M7 13l-2.293 2.293c-.63.63-.184 1.707.707 1.707H17m0 0a2 2 0 100 4 2 2 0 000-4zm-8 2a2 2 0 11-4 0 2 2 0 014 0z" />
-            </svg>
-            {isLoggedIn && cartCount > 0 && (
-              <span className="absolute -top-2 -right-2 bg-amber-500 text-black text-xs font-bold rounded-full min-w-5 h-5 px-1 flex items-center justify-center animate-pulse-once">
-                {cartCount > 99 ? '99+' : cartCount}
-              </span>
-            )}
-          </Link>
+          <CartWidget count={cartCount} isLoggedIn={isLoggedIn} />
 
-          {/* Wishlist */}
-          <Link
-            href="/wishlist"
-            className="text-white/70 hover:text-amber-400 transition-colors relative"
-            aria-label="Wishlist"
-          >
-            <svg className="w-6 h-6" fill="none" viewBox="0 0 24 24" stroke="currentColor">
-              <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={1.5} d="M4.318 6.318a4.5 4.5 0 000 6.364L12 20.364l7.682-7.682a4.5 4.5 0 00-6.364-6.364L12 7.636l-1.318-1.318a4.5 4.5 0 00-6.364 0z" />
-            </svg>
-            {isLoggedIn && wishlistCount > 0 && (
-              <span className="absolute -top-2 -right-2 bg-amber-500 text-black text-xs font-bold rounded-full min-w-5 h-5 px-1 flex items-center justify-center animate-pulse-once">
-                {wishlistCount > 99 ? '99+' : wishlistCount}
-              </span>
-            )}
-          </Link>
+          <WishlistWidget count={wishlistCount} isLoggedIn={isLoggedIn} />
 
           {/* User Menu */}
           {isLoggedIn ? (
