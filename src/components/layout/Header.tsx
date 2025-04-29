@@ -56,10 +56,7 @@ export default function Header() {
   };
 
   // Close user menu when clicking outside
-
   useClickOutside(userMenuRef, () => setShowUserMenu(false));
-
-
 
   return (
     <header className="w-full bg-black border-b border-white/10 py-4 sticky top-0 z-40">
