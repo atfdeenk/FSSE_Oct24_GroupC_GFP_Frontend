@@ -19,6 +19,8 @@ import { useLogout } from "@/hooks/useLogout";
 import { fetchCartAndWishlistCounts } from "@/utils/fetchCounts";
 
 export default function Header() {
+  // DEBUG: Top-level render log
+  console.log('[Header] Rendered Header component');
   const pathname = usePathname();
   const { user, isLoggedIn, refreshUser, setUser, setIsLoggedIn } = useAuthUser();
   const [showUserMenu, toggleUserMenu, setShowUserMenu] = useToggle(false);
@@ -43,34 +45,85 @@ export default function Header() {
     init();
   }, []);
 
+  // This effect will run whenever isLoggedIn changes
+  useEffect(() => {
+    console.log('Header badge debug:', { cartCount, wishlistCount, isLoggedIn });
+    
+    // When login state changes, fetch counts
+    fetchCounts();
+    
+    // Debug the badge visibility condition
+    console.log('Badge visibility check:', { 
+      cartBadgeVisible: isLoggedIn && cartCount > 0,
+      wishlistBadgeVisible: isLoggedIn && wishlistCount > 0 
+    });
+  }, [isLoggedIn]);
+
+  useEffect(() => {
+    // Debug: log login state and counts whenever they change
+    console.log('[Header] isLoggedIn:', isLoggedIn);
+    console.log('[Header] cartCount:', cartCount);
+    console.log('[Header] wishlistCount:', wishlistCount);
+  }, [isLoggedIn, cartCount, wishlistCount]);
+
   useTokenExpiryHandler((event: CustomEvent) => {
     console.log('Token expired event received:', event.detail);
     handleLogout(true);
   });
+
+  // Listen for custom login/logout events
+  useEffect(() => {
+    const handleLoginEvent = () => {
+      console.log('Login event detected, refreshing user and counts');
+      refreshUser();
+      fetchCounts();
+    };
+
+    const handleLogoutEvent = () => {
+      console.log('Logout event detected, resetting counts');
+      setCartCount(0);
+      setWishlistCount(0);
+    };
+
+    // Add event listeners
+    window.addEventListener('user:login', handleLoginEvent);
+    window.addEventListener('user:logout', handleLogoutEvent);
+
+    // Cleanup
+    return () => {
+      window.removeEventListener('user:login', handleLoginEvent);
+      window.removeEventListener('user:logout', handleLogoutEvent);
+    };
+  }, []);
 
   // Fetch both cart and wishlist counts in parallel
   const fetchCounts = async () => {
     if (!isLoggedIn) {
       setCartCount(0);
       setWishlistCount(0);
+      console.log('[Header] Not logged in, set counts to 0');
       return;
     }
     try {
       const { cartCount, wishlistCount } = await fetchCartAndWishlistCounts();
       setCartCount(cartCount);
       setWishlistCount(wishlistCount);
+      console.log('[Header] fetchCounts success:', { cartCount, wishlistCount });
     } catch (error) {
       setCartCount(0);
       setWishlistCount(0);
       // Optionally log the error for debugging
-      console.error('Failed to fetch cart/wishlist counts:', error);
+      console.error('[Header] Failed to fetch cart/wishlist counts:', error);
     }
   };
+
 
 
   // Close user menu when clicking outside
   useClickOutside(userMenuRef, () => setShowUserMenu(false));
 
+  // DEBUG: Before return
+  console.log('[Header] Before return: isLoggedIn:', isLoggedIn, 'cartCount:', cartCount, 'wishlistCount:', wishlistCount);
   return (
     <header className="w-full bg-black border-b border-white/10 py-4 sticky top-0 z-40">
       <div className="max-w-6xl mx-auto px-6 flex justify-between items-center">

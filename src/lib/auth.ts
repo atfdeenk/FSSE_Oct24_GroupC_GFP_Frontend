@@ -91,6 +91,11 @@ export const logout = (): void => {
     
     // Call the auth service logout method
     authService.logout();
+    
+    // Dispatch a custom event to notify components about logout
+    const logoutEvent = new CustomEvent('user:logout');
+    window.dispatchEvent(logoutEvent);
+    console.log('Dispatched user:logout event');
   } catch (error) {
     console.error(ERR_LOGGING_OUT, error);
   }
@@ -112,6 +117,13 @@ export const storeAuthData = (userData: AuthUser | User, token: string): void =>
     
     // Also store token in cookies for middleware access
     setCookie(TOKEN_KEY, token, 7); // 7 days expiry
+    
+    // Dispatch a custom event to notify components about login
+    const loginEvent = new CustomEvent('user:login', {
+      detail: { user: authUser }
+    });
+    window.dispatchEvent(loginEvent);
+    console.log('Dispatched user:login event');
   } catch (error) {
     console.error(ERR_STORING_AUTH_DATA, error);
   }
