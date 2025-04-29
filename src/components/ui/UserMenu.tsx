@@ -1,5 +1,6 @@
 import React, { RefObject } from "react";
 import Link from "next/link";
+import ChevronDownIcon from "@/components/ui/ChevronDownIcon";
 
 interface UserMenuProps {
   user: {
@@ -33,9 +34,7 @@ const UserMenu: React.FC<UserMenuProps> = ({ user, show, onToggle, onLogout, use
           </svg>
         )}
       </div>
-      <svg className={`w-4 h-4 ml-1 text-white/70 transition-transform ${show ? 'rotate-180' : ''}`} fill="none" viewBox="0 0 24 24" stroke="currentColor">
-        <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M19 9l-7 7-7-7" />
-      </svg>
+      <ChevronDownIcon className={`w-4 h-4 ml-1 text-white/70 transition-transform ${show ? 'rotate-180' : ''}`} />
     </button>
     {/* Dropdown Menu */}
     {show && (

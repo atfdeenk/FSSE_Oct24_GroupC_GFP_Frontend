@@ -158,13 +158,13 @@ export default function Header() {
 
           {/* User Menu */}
           {isLoggedIn ? (
-  <UserMenu
-    user={user}
-    show={showUserMenu}
-    onToggle={() => setShowUserMenu(!showUserMenu)}
-    onLogout={handleLogout}
-    userMenuRef={userMenuRef}
-  />
+            <UserMenu
+              user={user}
+              show={showUserMenu}
+              onToggle={() => setShowUserMenu(!showUserMenu)}
+              onLogout={handleLogout}
+              userMenuRef={userMenuRef}
+            />
           ) : (
             <div className="relative" ref={userMenuRef}>
               {/* Single avatar icon for mobile */}
