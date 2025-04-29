@@ -28,11 +28,25 @@ const RoleGuard: React.FC<RoleGuardProps> = ({
   const [loading, setLoading] = useState(true);
   
   useEffect(() => {
+    // If no allowedRoles specified, allow everyone (guests and logged in)
+    if (!allowedRoles || allowedRoles.length === 0) {
+      setIsAuthorized(true);
+      setLoading(false);
+      return;
+    }
+
+    // If allowedRoles specified, require login
     if (!isLoggedIn) {
       router.push(loginPath);
       return;
     }
-    if (role && allowedRoles.includes(role)) {
+
+    // Wait for role to load
+    if (role === null) {
+      return;
+    }
+
+    if (allowedRoles.includes(role)) {
       setIsAuthorized(true);
     } else {
       router.push(fallbackPath);
@@ -40,7 +54,7 @@ const RoleGuard: React.FC<RoleGuardProps> = ({
     setLoading(false);
   }, [isLoggedIn, role, allowedRoles, fallbackPath, loginPath, router]);
 
-  if (loading) return <LoadingIndicator />;
+  if (loading || (allowedRoles && allowedRoles.length > 0 && role === null)) return <LoadingIndicator />;
   return isAuthorized ? <>{children}</> : null;
 
 };

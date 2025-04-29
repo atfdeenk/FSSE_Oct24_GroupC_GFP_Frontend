@@ -5,17 +5,17 @@ import { useState, useEffect } from "react";
 import { useRouter } from "next/navigation";
 
 // Import components using the centralized exports
-import { 
-  Header, 
-  Footer,
-  HeroSection,
-  RegisterModal,
-  SellerModal,
-  TestimonialsAndPress,
-  ProblemStatement,
-  SolutionSection,
-  FeaturesSection,
-  HowItWorks 
+import {
+    Header,
+    Footer,
+    HeroSection,
+    RegisterModal,
+    SellerModal,
+    TestimonialsAndPress,
+    ProblemStatement,
+    SolutionSection,
+    FeaturesSection,
+    HowItWorks
 } from "@/components";
 
 export default function Home() {

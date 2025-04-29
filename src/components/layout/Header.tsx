@@ -50,10 +50,23 @@ export default function Header() {
 
   // Fetch both cart and wishlist counts in parallel
   const fetchCounts = async () => {
-    const { cartCount, wishlistCount } = await fetchCartAndWishlistCounts();
-    setCartCount(cartCount);
-    setWishlistCount(wishlistCount);
+    if (!isLoggedIn) {
+      setCartCount(0);
+      setWishlistCount(0);
+      return;
+    }
+    try {
+      const { cartCount, wishlistCount } = await fetchCartAndWishlistCounts();
+      setCartCount(cartCount);
+      setWishlistCount(wishlistCount);
+    } catch (error) {
+      setCartCount(0);
+      setWishlistCount(0);
+      // Optionally log the error for debugging
+      console.error('Failed to fetch cart/wishlist counts:', error);
+    }
   };
+
 
   // Close user menu when clicking outside
   useClickOutside(userMenuRef, () => setShowUserMenu(false));
