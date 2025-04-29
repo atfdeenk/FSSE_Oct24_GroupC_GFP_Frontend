@@ -2,31 +2,38 @@
 
 import { useState, useEffect } from "react";
 import { useRouter } from "next/navigation";
+import { useCart } from '@/hooks/useCart';
 import Link from "next/link";
 import { Header, Footer, SelectionControls } from "@/components";
 import PromoCodeInput from "@/components/PromoCodeInput";
 import { PROMO_CODES } from "@/constants/promoCodes";
 import { isAuthenticated, getCurrentUser } from "@/lib/auth";
-import cartService from "@/services/api/cart";
-import productService from "@/services/api/products";
+import { fetchCartWithDetails } from '@/services/cartLogic';
+import cartService from '@/services/api/cart';
+import { calculateSubtotal, calculateDiscount, calculateTotal } from '@/utils/cartUtils';
+import CartItem from '@/components/CartItem';
+import { formatCurrency } from '@/utils/format';
 import { getProductImageUrl, handleProductImageError } from "@/utils/imageUtils";
 import { isProductInStock } from "@/utils/products";
 import { CartItem as ApiCartItem } from "@/types/apiResponses";
 
-// Extended cart item with product details
-interface CartItemWithDetails extends ApiCartItem {
-  name?: string;
-  image_url?: string;
-  seller?: string;
-  unit_price: number;
-  product_id: number | string;
-}
+import { CartItemWithDetails } from '@/types/cart';
 
 export default function CartPage() {
   const router = useRouter();
-  const [cartItems, setCartItems] = useState<CartItemWithDetails[]>([]);
-  const [selectedItems, setSelectedItems] = useState<Set<string | number>>(new Set());
-  const [loading, setLoading] = useState(true);
+  const {
+    cartItems,
+    setCartItems,
+    selectedItems,
+    setSelectedItems,
+    loading,
+    fetchCart,
+    updateQuantity,
+    removeItem,
+    toggleSelectItem,
+    selectAllItems,
+    clearAllSelections,
+  } = useCart();
   const [promoCode, setPromoCode] = useState("");
   const [promoDiscount, setPromoDiscount] = useState(0);
   const [promoError, setPromoError] = useState("");
@@ -38,140 +45,9 @@ export default function CartPage() {
       return;
     }
 
-    // Reset selected items when component mounts
-    setSelectedItems(new Set());
-
-    // Fetch cart items from API
-    const fetchCart = async () => {
-      setLoading(true);
-      try {
-        console.log('Fetching cart...');
-        const cartResponse = await cartService.getCart();
-        console.log('Cart response:', cartResponse);
-
-        // If cart is empty, we'll just show the empty state
-        if (!cartResponse?.data?.items?.length) {
-          console.log('Cart is empty');
-        }
-
-        if (cartResponse && cartResponse.data && cartResponse.data.items && cartResponse.data.items.length > 0) {
-          console.log('Processing cart items:', cartResponse.data.items);
-          // Fetch product details for each cart item
-          const itemsWithDetails = await Promise.all(
-            cartResponse.data.items.map(async (item) => {
-              try {
-                console.log('Fetching product details for:', item.product_id);
-                const product = await productService.getProduct(item.product_id);
-                console.log('Product details:', product);
-                return {
-                  ...item,
-                  name: product?.name || 'Product not found',
-                  image_url: product?.image_url || '',
-                  seller: `Vendor ID: ${product?.vendor_id || 'Unknown'}`,
-                  unit_price: product?.price || 0,
-                  product_id: item.product_id,
-                  inStock: isProductInStock(product)
-                };
-              } catch (error) {
-                console.error(`Error fetching product ${item.product_id}:`, error);
-                return {
-                  ...item,
-                  name: 'Product not found',
-                  image_url: '',
-                  seller: 'Unknown vendor',
-                  unit_price: 0,
-                  product_id: item.product_id
-                };
-              }
-            })
-          );
-
-          console.log('Setting cart items:', itemsWithDetails);
-          setCartItems(itemsWithDetails);
-
-          // Select all items by default
-          const allItemIds = new Set(itemsWithDetails.map(item => item.id));
-          setSelectedItems(allItemIds);
-        } else {
-          console.log('No cart items found');
-          setCartItems([]);
-          setSelectedItems(new Set());
-        }
-      } catch (error) {
-        console.error("Error fetching cart:", error);
-        setCartItems([]);
-      } finally {
-        setLoading(false);
-      }
-    };
-
     fetchCart();
-  }, [router]);
+  }, [fetchCart]);
 
-  const updateQuantity = async (id: number | string, newQuantity: number) => {
-    if (newQuantity < 1) return;
-
-    try {
-      setLoading(true);
-      await cartService.updateCartItem(id, { quantity: newQuantity });
-
-      // Update local state
-      setCartItems(prevItems =>
-        prevItems.map(item =>
-          item.id === id ? { ...item, quantity: newQuantity } : item
-        )
-      );
-    } catch (error) {
-      console.error(`Error updating quantity for item ${id}:`, error);
-    } finally {
-      setLoading(false);
-    }
-  };
-
-  const removeItem = async (id: number | string) => {
-    try {
-      setLoading(true);
-      await cartService.removeFromCart(id);
-
-      // Update local state
-      setCartItems(prevItems => prevItems.filter(item => item.id !== id));
-
-      // Remove from selected items
-      setSelectedItems(prevSelected => {
-        const newSelected = new Set(prevSelected);
-        newSelected.delete(id);
-        return newSelected;
-      });
-    } catch (error) {
-      console.error(`Error removing item ${id} from cart:`, error);
-    } finally {
-      setLoading(false);
-    }
-  };
-
-  // Toggle selection of an item
-  const toggleSelectItem = (id: number | string) => {
-    setSelectedItems(prevSelected => {
-      const newSelected = new Set(prevSelected);
-      if (newSelected.has(id)) {
-        newSelected.delete(id);
-      } else {
-        newSelected.add(id);
-      }
-      return newSelected;
-    });
-  };
-
-  // Select all items
-  const selectAllItems = () => {
-    const allItemIds = new Set(cartItems.map(item => item.id));
-    setSelectedItems(allItemIds);
-  };
-
-  // Clear all selections
-  const clearAllSelections = () => {
-    setSelectedItems(new Set());
-  };
 
   // Check if all items are selected
   const areAllItemsSelected = cartItems.length > 0 && selectedItems.size === cartItems.length;
@@ -189,40 +65,16 @@ export default function CartPage() {
     }
   };
 
-  // Calculate subtotal from selected cart items
-  const subtotal = cartItems.reduce((sum, item) => {
-    // Only include selected items in the subtotal
-    if (selectedItems.has(item.id)) {
-      const price = typeof item.unit_price === 'number' ? item.unit_price : 0;
-      const quantity = typeof item.quantity === 'number' ? item.quantity : 0;
-      return sum + (price * quantity);
-    }
-    return sum;
-  }, 0);
-
-  // Calculate total from all cart items (for display purposes)
-  const totalCartValue = cartItems.reduce((sum, item) => {
-    const price = typeof item.unit_price === 'number' ? item.unit_price : 0;
-    const quantity = typeof item.quantity === 'number' ? item.quantity : 0;
-    return sum + (price * quantity);
-  }, 0);
-  const discount = subtotal * (promoDiscount / 100);
-  const total = subtotal - discount;
-
-  // Format currency
-  const formatCurrency = (amount: number) => {
-    return new Intl.NumberFormat('id-ID', {
-      style: 'currency',
-      currency: 'IDR',
-      minimumFractionDigits: 0,
-      maximumFractionDigits: 0
-    }).format(amount);
-  };
+  // Calculate subtotal, discount, total using centralized utils
+  const selectedCartItems = cartItems.filter(item => selectedItems.has(item.id));
+  const subtotal = calculateSubtotal(selectedCartItems);
+  const discount = calculateDiscount(subtotal, promoDiscount);
+  const total = calculateTotal(subtotal, discount);
+  const totalCartValue = calculateSubtotal(cartItems);
 
   return (
     <div className="min-h-screen flex flex-col bg-black">
       <Header />
-
       <main className="flex-grow py-12 px-6">
         <div className="max-w-6xl mx-auto">
           <h1 className="text-3xl font-bold text-white mb-2">Your Cart</h1>
@@ -270,84 +122,15 @@ export default function CartPage() {
                   </div>
                   <ul className="divide-y divide-white/10">
                     {cartItems.map((item) => (
-                      <div key={item.id} className={`group p-4 bg-neutral-900/80 backdrop-blur-sm rounded-sm border overflow-hidden shadow-lg transition-all duration-300 hover:border-amber-500/20 animate-fade-in ${selectedItems.has(item.id) ? 'border-amber-500/50' : 'border-white/10'}`}>
-                        <div className="flex items-center">
-                          <label className="mr-4 w-5 h-5 relative flex items-center justify-center cursor-pointer">
-                            <input
-                              type="checkbox"
-                              className="sr-only"
-                              checked={selectedItems.has(item.id)}
-                              onChange={() => toggleSelectItem(item.id)}
-                            />
-                            <svg className={`w-5 h-5 ${selectedItems.has(item.id) ? 'text-amber-500' : 'text-white/40'}`} fill="none" viewBox="0 0 24 24" stroke="currentColor">
-                              <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={1.5} d="M5 13l4 4L19 7" />
-                            </svg>
-                          </label>
-
-                          <div className="w-16 h-16 bg-neutral-800 rounded-sm overflow-hidden mr-4 flex-shrink-0">
-                            <Link href={`/products/${item.product_id}`} className="block w-full h-full">
-                              <img
-                                src={getProductImageUrl(item.image_url || '')}
-                                alt={item.name}
-                                className="w-full h-full object-cover transition-transform duration-300 group-hover:scale-110"
-                                onError={handleProductImageError}
-                              />
-                            </Link>
-                          </div>
-
-                          <div className="flex-grow mr-4">
-                            <Link
-                              href={`/products/${item.product_id}`}
-                              className="text-white font-medium hover:text-amber-400 transition-colors block mb-1"
-                            >
-                              {item.name}
-                            </Link>
-                            <div className="text-white/60 text-xs">{item.seller}</div>
-                          </div>
-
-                          <div className="flex items-center space-x-4">
-                            <div className="flex items-center">
-                              <button
-                                onClick={() => updateQuantity(item.id, Math.max(1, item.quantity - 1))}
-                                className="w-7 h-7 flex items-center justify-center rounded-l-sm bg-black/50 text-white/70 hover:text-white hover:bg-black/70 transition-colors"
-                                disabled={loading}
-                              >
-                                <svg className="w-3 h-3" fill="none" viewBox="0 0 24 24" stroke="currentColor">
-                                  <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M20 12H4" />
-                                </svg>
-                              </button>
-
-                              <div className="w-10 h-7 flex items-center justify-center bg-black/30 text-white border-x border-white/5 text-sm">
-                                {item.quantity}
-                              </div>
-
-                              <button
-                                onClick={() => updateQuantity(item.id, item.quantity + 1)}
-                                className="w-7 h-7 flex items-center justify-center rounded-r-sm bg-black/50 text-white/70 hover:text-white hover:bg-black/70 transition-colors"
-                                disabled={loading}
-                              >
-                                <svg className="w-3 h-3" fill="none" viewBox="0 0 24 24" stroke="currentColor">
-                                  <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M12 4v16m8-8H4" />
-                                </svg>
-                              </button>
-                            </div>
-
-                            <div className="text-amber-500 font-bold w-24 text-right">
-                              {formatCurrency(item.unit_price * item.quantity)}
-                            </div>
-
-                            <button
-                              onClick={() => removeItem(item.id)}
-                              className="text-white/40 hover:text-red-400 transition-colors w-8 h-8 flex items-center justify-center rounded-full bg-black/30 hover:bg-black/50"
-                              disabled={loading}
-                            >
-                              <svg className="w-4 h-4" fill="none" viewBox="0 0 24 24" stroke="currentColor">
-                                <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={1.5} d="M19 7l-.867 12.142A2 2 0 0116.138 21H7.862a2 2 0 01-1.995-1.858L5 7m5 4v6m4-6v6m1-10V4a1 1 0 00-1-1h-4a1 1 0 00-1 1v3M4 7h16" />
-                              </svg>
-                            </button>
-                          </div>
-                        </div>
-                      </div>
+                      <CartItem
+                        key={item.id}
+                        item={item}
+                        selected={selectedItems.has(item.id)}
+                        loading={loading}
+                        onSelect={toggleSelectItem}
+                        onUpdateQuantity={updateQuantity}
+                        onRemove={removeItem}
+                      />
                     ))}
                   </ul>
                   {cartItems.length > 0 && (
@@ -458,7 +241,6 @@ export default function CartPage() {
           )}
         </div>
       </main>
-
       <Footer />
     </div>
   );
