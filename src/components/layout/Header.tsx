@@ -2,13 +2,14 @@
 
 import { useState, useEffect, useRef } from "react";
 import Link from "next/link";
-import { useRouter } from "next/navigation";
+import { useRouter, usePathname } from "next/navigation";
 import { isAuthenticated, getCurrentUser, logout, AuthUser } from "@/lib/auth";
 import cartService from "@/services/api/cart";
 import wishlistService from "@/services/api/wishlist";
 import { TOKEN_EXPIRED_EVENT } from "@/constants";
 
 export default function Header() {
+  const pathname = usePathname();
   const router = useRouter();
   const [user, setUser] = useState<AuthUser | null>(null);
   const [isLoggedIn, setIsLoggedIn] = useState(false);
@@ -131,11 +132,14 @@ export default function Header() {
                   Shop
                 </Link>
               </li>
-              <li>
-                <Link href="#how-it-works" className="text-white/70 hover:text-amber-400 transition-colors">
-                  How It Works
-                </Link>
-              </li>
+              {pathname === '/' && (
+                <li>
+                  <Link href="#how-it-works" className="text-white/70 hover:text-amber-400 transition-colors">
+                    How It Works
+                  </Link>
+                </li>
+              )}
+              {/* Only show on homepage */}
             </ul>
           </nav>
         </div>
