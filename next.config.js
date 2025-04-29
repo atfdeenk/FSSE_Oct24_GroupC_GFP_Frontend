@@ -10,4 +10,22 @@ const nextConfig = {
   },
 };
 
-module.exports = nextConfig;
+module.exports = module.exports = {
+  images: {
+    remotePatterns: [
+      {
+        protocol: 'https',
+        hostname: 'example.com',
+      },
+      {
+        protocol: 'https',
+        hostname: 'img.freepik.com',
+      },
+      {
+        protocol: 'https',
+        hostname: 'images.unsplash.com',
+      },
+      // Add more as needed
+    ],
+  },
+};

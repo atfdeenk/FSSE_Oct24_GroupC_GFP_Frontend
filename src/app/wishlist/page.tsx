@@ -336,7 +336,7 @@ export default function WishlistPage() {
                       <select
                         value={filterBy}
                         onChange={(e) => setFilterBy(e.target.value as 'all' | 'inStock' | 'outOfStock')}
-                        className="bg-neutral-800 border border-white/10 rounded-md px-3 py-2 pr-8 text-sm appearance-none focus:outline-none focus:border-amber-500/50"
+                        className="bg-amber-500 text-white font-semibold shadow-sm border border-amber-500 rounded-md px-3 py-2 pr-8 text-sm appearance-none focus:outline-none focus:ring-2 focus:ring-amber-400 focus:border-amber-400 hover:bg-amber-600 transition-colors"
                       >
                         <option value="all">All items</option>
                         <option value="inStock">In stock</option>
@@ -354,7 +354,7 @@ export default function WishlistPage() {
                       <select
                         value={sortBy}
                         onChange={(e) => setSortBy(e.target.value as 'default' | 'priceAsc' | 'priceDesc' | 'nameAsc')}
-                        className="bg-neutral-800 border border-white/10 rounded-md px-3 py-2 pr-8 text-sm appearance-none focus:outline-none focus:border-amber-500/50"
+                        className="bg-amber-500 text-white font-semibold shadow-sm border border-amber-500 rounded-md px-3 py-2 pr-8 text-sm appearance-none focus:outline-none focus:ring-2 focus:ring-amber-400 focus:border-amber-400 hover:bg-amber-600 transition-colors"
                       >
                         <option value="default">Default sorting</option>
                         <option value="priceAsc">Price: Low to high</option>

@@ -442,7 +442,15 @@ export default function CartPage() {
                       className={`w-full py-3 rounded-sm font-bold transform hover:translate-y-[-2px] transition-all duration-300 shadow-lg ${selectedItems.size > 0 ? 'bg-amber-500 text-black hover:bg-amber-400 hover:shadow-amber-500/20' : 'bg-neutral-700 text-white/50 cursor-not-allowed'}`}
                       disabled={selectedItems.size === 0}
                     >
-                      {selectedItems.size > 0 ? 'Proceed to Checkout' : 'Select Items to Checkout'}
+                      {selectedItems.size > 0 ? (
+                        <span className="flex items-center justify-center gap-2">
+                          <svg className="w-7 h-7 text-black" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                            <rect x="6" y="10" width="12" height="8" rx="2" stroke="currentColor" strokeWidth="2" fill="none" />
+                            <path d="M9 10V8a3 3 0 016 0v2" stroke="currentColor" strokeWidth="2" fill="none" />
+                          </svg>
+                          Proceed to Checkout
+                        </span>
+                      ) : 'Select Items to Checkout'}
                     </button>
 
                     <div className="mt-6 p-4 bg-black/30 rounded-sm border border-white/5">

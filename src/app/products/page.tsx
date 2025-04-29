@@ -7,6 +7,36 @@ import { Header, Footer, LoginForm } from '@/components';
 import { getImageUrl, handleImageError } from '@/utils/imageUtils';
 import useDebounce from '@/hooks/useDebounce';
 
+import Image from 'next/image';
+
+function ProductImage({ src, alt, width = 400, height = 192, className = '', onError }: {
+  src: string;
+  alt: string;
+  width?: number;
+  height?: number;
+  className?: string;
+  onError?: (e: any) => void;
+}) {
+  const [imageLoaded, setImageLoaded] = useState(false);
+  return (
+    <div className="relative w-full h-full">
+      <Image
+        src={src}
+        alt={alt}
+        width={width}
+        height={height}
+        className={`w-full h-full object-cover transition-transform duration-500 group-hover:scale-110 ${imageLoaded ? 'opacity-100' : 'opacity-0'} ${className}`}
+        onLoadingComplete={() => setImageLoaded(true)}
+        onError={onError}
+        loading="lazy"
+      />
+      {!imageLoaded && (
+        <div className="absolute inset-0 bg-neutral-800 animate-pulse" />
+      )}
+    </div>
+  );
+}
+
 export default function ProductsPage() {
   const [products, setProducts] = useState<Product[]>([]);
   const [error, setError] = useState('');
@@ -23,7 +53,8 @@ export default function ProductsPage() {
 
   // Fetch products with pagination and filtering
   const fetchProducts = async () => {
-    // Set loading state
+    console.time('fetchProducts: total');
+    console.time('fetchProducts: network');
     setLoading(true);
 
     // Clear products when changing search or sort to show loading state
@@ -58,13 +89,19 @@ export default function ProductsPage() {
       }
 
       const response = await productService.getProducts(filters);
+      console.timeEnd('fetchProducts: network');
 
       if (response && response.products) {
         setProducts(response.products || []);
         setTotalProducts(response.total || 0);
         setTotalPages(Math.ceil((response.total || 0) / pageSize));
+        // Wait for the next paint to measure render time
+        requestAnimationFrame(() => {
+          console.timeEnd('fetchProducts: total');
+        });
       } else {
         setError('Failed to load products.');
+        console.timeEnd('fetchProducts: total');
       }
     } catch (e: any) {
       setError(e?.message || 'Failed to load products.');
@@ -73,6 +110,7 @@ export default function ProductsPage() {
       setLoading(false);
     }
   };
+
 
   // Fetch products when page, sort, or search changes
   useEffect(() => {
@@ -198,12 +236,15 @@ export default function ProductsPage() {
               className="group bg-neutral-900/50 backdrop-blur-sm rounded-sm overflow-hidden border border-white/5 hover:border-amber-500/30 transition-all duration-300 flex flex-col h-full"
             >
               <div className="relative h-48 overflow-hidden bg-neutral-900 rounded-t-sm">
-                <img
+                {/* Progressive image loading with skeleton */}
+                <ProductImage
                   src={getImageUrl(product.image_url)}
                   alt={product.name}
-                  className="w-full h-full object-cover transition-transform duration-500 group-hover:scale-110"
+                  width={400}
+                  height={192}
                   onError={handleImageError()}
                 />
+
                 <div className="absolute inset-0 bg-gradient-to-t from-black/80 to-transparent opacity-0 group-hover:opacity-100 transition-opacity duration-300"></div>
                 <div className="absolute bottom-0 left-0 p-4 w-full">
                   <span className="inline-block bg-amber-500/90 text-black text-xs font-bold px-3 py-1 rounded-sm mb-2 opacity-0 group-hover:opacity-100 transition-opacity duration-300 translate-y-2 group-hover:translate-y-0">

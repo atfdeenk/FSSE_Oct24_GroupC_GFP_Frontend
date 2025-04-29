@@ -41,7 +41,7 @@ const SelectionControls: React.FC<SelectionControlsProps> = ({
     return (
       <button 
         onClick={handleToggleClick}
-        className="bg-neutral-800 hover:bg-neutral-700 border border-white/10 rounded-md px-4 py-2 text-sm transition-colors"
+        className="bg-amber-500 text-white hover:bg-amber-600 shadow-sm rounded-md px-4 py-2 text-sm font-semibold transition-colors"
       >
         {areAllItemsSelected ? 'Deselect All' : 'Select All'}
       </button>
@@ -57,7 +57,7 @@ const SelectionControls: React.FC<SelectionControlsProps> = ({
       )}
       <button
         onClick={handleToggleClick}
-        className="px-3 py-1 text-xs bg-amber-500/10 text-amber-500 hover:bg-amber-500/20 rounded-sm transition-colors"
+        className="px-3 py-1 text-xs bg-amber-500 text-white hover:bg-amber-600 rounded-sm shadow-sm font-semibold transition-colors"
       >
         {areAllItemsSelected ? 'Deselect All' : 'Select All'}
       </button>

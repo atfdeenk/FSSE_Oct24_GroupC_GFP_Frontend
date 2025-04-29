@@ -22,13 +22,13 @@ export default function Header() {
     const initializeUser = async () => {
       const authStatus = isAuthenticated();
       setIsLoggedIn(authStatus);
-      
+
       if (authStatus) {
         try {
           // Properly await the Promise from getCurrentUser
           const currentUser = await getCurrentUser();
           setUser(currentUser);
-          
+
           // Fetch real cart and wishlist counts from API
           fetchCartCount();
           fetchWishlistCount();
@@ -37,23 +37,23 @@ export default function Header() {
         }
       }
     };
-    
+
     initializeUser();
-    
+
     // Listen for token expiration events
     const handleTokenExpired = (event: CustomEvent) => {
       console.log('Token expired event received:', event.detail);
       handleLogout(true);
     };
-    
+
     window.addEventListener(TOKEN_EXPIRED_EVENT, handleTokenExpired as EventListener);
-    
+
     // Clean up event listener
     return () => {
       window.removeEventListener(TOKEN_EXPIRED_EVENT, handleTokenExpired as EventListener);
     };
   }, []);
-  
+
   // Fetch cart count from API
   const fetchCartCount = async () => {
     try {
@@ -65,7 +65,7 @@ export default function Header() {
       console.error('Error fetching cart count:', error);
     }
   };
-  
+
   // Fetch wishlist count from API
   const fetchWishlistCount = async () => {
     try {
@@ -100,10 +100,10 @@ export default function Header() {
     setCartCount(0);
     setWishlistCount(0);
     setShowUserMenu(false);
-    
+
     // Determine if this was triggered by token expiration
     const isExpired = typeof isExpiredOrEvent === 'boolean' && isExpiredOrEvent;
-    
+
     // If token expired, redirect to login with message
     if (isExpired) {
       router.push("/login?message=Your session has expired. Please log in again.");
@@ -142,8 +142,8 @@ export default function Header() {
 
         <div className="flex items-center space-x-6">
           {/* Cart */}
-          <Link 
-            href="/cart" 
+          <Link
+            href="/cart"
             className="text-white/70 hover:text-amber-400 transition-colors relative"
             aria-label="Shopping cart"
           >
@@ -158,8 +158,8 @@ export default function Header() {
           </Link>
 
           {/* Wishlist */}
-          <Link 
-            href="/wishlist" 
+          <Link
+            href="/wishlist"
             className="text-white/70 hover:text-amber-400 transition-colors relative"
             aria-label="Wishlist"
           >
@@ -207,8 +207,8 @@ export default function Header() {
                   </div>
                   <ul>
                     <li>
-                      <Link 
-                        href="/dashboard" 
+                      <Link
+                        href="/dashboard"
                         className="block px-4 py-2 text-white/80 hover:bg-amber-500/10 hover:text-amber-500 transition-colors"
                         onClick={() => setShowUserMenu(false)}
                       >
@@ -216,8 +216,8 @@ export default function Header() {
                       </Link>
                     </li>
                     <li>
-                      <Link 
-                        href="/orders" 
+                      <Link
+                        href="/orders"
                         className="block px-4 py-2 text-white/80 hover:bg-amber-500/10 hover:text-amber-500 transition-colors"
                         onClick={() => setShowUserMenu(false)}
                       >
@@ -226,8 +226,8 @@ export default function Header() {
                     </li>
                     {user?.role === 'seller' && (
                       <li>
-                        <Link 
-                          href="/seller/products" 
+                        <Link
+                          href="/seller/products"
                           className="block px-4 py-2 text-white/80 hover:bg-amber-500/10 hover:text-amber-500 transition-colors"
                           onClick={() => setShowUserMenu(false)}
                         >
@@ -236,8 +236,8 @@ export default function Header() {
                       </li>
                     )}
                     <li>
-                      <Link 
-                        href="/settings" 
+                      <Link
+                        href="/settings"
                         className="block px-4 py-2 text-white/80 hover:bg-amber-500/10 hover:text-amber-500 transition-colors"
                         onClick={() => setShowUserMenu(false)}
                       >
@@ -245,7 +245,7 @@ export default function Header() {
                       </Link>
                     </li>
                     <li className="border-t border-white/10">
-                      <button 
+                      <button
                         onClick={handleLogout}
                         className="block w-full text-left px-4 py-2 text-red-400 hover:bg-red-500/10 transition-colors"
                       >
@@ -278,8 +278,8 @@ export default function Header() {
                 <div className="md:hidden absolute right-0 mt-2 w-48 bg-neutral-900 border border-white/10 rounded-sm shadow-xl z-50 animate-fade-in-down">
                   <ul>
                     <li>
-                      <Link 
-                        href="/login" 
+                      <Link
+                        href="/login"
                         className="flex items-center px-4 py-3 text-white hover:bg-amber-500/10 hover:text-amber-500 transition-colors"
                         onClick={() => setShowUserMenu(false)}
                       >
@@ -290,8 +290,8 @@ export default function Header() {
                       </Link>
                     </li>
                     <li className="border-t border-white/10">
-                      <Link 
-                        href="/register" 
+                      <Link
+                        href="/register"
                         className="flex items-center px-4 py-3 text-white hover:bg-amber-500/10 hover:text-amber-500 transition-colors"
                         onClick={() => setShowUserMenu(false)}
                       >
@@ -304,16 +304,16 @@ export default function Header() {
                   </ul>
                 </div>
               )}
-              
+
               {/* Desktop buttons - only visible on md screens and up */}
               <div className="hidden md:flex items-center space-x-4">
-                <Link 
+                <Link
                   href="/login"
                   className="text-white/70 hover:text-amber-400 transition-colors"
                 >
                   Sign In
                 </Link>
-                <Link 
+                <Link
                   href="/register"
                   className="bg-amber-500 text-black px-4 py-2 rounded-sm font-medium hover:bg-amber-400 transition-colors"
                 >
