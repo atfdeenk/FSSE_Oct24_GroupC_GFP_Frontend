@@ -1,3 +1,5 @@
+"use client";
+
 import { useEffect, useState } from 'react';
 import { useRouter } from 'next/navigation';
 import { useAuthUser } from '@/hooks/useAuthUser';
@@ -26,7 +28,7 @@ const RoleGuard: React.FC<RoleGuardProps> = ({
   const role = useUserRole();
   const [isAuthorized, setIsAuthorized] = useState(false);
   const [loading, setLoading] = useState(true);
-  
+
   useEffect(() => {
     // If no allowedRoles specified, allow everyone (guests and logged in)
     if (!allowedRoles || allowedRoles.length === 0) {

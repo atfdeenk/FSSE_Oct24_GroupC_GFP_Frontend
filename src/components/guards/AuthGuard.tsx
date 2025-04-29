@@ -1,3 +1,5 @@
+"use client";
+
 import { useEffect, useState } from 'react';
 import { useRouter } from 'next/navigation';
 import { useAuthUser } from '@/hooks/useAuthUser';
@@ -32,7 +34,7 @@ const AuthGuard: React.FC<AuthGuardProps> = ({
   if (loading) {
     return <LoadingIndicator />;
   }
-  
+
   return isLoggedIn ? <>{children}</> : null;
 };
 
