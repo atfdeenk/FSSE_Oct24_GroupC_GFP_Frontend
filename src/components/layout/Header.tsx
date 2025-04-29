@@ -11,18 +11,15 @@ import UserMenu from "@/components/ui/UserMenu";
 import AvatarIcon from "@/components/ui/AvatarIcon";
 import SignUpIcon from "@/components/ui/SignUpIcon";
 import SignInIcon from "@/components/ui/SignInIcon";
-import { useRouter, usePathname } from "next/navigation";
-import { logout } from "@/lib/auth";
+import { usePathname } from "next/navigation";
 import { useAuthUser } from "@/hooks/useAuthUser";
 import { useTokenExpiryHandler } from "@/hooks/useTokenExpiryHandler";
 import { useClickOutside } from "@/hooks/useClickOutside";
 import { useLogout } from "@/hooks/useLogout";
 import { fetchCartAndWishlistCounts } from "@/utils/fetchCounts";
-import { TOKEN_EXPIRED_EVENT } from "@/constants";
 
 export default function Header() {
   const pathname = usePathname();
-  const router = useRouter();
   const { user, isLoggedIn, refreshUser, setUser, setIsLoggedIn } = useAuthUser();
   const [showUserMenu, toggleUserMenu, setShowUserMenu] = useToggle(false);
   const [cartCount, setCartCount] = useState(0);
