@@ -66,7 +66,7 @@ export default function CartPage() {
                   name: product?.name || 'Product not found',
                   image_url: product?.image_url || '',
                   seller: `Vendor ID: ${product?.vendor_id || 'Unknown'}`,
-                  unit_price: item.price || 0,
+                  unit_price: product?.price || 0,
                   product_id: item.product_id,
                   inStock: isProductInStock(product)
                 };
@@ -77,7 +77,7 @@ export default function CartPage() {
                   name: 'Product not found',
                   image_url: '',
                   seller: 'Unknown vendor',
-                  unit_price: item.price || 0,
+                  unit_price: 0,
                   product_id: item.product_id
                 };
               }
