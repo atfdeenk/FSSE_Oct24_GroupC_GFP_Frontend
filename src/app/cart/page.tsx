@@ -11,16 +11,9 @@ import OrderSummary from "@/components/OrderSummary";
 import LoadingIndicator from "@/components/ui/LoadingIndicator";
 import EmptyState from "@/components/EmptyState";
 import { PROMO_CODES } from "@/constants/promoCodes";
-import { isAuthenticated, getCurrentUser } from "@/lib/auth";
-import { fetchCartWithDetails } from '@/services/cartLogic';
-import cartService from '@/services/api/cart';
+import { isAuthenticated } from "@/lib/auth";
 import { calculateSubtotal, calculateDiscount, calculateTotal } from '@/utils/cartUtils';
 import { formatCurrency } from '@/utils/format';
-import { getProductImageUrl, handleProductImageError } from "@/utils/imageUtils";
-import { isProductInStock } from "@/utils/products";
-import { CartItem as ApiCartItem } from "@/types/apiResponses";
-
-import { CartItemWithDetails } from '@/types/cart';
 
 export default function CartPage() {
   const router = useRouter();
