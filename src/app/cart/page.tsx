@@ -6,12 +6,13 @@ import { useCart } from '@/hooks/useCart';
 import Link from "next/link";
 import { Header, Footer, SelectionControls } from "@/components";
 import PromoCodeInput from "@/components/PromoCodeInput";
+import CartItem from "@/components/CartItem";
+import OrderSummary from "@/components/OrderSummary";
 import { PROMO_CODES } from "@/constants/promoCodes";
 import { isAuthenticated, getCurrentUser } from "@/lib/auth";
 import { fetchCartWithDetails } from '@/services/cartLogic';
 import cartService from '@/services/api/cart';
 import { calculateSubtotal, calculateDiscount, calculateTotal } from '@/utils/cartUtils';
-import CartItem from '@/components/CartItem';
 import { formatCurrency } from '@/utils/format';
 import { getProductImageUrl, handleProductImageError } from "@/utils/imageUtils";
 import { isProductInStock } from "@/utils/products";
@@ -156,86 +157,56 @@ export default function CartPage() {
 
               {/* Order Summary */}
               <div className="lg:col-span-1">
-                <div className="bg-neutral-900/80 backdrop-blur-sm rounded-sm border border-white/10 sticky top-24 shadow-lg animate-fade-in">
-                  <div className="p-6 border-b border-white/10 bg-black/30">
-                    <div className="flex justify-between items-center">
-                      <h2 className="text-xl font-bold text-white">Order Summary</h2>
-                    </div>
-                  </div>
-
-                  <div className="p-6">
-                    <div className="space-y-4 mb-6">
-                      <div className="flex justify-between">
-                        <span className="text-white/70">Subtotal ({selectedItems.size} {selectedItems.size === 1 ? 'item' : 'items'})</span>
-                        <span className="text-white font-medium">{formatCurrency(subtotal)}</span>
-                      </div>
-
-                      {selectedItems.size < cartItems.length && (
-                        <div className="flex justify-between text-white/50">
-                          <span>Unselected items</span>
-                          <span>{formatCurrency(totalCartValue - subtotal)}</span>
-                        </div>
-                      )}
-
-                      <div className="flex justify-between">
-                        <span className="text-white/70">Shipping</span>
-                        <span className="text-green-400 font-medium">Free</span>
-                      </div>
-
-                      {promoDiscount > 0 && (
-                        <div className="flex justify-between text-amber-400">
-                          <span>Discount ({promoDiscount}%)</span>
-                          <span>-{formatCurrency(discount)}</span>
-                        </div>
-                      )}
-
-                      <div className="pt-4 border-t border-white/10 flex justify-between">
-                        <span className="text-white font-bold">Total</span>
-                        <span className="text-amber-500 font-bold text-xl">{formatCurrency(total)}</span>
-                      </div>
-                    </div>
-
-                    {/* Promo Code */}
-                    <PromoCodeInput
-                      value={promoCode}
-                      onChange={setPromoCode}
-                      onApply={applyPromoCode}
-                      error={promoError}
-                      successMessage={promoDiscount > 0 ? "Promo code applied successfully!" : undefined}
-                      disabled={loading}
-                      onRemove={promoDiscount > 0 ? () => {
-                        setPromoCode("");
-                        setPromoDiscount(0);
-                        setPromoError("");
-                      } : undefined}
-                    />
-
-                    <button
-                      className={`w-full py-3 rounded-sm font-bold transform hover:translate-y-[-2px] transition-all duration-300 shadow-lg ${selectedItems.size > 0 ? 'bg-amber-500 text-black hover:bg-amber-400 hover:shadow-amber-500/20' : 'bg-neutral-700 text-white/50 cursor-not-allowed'}`}
-                      disabled={selectedItems.size === 0}
-                    >
-                      {selectedItems.size > 0 ? (
-                        <span className="flex items-center justify-center gap-2">
-                          <svg className="w-7 h-7 text-black" fill="none" viewBox="0 0 24 24" stroke="currentColor">
-                            <rect x="6" y="10" width="12" height="8" rx="2" stroke="currentColor" strokeWidth="2" fill="none" />
-                            <path d="M9 10V8a3 3 0 016 0v2" stroke="currentColor" strokeWidth="2" fill="none" />
-                          </svg>
-                          Proceed to Checkout
-                        </span>
-                      ) : 'Select Items to Checkout'}
-                    </button>
-
-                    <div className="mt-6 p-4 bg-black/30 rounded-sm border border-white/5">
-                      <h3 className="text-white text-sm font-medium mb-2 flex items-center gap-2">
-                        <svg className="w-4 h-4 text-green-400" fill="none" viewBox="0 0 24 24" stroke="currentColor">
-                          <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M5 13l4 4L19 7" />
+                <OrderSummary
+                  selectedItemsCount={selectedItems.size}
+                  totalItemsCount={cartItems.length}
+                  subtotal={subtotal}
+                  discount={discount}
+                  total={total}
+                  totalCartValue={totalCartValue}
+                  promoDiscount={promoDiscount}
+                  promoError={promoError}
+                  onApplyPromo={applyPromoCode}
+                  promoCode={promoCode}
+                  setPromoCode={setPromoCode}
+                >
+                  <PromoCodeInput
+                    value={promoCode}
+                    onChange={setPromoCode}
+                    onApply={applyPromoCode}
+                    error={promoError}
+                    successMessage={promoDiscount > 0 ? "Promo code applied successfully!" : undefined}
+                    disabled={loading}
+                    onRemove={promoDiscount > 0 ? () => {
+                      setPromoCode("");
+                      setPromoDiscount(0);
+                      setPromoError("");
+                    } : undefined}
+                  />
+                  <button
+                    className={`w-full py-3 rounded-sm font-bold transform hover:translate-y-[-2px] transition-all duration-300 shadow-lg ${selectedItems.size > 0 ? 'bg-amber-500 text-black hover:bg-amber-400 hover:shadow-amber-500/20' : 'bg-neutral-700 text-white/50 cursor-not-allowed'}`}
+                    disabled={selectedItems.size === 0}
+                  >
+                    {selectedItems.size > 0 ? (
+                      <span className="flex items-center justify-center gap-2">
+                        <svg className="w-7 h-7 text-black" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                          <rect x="6" y="10" width="12" height="8" rx="2" stroke="currentColor" strokeWidth="2" fill="none" />
+                          <path d="M9 10V8a3 3 0 016 0v2" stroke="currentColor" strokeWidth="2" fill="none" />
                         </svg>
-                        Secure Checkout
-                      </h3>
-                      <p className="text-white/60 text-xs">Your payment information is processed securely. We do not store credit card details.</p>
-                    </div>
+                        Proceed to Checkout
+                      </span>
+                    ) : 'Select Items to Checkout'}
+                  </button>
+                  <div className="mt-6 p-4 bg-black/30 rounded-sm border border-white/5">
+                    <h3 className="text-white text-sm font-medium mb-2 flex items-center gap-2">
+                      <svg className="w-4 h-4 text-green-400" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                        <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M5 13l4 4L19 7" />
+                      </svg>
+                      Secure Checkout
+                    </h3>
+                    <p className="text-white/60 text-xs">Your payment information is processed securely. We do not store credit card details.</p>
                   </div>
-                </div>
+                </OrderSummary>
               </div>
             </div>
           )}
