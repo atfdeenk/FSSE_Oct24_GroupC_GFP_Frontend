@@ -7,6 +7,10 @@ import CartWidget from "@/components/ui/CartWidget";
 import WishlistWidget from "@/components/ui/WishlistWidget";
 import AuthButtons from "@/components/ui/AuthButtons";
 import UserMenu from "@/components/ui/UserMenu";
+import AvatarIcon from "@/components/ui/AvatarIcon";
+import ChevronDownIcon from "@/components/ui/ChevronDownIcon";
+import SignUpIcon from "@/components/ui/SignUpIcon";
+import SignInIcon from "@/components/ui/SignInIcon";
 import { useRouter, usePathname } from "next/navigation";
 import { isAuthenticated, getCurrentUser, logout, AuthUser } from "@/lib/auth";
 import cartService from "@/services/api/cart";
@@ -172,9 +176,7 @@ export default function Header() {
                 aria-label="Account menu"
               >
                 <div className="w-10 h-10 rounded-full overflow-hidden border-2 border-white/20 bg-neutral-800 flex items-center justify-center">
-                  <svg className="w-6 h-6 text-white/70" fill="none" viewBox="0 0 24 24" stroke="currentColor">
-                    <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={1.5} d="M16 7a4 4 0 11-8 0 4 4 0 018 0zM12 14a7 7 0 00-7 7h14a7 7 0 00-7-7z" />
-                  </svg>
+                  <AvatarIcon />
                 </div>
               </button>
 
@@ -188,9 +190,7 @@ export default function Header() {
                         className="flex items-center px-4 py-3 text-white hover:bg-amber-500/10 hover:text-amber-500 transition-colors"
                         onClick={() => setShowUserMenu(false)}
                       >
-                        <svg className="w-5 h-5 mr-3 text-white/60" fill="none" viewBox="0 0 24 24" stroke="currentColor">
-                          <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={1.5} d="M11 16l-4-4m0 0l4-4m-4 4h14m-5 4v1a3 3 0 01-3 3H6a3 3 0 01-3-3V7a3 3 0 013-3h7a3 3 0 013 3v1" />
-                        </svg>
+                        <SignInIcon className="w-5 h-5 mr-3 text-white/60" />
                         <span>Sign In</span>
                       </Link>
                     </li>
@@ -200,18 +200,13 @@ export default function Header() {
                         className="flex items-center px-4 py-3 text-white hover:bg-amber-500/10 hover:text-amber-500 transition-colors"
                         onClick={() => setShowUserMenu(false)}
                       >
-                        <svg className="w-5 h-5 mr-3 text-white/60" fill="none" viewBox="0 0 24 24" stroke="currentColor">
-                          <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={1.5} d="M18 9v3m0 0v3m0-3h3m-3 0h-3m-2-5a4 4 0 11-8 0 4 4 0 018 0zM3 20a6 6 0 0112 0v1H3v-1z" />
-                        </svg>
+                        <SignUpIcon className="w-5 h-5 mr-3 text-white/60" />
                         <span>Sign Up</span>
                       </Link>
                     </li>
                   </ul>
                 </div>
               )}
-
-              {/* Desktop buttons - only visible on md screens and up */}
-              <AuthButtons />
             </div>
           )}
         </div>
