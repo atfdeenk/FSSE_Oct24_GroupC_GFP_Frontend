@@ -1,6 +1,7 @@
 import { useEffect, useState } from 'react';
 import { useRouter } from 'next/navigation';
-import { isAuthenticated } from '@/lib/auth';
+import { useAuthUser } from '@/hooks/useAuthUser';
+import LoadingIndicator from '@/components/ui/LoadingIndicator';
 
 interface AuthGuardProps {
   children: React.ReactNode;
@@ -16,34 +17,23 @@ const AuthGuard: React.FC<AuthGuardProps> = ({
   loginPath = '/login',
 }) => {
   const router = useRouter();
+  const { isLoggedIn } = useAuthUser();
   const [loading, setLoading] = useState(true);
-  const [authenticated, setAuthenticated] = useState(false);
-  
+
   useEffect(() => {
-    // Check if user is authenticated
-    const auth = isAuthenticated();
-    
-    if (!auth) {
-      // Redirect to login with callback URL
+    if (!isLoggedIn) {
       const currentPath = window.location.pathname;
       router.push(`${loginPath}?callbackUrl=${encodeURIComponent(currentPath)}`);
     } else {
-      setAuthenticated(true);
+      setLoading(false);
     }
-    
-    setLoading(false);
-  }, [loginPath, router]);
-  
-  // Show loading state or render children if authenticated
+  }, [isLoggedIn, loginPath, router]);
+
   if (loading) {
-    return (
-      <div className="flex items-center justify-center min-h-screen">
-        <div className="animate-spin rounded-full h-12 w-12 border-t-2 border-b-2 border-gray-900"></div>
-      </div>
-    );
+    return <LoadingIndicator />;
   }
   
-  return authenticated ? <>{children}</> : null;
+  return isLoggedIn ? <>{children}</> : null;
 };
 
 export default AuthGuard;

@@ -1,6 +1,8 @@
 import { useEffect, useState } from 'react';
 import { useRouter } from 'next/navigation';
-import { getUserRole, isAuthenticated } from '@/lib/auth';
+import { useAuthUser } from '@/hooks/useAuthUser';
+import LoadingIndicator from '@/components/ui/LoadingIndicator';
+import { useUserRole } from '@/hooks/useUserRole';
 
 interface RoleGuardProps {
   allowedRoles: string[];
@@ -20,42 +22,27 @@ const RoleGuard: React.FC<RoleGuardProps> = ({
   loginPath = '/login',
 }) => {
   const router = useRouter();
+  const { isLoggedIn } = useAuthUser();
+  const role = useUserRole();
   const [isAuthorized, setIsAuthorized] = useState(false);
   const [loading, setLoading] = useState(true);
   
   useEffect(() => {
-    // Check if user is authenticated
-    if (!isAuthenticated()) {
-      // Redirect to login with callback URL
-      const currentPath = window.location.pathname;
-      router.push(`${loginPath}?callbackUrl=${encodeURIComponent(currentPath)}`);
+    if (!isLoggedIn) {
+      router.push(loginPath);
       return;
     }
-    
-    // Check if user has required role
-    const userRole = getUserRole();
-    
-    if (!userRole || !allowedRoles.includes(userRole)) {
-      // User doesn't have required role, redirect to fallback path
-      router.push(fallbackPath);
-    } else {
-      // User is authorized
+    if (role && allowedRoles.includes(role)) {
       setIsAuthorized(true);
+    } else {
+      router.push(fallbackPath);
     }
-    
     setLoading(false);
-  }, [allowedRoles, fallbackPath, loginPath, router]);
-  
-  // Show loading state or render children if authorized
-  if (loading) {
-    return (
-      <div className="flex items-center justify-center min-h-screen">
-        <div className="animate-spin rounded-full h-12 w-12 border-t-2 border-b-2 border-gray-900"></div>
-      </div>
-    );
-  }
-  
+  }, [isLoggedIn, role, allowedRoles, fallbackPath, loginPath, router]);
+
+  if (loading) return <LoadingIndicator />;
   return isAuthorized ? <>{children}</> : null;
+
 };
 
 export default RoleGuard;
