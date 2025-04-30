@@ -41,6 +41,13 @@ axiosInstance.interceptors.request.use(
 );
 
 // Response interceptor for handling common responses
+// List of routes that require authentication
+const PROTECTED_ROUTES = ['/cart', '/wishlist', '/checkout', '/orders'];
+
+function isProtectedRoute(pathname: string) {
+  return PROTECTED_ROUTES.some(route => pathname.startsWith(route));
+}
+
 axiosInstance.interceptors.response.use(
   (response: AxiosResponse) => {
     return response;
@@ -63,10 +70,9 @@ axiosInstance.interceptors.response.use(
           });
           window.dispatchEvent(event);
           
-          // Redirect to login if not already there
+          // Redirect to login if not already there and only if on a protected route
           const currentPath = window.location.pathname;
-          if (!currentPath.includes('/login')) {
-            // Add redirect parameter to return after login
+          if (isProtectedRoute(currentPath) && !currentPath.includes('/login')) {
             window.location.href = `/login?redirect=${encodeURIComponent(currentPath)}`;
           }
         }

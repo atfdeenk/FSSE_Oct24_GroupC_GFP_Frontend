@@ -2,6 +2,7 @@
 
 import { useState, useEffect, useRef } from "react";
 import { useToggle } from "@/hooks/useToggle";
+import { useCartAndWishlistCounts } from '@/hooks/useCartAndWishlistCounts';
 import Link from "next/link";
 import Logo from "@/components/ui/Logo";
 import CartWidget from "@/components/ui/CartWidget";
@@ -16,41 +17,26 @@ import { useAuthUser } from "@/hooks/useAuthUser";
 import { useTokenExpiryHandler } from "@/hooks/useTokenExpiryHandler";
 import { useClickOutside } from "@/hooks/useClickOutside";
 import { useLogout } from "@/hooks/useLogout";
-import { fetchCartAndWishlistCounts } from "@/utils/fetchCounts";
 
 export default function Header() {
   const pathname = usePathname();
   const { user, isLoggedIn, refreshUser, setUser, setIsLoggedIn } = useAuthUser();
   const [showUserMenu, toggleUserMenu, setShowUserMenu] = useToggle(false);
-  const [cartCount, setCartCount] = useState(0);
-  const [wishlistCount, setWishlistCount] = useState(0);
+  const { cartCount, wishlistCount } = useCartAndWishlistCounts(isLoggedIn);
   const userMenuRef = useRef<HTMLDivElement>(null);
 
   const handleLogout = useLogout({
     setIsLoggedIn,
     setUser,
-    setCartCount,
-    setWishlistCount,
+    setCartCount: () => { }, // No longer needed
+    setWishlistCount: () => { }, // No longer needed
     setShowUserMenu,
   });
 
   useEffect(() => {
-    // Fetch user and counts on mount
-    const init = async () => {
-      await refreshUser();
-      fetchCounts();
-    };
-    init();
+    // Fetch user on mount
+    refreshUser();
   }, []);
-
-  // This effect will run whenever isLoggedIn changes
-  useEffect(() => {
-    // When login state changes, fetch counts
-    fetchCounts();
-  }, [isLoggedIn]);
-
-  useEffect(() => {
-  }, [isLoggedIn, cartCount, wishlistCount]);
 
   useTokenExpiryHandler((event: CustomEvent) => {
     handleLogout(true);
@@ -60,42 +46,16 @@ export default function Header() {
   useEffect(() => {
     const handleLoginEvent = () => {
       refreshUser();
-      fetchCounts();
-    };
-
-    const handleLogoutEvent = () => {
-      setCartCount(0);
-      setWishlistCount(0);
     };
 
     // Add event listeners
     window.addEventListener('user:login', handleLoginEvent);
-    window.addEventListener('user:logout', handleLogoutEvent);
 
     // Cleanup
     return () => {
       window.removeEventListener('user:login', handleLoginEvent);
-      window.removeEventListener('user:logout', handleLogoutEvent);
     };
   }, []);
-
-  // Fetch both cart and wishlist counts in parallel
-  const fetchCounts = async () => {
-    if (!isLoggedIn) {
-      setCartCount(0);
-      setWishlistCount(0);
-      return;
-    }
-    try {
-      const { cartCount, wishlistCount } = await fetchCartAndWishlistCounts();
-      setCartCount(cartCount);
-      setWishlistCount(wishlistCount);
-    } catch (error) {
-      setCartCount(0);
-      setWishlistCount(0);
-    }
-  };
-
 
 
   // Close user menu when clicking outside

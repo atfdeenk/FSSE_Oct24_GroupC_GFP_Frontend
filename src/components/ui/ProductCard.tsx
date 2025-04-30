@@ -4,7 +4,7 @@ import React from "react";
 import HeartIcon from "@/components/ui/HeartIcon";
 import CartIcon from "@/components/ui/CartIcon";
 import { useState } from 'react';
-import { useCart } from '@/hooks/useCart';
+import { useAuthUser } from '@/hooks/useAuthUser';
 import { useToast } from '@/context/ToastContext';
 import type { Product } from '@/types/apiResponses';
 import { getImageUrl, handleImageError } from '@/utils/imageUtils';
@@ -17,7 +17,27 @@ interface ProductCardProps {
 
 const ProductCard: React.FC<ProductCardProps> = ({ product }) => {
   const [cartLoading, setCartLoading] = useState(false);
-  const { addToCartWithCountCheck } = useCart();
+  const { isLoggedIn } = useAuthUser();
+
+  const handleAddToCart = async (e: React.MouseEvent<HTMLButtonElement>) => {
+    e.preventDefault();
+    if (cartLoading) return;
+    if (!isLoggedIn) {
+      window.location.href = '/login?redirect=cart';
+      return;
+    }
+    setCartLoading(true);
+    try {
+      // Dynamically import useCart and call addToCartWithCountCheck
+      const { useCart } = await import('@/hooks/useCart');
+      const { addToCartWithCountCheck } = useCart();
+      await addToCartWithCountCheck({ product_id: product.id, quantity: 1 });
+      window.dispatchEvent(new CustomEvent('cart-updated'));
+    } finally {
+      setCartLoading(false);
+    }
+  };
+
   return (
     <a
       href={`/products/${product.id}`}
@@ -52,17 +72,7 @@ const ProductCard: React.FC<ProductCardProps> = ({ product }) => {
             type="button"
             aria-label="Add to cart"
             className="rounded-full bg-white/90 dark:bg-neutral-900/80 p-1 shadow hover:bg-amber-100 dark:hover:bg-amber-400/10 transition-all duration-300 ease-out opacity-0 scale-90 translate-y-2 group-hover:opacity-100 group-hover:scale-100 group-hover:translate-y-0 group-focus-within:opacity-100 group-focus-within:scale-100 group-focus-within:translate-y-0 focus:opacity-100 focus:scale-100 focus:translate-y-0 focus-visible:opacity-100 focus-visible:scale-100 focus-visible:translate-y-0 pointer-events-auto"
-            onClick={async (e) => {
-              e.preventDefault();
-              if (cartLoading) return;
-              setCartLoading(true);
-              try {
-                await addToCartWithCountCheck({ product_id: product.id, quantity: 1 });
-                window.dispatchEvent(new CustomEvent('cart-updated'));
-              } finally {
-                setCartLoading(false);
-              }
-            }}
+            onClick={handleAddToCart}
             disabled={cartLoading}
           >
             {cartLoading ? (
