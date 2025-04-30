@@ -11,6 +11,7 @@ interface PaginationControlsProps {
   onPrev: () => void;
   onNext: () => void;
   onLast?: () => void;
+  className?: string;
 }
 
 const PaginationControls: React.FC<PaginationControlsProps> = ({
@@ -21,9 +22,10 @@ const PaginationControls: React.FC<PaginationControlsProps> = ({
   onFirst,
   onPrev,
   onNext,
-  onLast
+  onLast,
+  className = ""
 }) => (
-  <div className="flex justify-center mt-12">
+  <div className={`flex justify-center mt-12 ${className}`}>
     <div className="flex items-center space-x-2">
       {/* First Page Button */}
       <button

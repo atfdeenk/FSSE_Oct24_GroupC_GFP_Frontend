@@ -110,9 +110,10 @@ export default function ProductsPage() {
           <div className="bg-red-900/20 border border-red-500/50 text-red-400 px-4 py-3 rounded-sm mb-8 text-center">{error}</div>
         )}
 
-        {/* Search, Sort, Pagination Controls */}
-        <div className="flex flex-col md:flex-row gap-6 justify-between items-center mb-12 bg-neutral-900/50 p-6 rounded-sm border border-white/5">
-          <div className="relative w-full md:w-64">
+        {/* Search, Sort, Pagination Controls - Unified Inline Row */}
+        <div className="flex flex-col md:flex-row md:items-center md:space-x-4 gap-4 mb-6">
+          {/* Search input and icons */}
+          <div className="relative flex-1 w-full md:w-64">
             <input
               type="text"
               placeholder="Search products..."
@@ -133,7 +134,7 @@ export default function ProductsPage() {
               <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M21 21l-6-6m2-5a7 7 0 11-14 0 7 7 0 0114 0z" />
             </svg>
           </div>
-
+          {/* Sort select */}
           <div className="relative w-full md:w-48">
             <select
               className="w-full appearance-none bg-black/50 border border-white/10 rounded-sm px-4 py-3 focus:outline-none focus:border-amber-500/50 text-white disabled:opacity-50"
@@ -150,27 +151,19 @@ export default function ProductsPage() {
               <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M19 9l-7 7-7-7" />
             </svg>
           </div>
-
-          <div className="flex items-center space-x-4">
-            <button
-              className="w-10 h-10 flex items-center justify-center rounded-sm bg-amber-500/10 text-amber-500 border border-amber-500/20 hover:bg-amber-500/20 disabled:opacity-30 disabled:hover:bg-amber-500/10 transition-colors"
-              onClick={() => setPage(p => Math.max(1, p - 1))}
-              disabled={page === 1}
-            >
-              <svg className="w-5 h-5" fill="none" viewBox="0 0 24 24" stroke="currentColor">
-                <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M15 19l-7-7 7-7" />
-              </svg>
-            </button>
-            <span className="text-white/70">Page {page} of {totalPages || 1}</span>
-            <button
-              className="w-10 h-10 flex items-center justify-center rounded-sm bg-amber-500/10 text-amber-500 border border-amber-500/20 hover:bg-amber-500/20 disabled:opacity-30 disabled:hover:bg-amber-500/10 transition-colors"
-              onClick={() => setPage(p => p + 1)}
-              disabled={page >= totalPages || loading}
-            >
-              <svg className="w-5 h-5" fill="none" viewBox="0 0 24 24" stroke="currentColor">
-                <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M9 5l7 7-7 7" />
-              </svg>
-            </button>
+          {/* Pagination controls */}
+          <div className="w-full md:w-auto">
+            <PaginationControls
+              page={page}
+              totalPages={totalPages}
+              totalItems={totalProducts}
+              loading={loading}
+              onFirst={() => setPage(1)}
+              onPrev={() => setPage(p => Math.max(1, p - 1))}
+              onNext={() => setPage(p => p + 1)}
+              onLast={() => setPage(totalPages)}
+              className="md:justify-end w-full md:w-auto md:mt-0 mt-4"
+            />
           </div>
         </div>
 
