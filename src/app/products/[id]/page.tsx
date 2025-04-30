@@ -8,6 +8,7 @@ import productService from '@/services/api/products';
 import cartService from '@/services/api/cart';
 import type { Product } from '@/types/apiResponses';
 import { Header, Footer } from '@/components';
+import Toast from '@/components/ui/Toast';
 import { getImageUrl, handleImageError } from '@/utils/imageUtils';
 
 export default function ProductDetail() {
@@ -61,44 +62,32 @@ export default function ProductDetail() {
 
   const handleAddToCart = async () => {
     if (!product) return;
-    
+
     setAddingToCart(true);
     setCartMessage(null);
-    
+
     try {
-      const response = await cartService.addToCart({
+      await cartService.addToCart({
         product_id: product.id,
         quantity: quantity
       });
-      
-      if (response.success) {
-        setCartMessage({ 
-          type: 'success', 
-          text: `Added ${quantity} ${product.name} to cart!` 
-        });
-        
-        // Refresh the header cart count
-        const event = new CustomEvent('cart-updated');
-        window.dispatchEvent(event);
-      } else {
-        setCartMessage({ 
-          type: 'error', 
-          text: response.message || 'Failed to add item to cart' 
-        });
-      }
+      setCartMessage({
+        type: 'success',
+        text: `Added ${quantity} ${product.name} to cart!`
+      });
+      // Refresh the header cart count
+      const event = new CustomEvent('cart-updated');
+      window.dispatchEvent(event);
+      // Clear success message after 3 seconds
+      setTimeout(() => setCartMessage(null), 3000);
     } catch (error: any) {
       console.error('Error adding to cart:', error);
-      setCartMessage({ 
-        type: 'error', 
-        text: error?.message || 'Failed to add item to cart' 
+      setCartMessage({
+        type: 'error',
+        text: error?.message || 'Failed to add item to cart'
       });
     } finally {
       setAddingToCart(false);
-    }
-    
-    // Clear success message after 3 seconds
-    if (cartMessage?.type === 'success') {
-      setTimeout(() => setCartMessage(null), 3000);
     }
   };
 
@@ -141,6 +130,15 @@ export default function ProductDetail() {
   return (
     <div className="min-h-screen bg-black text-white">
       <Header />
+      {/* Toast Notification */}
+      {cartMessage && (
+        <Toast
+          message={cartMessage.text}
+          type={cartMessage.type}
+          onClose={() => setCartMessage(null)}
+        />
+      )}
+
       {/* Breadcrumb */}
       <div className="bg-neutral-900/50 border-b border-white/5">
         <div className="max-w-6xl mx-auto px-6 py-4">
