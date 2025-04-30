@@ -104,13 +104,18 @@ export function useCart() {
     try {
       setLoading(true);
       await cartService.updateCartItem(id, { quantity: newQuantity });
-      setCartItems(prevItems =>
-        prevItems.map(item =>
+      let updatedItem = cartItems.find(item => item.id === id);
+      let mapped: CartItemWithDetails[] = [];
+      setCartItems(prevItems => {
+        mapped = prevItems.map(item =>
           item.id === id ? { ...item, quantity: newQuantity } : item
-        )
-      );
+        );
+        return mapped;
+      });
+      // After state update, show toast (using mapped or fallback)
+      updatedItem = mapped.find(item => item.id === id) || updatedItem;
       showToast({
-        message: 'Quantity updated',
+        message: `Updated ${updatedItem && updatedItem.name ? updatedItem.name : 'item'} to ${newQuantity} pcs`,
         type: 'success',
       });
     } catch (err) {
@@ -127,6 +132,8 @@ export function useCart() {
   const removeItem = useCallback(async (id: number | string) => {
     try {
       setLoading(true);
+      // Get item details before removing
+      const itemToRemove = cartItems.find(item => item.id === id);
       await cartService.removeFromCart(id);
       setCartItems(prevItems => prevItems.filter(item => item.id !== id));
       setSelectedItems(prevSelected => {
@@ -135,7 +142,7 @@ export function useCart() {
         return newSelected;
       });
       showToast({
-        message: 'Item removed from cart',
+        message: `Removed${itemToRemove ? ` ${itemToRemove.name}` : ' item'}${itemToRemove && itemToRemove.quantity ? ` (${itemToRemove.quantity} pcs)` : ''} from cart`,
         type: 'success',
       });
     } catch (err) {
