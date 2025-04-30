@@ -9,6 +9,8 @@ import useDebounce from '@/hooks/useDebounce';
 import PaginationControls from '@/components/ui/PaginationControls';
 import UnifiedProductControls from '@/components/ui/UnifiedProductControls';
 import ProductCard from '@/components/ui/ProductCard';
+import EmptyState from '@/components/EmptyState';
+import ProductGrid from '@/components/ui/ProductGrid';
 
 
 export default function ProductsPage() {
@@ -181,29 +183,17 @@ export default function ProductsPage() {
         )}
 
         {/* Products grid */}
-        <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4 gap-6">
-          {loading && products.length === 0 && (
-            <div className="col-span-full flex flex-col items-center justify-center py-20">
-              <div className="animate-spin rounded-full h-12 w-12 border-t-2 border-b-2 border-amber-500 mb-4"></div>
-              <p className="text-white/60">Fetching products...</p>
-            </div>
+        <ProductGrid products={products} loading={loading}>
+          {products.length === 0 && !loading && (
+            <EmptyState message="No products found">
+              <svg className="w-16 h-16 mx-auto text-white/20 mb-4" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={1} d="M3 3h2l.4 2M7 13h10l4-8H5.4M7 13L5.4 5M7 13l-2.293 2.293c-.63.63-.184 1.707.707 1.707H17m0 0a2 2 0 100 4 2 2 0 000-4zm-8 2a2 2 0 11-4 0 2 2 0 014 0z" />
+              </svg>
+              <p className="text-white/60 max-w-md mx-auto">Try adjusting your search or filter criteria to find what you're looking for.</p>
+            </EmptyState>
           )}
+        </ProductGrid>
 
-          {products.map(product => (
-            <ProductCard key={product.id} product={product} />
-          ))}
-        </div>
-
-        {/* Empty state - only show when not loading */}
-        {products.length === 0 && !loading && (
-          <div className="text-center py-16">
-            <svg className="w-16 h-16 mx-auto text-white/20 mb-4" fill="none" viewBox="0 0 24 24" stroke="currentColor">
-              <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={1} d="M3 3h2l.4 2M7 13h10l4-8H5.4M7 13L5.4 5M7 13l-2.293 2.293c-.63.63-.184 1.707.707 1.707H17m0 0a2 2 0 100 4 2 2 0 000-4zm-8 2a2 2 0 11-4 0 2 2 0 014 0z" />
-            </svg>
-            <h3 className="text-2xl font-bold text-white mb-2">No products found</h3>
-            <p className="text-white/60 max-w-md mx-auto">Try adjusting your search or filter criteria to find what you're looking for.</p>
-          </div>
-        )}
 
         {/* Bottom pagination for mobile */}
         {products.length > 0 && (
