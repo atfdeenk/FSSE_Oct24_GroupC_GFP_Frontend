@@ -51,9 +51,6 @@ const PaginationControls: React.FC<PaginationControlsProps> = ({
       </button>
       <span className="text-white/70">
         Page {page} of {totalPages || 1}
-        {totalItems && totalItems > 0 && (
-          <span className="ml-2 text-white/50 text-xs">({totalItems} items)</span>
-        )}
       </span>
       <button
         className="w-10 h-10 flex items-center justify-center rounded-sm bg-amber-500/10 text-amber-500 border border-amber-500/20 hover:bg-amber-500/20 disabled:opacity-30 disabled:hover:bg-amber-500/10 transition-colors"
