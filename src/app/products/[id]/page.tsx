@@ -1,23 +1,21 @@
 "use client";
 
-import React from "react";
-import { useEffect, useState } from "react";
+import React, { useEffect, useState } from "react";
 import { useParams, useRouter } from "next/navigation";
-import Image from "next/image";
-import Link from "next/link";
+import type { Product } from '@/types/apiResponses';
 import productService from '@/services/api/products';
 import cartService from '@/services/api/cart';
-import type { Product } from '@/types/apiResponses';
 import { Header, Footer } from '@/components';
-import Toast from '@/components/ui/Toast';
-import ErrorState from "@/components/ui/ErrorState";
-import { getImageUrl, handleImageError } from '@/utils/imageUtils';
-import ProductInfo from "@/components/ui/ProductInfo";
-import SellerInfo from "@/components/ui/SellerInfo";
-import AddToCartButton from "@/components/ui/AddToCartButton";
-import QuantityInput from "@/components/ui/QuantityInput";
-import ProductImages from "@/components/ui/ProductImages";
-import RelatedProducts from "@/components/ui/RelatedProducts";
+import {
+  Toast,
+  ErrorState,
+  ProductInfo,
+  SellerInfo,
+  AddToCartButton,
+  RelatedProducts,
+  ProductImages,
+  QuantityInput
+} from '@/components/ui';
 
 export default function ProductDetail() {
   const params = useParams();
@@ -195,5 +193,6 @@ export default function ProductDetail() {
         <Footer />
       </div>
     </div>
+
   );
 }
