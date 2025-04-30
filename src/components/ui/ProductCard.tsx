@@ -1,6 +1,7 @@
 // src/components/ui/ProductCard.tsx
 "use client";
 import React from "react";
+import HeartIcon from "@/components/ui/HeartIcon";
 import type { Product } from '@/types/apiResponses';
 import { getImageUrl, handleImageError } from '@/utils/imageUtils';
 // Import ProductImage directly from products/page.tsx
@@ -18,7 +19,7 @@ const ProductCard: React.FC<ProductCardProps> = ({ product }) => {
       tabIndex={0}
       aria-label={`View details for ${product.name}`}
     >
-      {/* Product image */}
+      {/* Product image + wishlist icon */}
       <div className="relative w-full aspect-[4/3] bg-neutral-100 dark:bg-neutral-800 overflow-hidden">
         <ProductImage
           src={getImageUrl(product.image_url)}
@@ -28,6 +29,14 @@ const ProductCard: React.FC<ProductCardProps> = ({ product }) => {
           className="transition-transform duration-300 group-hover:scale-105"
           onError={handleImageError}
         />
+        {/* Wishlist heart icon button */}
+        <button
+          type="button"
+          aria-label="Add to wishlist"
+          className="absolute top-2 right-2 z-10 rounded-full bg-white/90 dark:bg-neutral-900/80 p-1 shadow hover:bg-amber-100 dark:hover:bg-amber-400/10 transition-all duration-300 ease-out opacity-0 scale-90 translate-y-2 group-hover:opacity-100 group-hover:scale-100 group-hover:translate-y-0 group-focus-within:opacity-100 group-focus-within:scale-100 group-focus-within:translate-y-0 focus:opacity-100 focus:scale-100 focus:translate-y-0 focus-visible:opacity-100 focus-visible:scale-100 focus-visible:translate-y-0 pointer-events-auto"
+        >
+          <HeartIcon className="w-6 h-6 text-amber-400 group-hover/wishlist:fill-amber-400 group-hover/wishlist:text-amber-500 transition-colors" />
+        </button>
       </div>
       {/* Card content */}
       <div className="flex flex-col gap-1 p-3 flex-1">
