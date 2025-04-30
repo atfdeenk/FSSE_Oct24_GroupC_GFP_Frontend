@@ -14,39 +14,41 @@ const ProductCard: React.FC<ProductCardProps> = ({ product }) => {
   return (
     <a
       href={`/products/${product.id}`}
-      className="group bg-neutral-900/50 backdrop-blur-sm rounded-sm overflow-hidden border border-white/5 hover:border-amber-500/30 transition-all duration-300 flex flex-col h-full"
+      className="group bg-white dark:bg-neutral-900 border border-neutral-200 dark:border-white/10 rounded-xl shadow-sm hover:shadow-lg transition-shadow duration-200 flex flex-col h-full overflow-hidden focus:outline-none focus:ring-2 focus:ring-amber-400"
       tabIndex={0}
       aria-label={`View details for ${product.name}`}
     >
-      <div className="relative h-48 overflow-hidden bg-neutral-900 rounded-t-sm">
-        {/* Progressive image loading with skeleton */}
+      {/* Product image */}
+      <div className="relative w-full aspect-[4/3] bg-neutral-100 dark:bg-neutral-800 overflow-hidden">
         <ProductImage
           src={getImageUrl(product.image_url)}
           alt={product.name}
           width={400}
-          height={192}
+          height={300}
+          className="transition-transform duration-300 group-hover:scale-105"
           onError={handleImageError}
         />
-        <div className="absolute inset-0 bg-gradient-to-t from-black/80 to-transparent opacity-0 group-hover:opacity-100 transition-opacity duration-300"></div>
-        <div className="absolute bottom-0 left-0 p-4 w-full">
-          <span className="inline-block bg-amber-500/90 text-black text-xs font-bold px-3 py-1 rounded-sm mb-2 opacity-0 group-hover:opacity-100 transition-opacity duration-300 translate-y-2 group-hover:translate-y-0">
-            {product.location}
-          </span>
-        </div>
       </div>
-      <div className="p-6 flex flex-col flex-grow">
-        <div className="flex justify-between items-start mb-2">
-          <h2 className="font-bold text-xl text-white group-hover:text-amber-400 transition-colors duration-300">{product.name}</h2>
-          <span className="font-mono text-amber-500 font-bold">{product.price} {product.currency}</span>
+      {/* Card content */}
+      <div className="flex flex-col gap-1 p-3 flex-1">
+        <div className="text-base font-medium text-neutral-900 dark:text-white truncate" title={product.name}>
+          {product.name}
         </div>
-        <p className="text-white/60 text-sm mb-4 line-clamp-2 flex-grow">{product.description}</p>
-        <div className="mt-auto pt-4 border-t border-white/5">
-          <span className="inline-flex items-center text-amber-500 font-bold group-hover:text-amber-400 transition-colors">
-            View Details
-            <svg className="w-4 h-4 ml-2 transform group-hover:translate-x-1 transition-transform" fill="none" viewBox="0 0 24 24" stroke="currentColor">
-              <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M14 5l7 7m0 0l-7 7m7-7H3" />
-            </svg>
-          </span>
+        <div className="text-amber-600 dark:text-amber-400 text-lg font-bold mb-1">
+          {product.price.toLocaleString('id-ID', { style: 'currency', currency: product.currency || 'IDR' })}
+        </div>
+        <div className="flex items-center gap-1 text-xs text-neutral-500 dark:text-neutral-400 mb-1">
+          <svg className="w-4 h-4 text-amber-400" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+            <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M17.657 16.657L13.414 20.9a2 2 0 01-2.828 0l-4.243-4.243a8 8 0 1111.314 0z" />
+            <circle cx="12" cy="11" r="3" />
+          </svg>
+          {product.location}
+        </div>
+        {/* Description only on hover for desktop */}
+        <div className="hidden md:block">
+          <p className="text-xs text-neutral-500 dark:text-neutral-400 mt-2 line-clamp-2 opacity-0 group-hover:opacity-100 transition-opacity duration-200">
+            {product.description}
+          </p>
         </div>
       </div>
     </a>
