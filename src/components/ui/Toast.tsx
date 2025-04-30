@@ -48,7 +48,7 @@ const Toast: React.FC<ToastProps> = ({ message, type = "info", onClose, duration
       {/* Progress Bar */}
       <div className="absolute left-0 bottom-0 w-full h-1 bg-white/10 rounded-b overflow-hidden">
         <div
-          className={`h-full ${barColor} origin-right`}
+          className={`h-full ${barColor} origin-right rounded-full`}
           style={{
             transform: `scaleX(${progress / 100})`,
             transition: `transform ${duration}ms linear`,
