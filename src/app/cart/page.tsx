@@ -8,7 +8,7 @@ import { Header, Footer, SelectionControls } from "@/components";
 import PromoCodeInput from "@/components/PromoCodeInput";
 import CartItem from "@/components/CartItem";
 import OrderSummary from "@/components/OrderSummary";
-import LoadingIndicator from "@/components/ui/LoadingIndicator";
+import LoadingOverlay from '@/components/ui/LoadingOverlay';
 import EmptyState from "@/components/EmptyState";
 import { PROMO_CODES } from "@/constants/promoCodes";
 import { isAuthenticated } from "@/lib/auth";
@@ -77,7 +77,7 @@ export default function CartPage() {
           <p className="text-white/60 mb-8">{cartItems.length} {cartItems.length === 1 ? 'item' : 'items'} in your cart</p>
 
           {loading ? (
-            <LoadingIndicator />
+            <LoadingOverlay message="Loading your cart..." />
           ) : cartItems.length === 0 ? (
             <EmptyState message="Your cart is empty">
               <svg className="w-20 h-20 text-white/30 mx-auto mb-6" fill="none" viewBox="0 0 24 24" stroke="currentColor">

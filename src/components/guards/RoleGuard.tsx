@@ -3,7 +3,7 @@
 import { useEffect, useState } from 'react';
 import { useRouter } from 'next/navigation';
 import { useAuthUser } from '@/hooks/useAuthUser';
-import LoadingIndicator from '@/components/ui/LoadingIndicator';
+import LoadingOverlay from '@/components/ui/LoadingOverlay';
 import { useUserRole } from '@/hooks/useUserRole';
 
 interface RoleGuardProps {
@@ -56,7 +56,7 @@ const RoleGuard: React.FC<RoleGuardProps> = ({
     setLoading(false);
   }, [isLoggedIn, role, allowedRoles, fallbackPath, loginPath, router]);
 
-  if (loading || (allowedRoles && allowedRoles.length > 0 && role === null)) return <LoadingIndicator />;
+  if (loading || (allowedRoles && allowedRoles.length > 0 && role === null)) return <LoadingOverlay message="Checking authorization..." />;
   return isAuthorized ? <>{children}</> : null;
 
 };

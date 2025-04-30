@@ -3,11 +3,12 @@
 import { useState, useEffect, useCallback } from "react";
 import { useRouter } from "next/navigation";
 import Link from "next/link";
-import { Header, Footer, SelectionControls } from "@/components";
+import { Header, Footer, SelectionControls } from '@/components';
 import { isAuthenticated } from "@/lib/auth";
 import wishlistService, { WishlistItem } from "@/services/api/wishlist";
 import productService from "@/services/api/products";
 import { useCart } from '@/hooks/useCart';
+import { LoadingOverlay } from '@/components/ui';
 import { useToast } from '@/context/ToastContext';
 import { getProductImageUrl, handleProductImageError } from "@/utils/imageUtils";
 import { Product } from "@/types/apiResponses";
@@ -40,8 +41,6 @@ export default function WishlistPage() {
 
   const fetchWishlist = useCallback(async () => {
     setLoading(true);
-
-
     try {
       const wishlistResponse = await wishlistService.getWishlist();
 
@@ -268,9 +267,7 @@ export default function WishlistPage() {
           <p className="text-white/60 mb-8">{wishlistItems.length} {wishlistItems.length === 1 ? 'item' : 'items'} saved for later</p>
 
           {loading ? (
-            <div className="flex justify-center items-center h-64">
-              <div className="animate-spin rounded-full h-12 w-12 border-t-2 border-b-2 border-amber-500"></div>
-            </div>
+            <LoadingOverlay message="Loading your wishlist..." />
           ) : wishlistItems.length === 0 ? (
             <div className="text-center py-16 bg-neutral-900/80 backdrop-blur-sm rounded-sm border border-white/10 shadow-lg transform transition-all duration-300 hover:border-amber-500/30">
               <div className="animate-fade-in-down">

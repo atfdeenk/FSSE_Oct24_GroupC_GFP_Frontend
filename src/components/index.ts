@@ -10,6 +10,9 @@ export * from './ui';
 // Section components
 export * from './sections';
 
+// Standalone UI components
+export { default as EmptyState } from './EmptyState';
+
 // Guard components
 export * from './guards';
 

@@ -1,16 +1,17 @@
 "use client";
-import { useEffect, useState } from "react";
+import React, { useEffect, useState } from "react";
 import productService from '@/services/api/products';
 import categoryService from '@/services/api/categories';
 import type { Product, CategoriesResponse } from '@/types/apiResponses';
-import { Header, Footer } from "@/components";
-import ProductsHeroBanner from '@/components/sections/ProductsHeroBanner';
+import { Header, Footer, SelectionControls } from '@/components';
+import { ProductGrid } from '@/components/ui';
+import { EmptyState } from '@/components';
+import { LoadingOverlay } from '@/components/ui';
+import { ProductsHeroBanner } from '@/components';
 import useDebounce from '@/hooks/useDebounce';
-import PaginationControls from '@/components/ui/PaginationControls';
-import UnifiedProductControls from '@/components/ui/UnifiedProductControls';
-import ProductCard from '@/components/ui/ProductCard';
-import EmptyState from '@/components/EmptyState';
-import ProductGrid from '@/components/ui/ProductGrid';
+import { PaginationControls } from '@/components/ui';
+import { UnifiedProductControls } from '@/components/ui';
+
 
 
 export default function ProductsPage() {
@@ -26,14 +27,15 @@ export default function ProductsPage() {
   const [loading, setLoading] = useState(false);
   const [totalProducts, setTotalProducts] = useState(0);
   const [totalPages, setTotalPages] = useState(1);
-  const [loadingReason, setLoadingReason] = useState<null | 'search' | 'pagination' | 'sort' | 'initial'>(null);
+  type LoadingReason = 'search' | 'sort' | 'pagination' | 'filter' | 'initial';
+  const [loadingReason, setLoadingReason] = useState<LoadingReason | null>(null);
 
   // Debounce search input to prevent excessive filtering on every keystroke
   const debouncedSearch = useDebounce(searchInput, 300);
   const pageSize = 8;
 
   // Fetch products with pagination and filtering
-  const fetchProducts = async (reason: 'search' | 'pagination' | 'sort' | 'initial' = 'initial') => {
+  const fetchProducts = async (reason: LoadingReason = 'initial') => {
     setLoading(true);
     setLoadingReason(reason);
 
@@ -92,30 +94,42 @@ export default function ProductsPage() {
       setError(e?.message || 'Failed to load products.');
     } finally {
       setLoading(false);
-      // Optionally reset loadingReason after a delay
-      setTimeout(() => setLoadingReason(null), 200);
+      // Do not reset loadingReason here; keep it until next fetch starts.
     }
   };
 
-  // Fetch products when search changes
-  useEffect(() => {
-    fetchProducts('search');
-  }, [debouncedSearch]);
+  // Centralized effect for all product-fetching triggers
+  const prev = React.useRef({
+    search: debouncedSearch,
+    sort,
+    page,
+    category: selectedCategory,
+    location: selectedLocation,
+  });
 
-  // Fetch products when page changes
   useEffect(() => {
-    fetchProducts('pagination');
-  }, [page]);
-
-  // Fetch products when sort changes
-  useEffect(() => {
-    fetchProducts('sort');
-  }, [sort]);
-
-  // Fetch products when category or location changes
-  useEffect(() => {
-    fetchProducts('initial');
-  }, [selectedCategory, selectedLocation]);
+    let reason: 'search' | 'sort' | 'pagination' | 'filter' | 'initial' = 'initial';
+    if (prev.current.search !== debouncedSearch) {
+      reason = 'search';
+    } else if (prev.current.sort !== sort) {
+      reason = 'sort';
+    } else if (prev.current.page !== page) {
+      reason = 'pagination';
+    } else if (
+      prev.current.category !== selectedCategory ||
+      prev.current.location !== selectedLocation
+    ) {
+      reason = 'filter';
+    }
+    fetchProducts(reason);
+    prev.current = {
+      search: debouncedSearch,
+      sort,
+      page,
+      category: selectedCategory,
+      location: selectedLocation,
+    };
+  }, [debouncedSearch, sort, page, selectedCategory, selectedLocation]);
 
   // Reset to page 1 when search or filter changes
   useEffect(() => {
@@ -174,7 +188,17 @@ export default function ProductsPage() {
         )}
 
         {/* Products grid */}
-        <ProductGrid products={products} loading={loading}>
+        <ProductGrid
+          products={products}
+          loading={loading}
+          loadingMessage={
+            loadingReason === 'search' ? 'Searching products...'
+            : loadingReason === 'pagination' ? 'Loading more products...'
+            : loadingReason === 'sort' ? 'Sorting products...'
+            : loadingReason === 'filter' ? 'Filtering products...'
+            : 'Fetching products...'
+          }
+        >
           {products.length === 0 && !loading && (
             <EmptyState message="No products found">
               <svg className="w-16 h-16 mx-auto text-white/20 mb-4" fill="none" viewBox="0 0 24 24" stroke="currentColor">

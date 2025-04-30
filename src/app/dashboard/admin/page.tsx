@@ -1,7 +1,7 @@
 'use client';
 
 import { useEffect, useState } from 'react';
-import RoleGuard from '@/components/guards/RoleGuard';
+import { RoleGuard } from '@/components/guards';
 import { getUserRole } from '@/lib/auth';
 
 export default function AdminDashboardPage() {

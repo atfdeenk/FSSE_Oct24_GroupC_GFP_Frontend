@@ -3,6 +3,7 @@
 import React, { useEffect, useState } from "react";
 import { useParams, useRouter } from "next/navigation";
 import type { Product } from '@/types/apiResponses';
+import LoadingOverlay from '@/components/ui/LoadingOverlay';
 import productService from '@/services/api/products';
 import { useCart } from '@/hooks/useCart';
 import { useToastContext } from '@/context/ToastContext';
@@ -86,12 +87,7 @@ const { toasts, closeToast } = useToastContext();
 
   if (loading) {
     return (
-      <div className="min-h-screen bg-black flex items-center justify-center">
-        <div className="flex flex-col items-center">
-          <div className="w-16 h-16 border-t-4 border-amber-500 border-solid rounded-full animate-spin mb-4"></div>
-          <p className="text-white/70">Loading product details...</p>
-        </div>
-      </div>
+      <LoadingOverlay message="Loading product details..." />
     );
   }
 

@@ -3,7 +3,7 @@
 import { useEffect, useState } from 'react';
 import { useRouter } from 'next/navigation';
 import { useAuthUser } from '@/hooks/useAuthUser';
-import LoadingIndicator from '@/components/ui/LoadingIndicator';
+import LoadingOverlay from '@/components/ui/LoadingOverlay';
 
 interface AuthGuardProps {
   children: React.ReactNode;
@@ -32,7 +32,7 @@ const AuthGuard: React.FC<AuthGuardProps> = ({
   }, [isLoggedIn, loginPath, router]);
 
   if (loading) {
-    return <LoadingIndicator />;
+    return <LoadingOverlay message="Checking authentication..." />;
   }
 
   return isLoggedIn ? <>{children}</> : null;
