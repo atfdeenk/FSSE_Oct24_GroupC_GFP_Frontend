@@ -22,16 +22,18 @@ export default function ProductsPage() {
   const [loading, setLoading] = useState(false);
   const [totalProducts, setTotalProducts] = useState(0);
   const [totalPages, setTotalPages] = useState(1);
+  const [loadingReason, setLoadingReason] = useState<null | 'search' | 'pagination' | 'sort' | 'initial'>(null);
 
   // Debounce search input to prevent excessive filtering on every keystroke
   const debouncedSearch = useDebounce(searchInput, 300);
   const pageSize = 8;
 
   // Fetch products with pagination and filtering
-  const fetchProducts = async () => {
+  const fetchProducts = async (reason: 'search' | 'pagination' | 'sort' | 'initial' = 'initial') => {
     console.time('fetchProducts: total');
     console.time('fetchProducts: network');
     setLoading(true);
+    setLoadingReason(reason);
 
     // Clear products when changing search or sort to show loading state
     if (debouncedSearch || sort) {
@@ -84,13 +86,22 @@ export default function ProductsPage() {
       console.error('Error loading products:', e);
     } finally {
       setLoading(false);
+      // Optionally reset loadingReason after a delay
+      setTimeout(() => setLoadingReason(null), 200);
     }
   };
 
-
   // Fetch products when page, sort, or search changes
   useEffect(() => {
-    fetchProducts();
+    if (debouncedSearch) {
+      fetchProducts('search');
+    } else if (page > 1) {
+      fetchProducts('pagination');
+    } else if (sort) {
+      fetchProducts('sort');
+    } else {
+      fetchProducts('initial');
+    }
   }, [page, sort, debouncedSearch]);
 
   // Reset to page 1 when search changes
@@ -169,7 +180,7 @@ export default function ProductsPage() {
 
         {/* Products grid */}
         {/* Loading overlay */}
-        {loading && (
+        {loading && loadingReason !== 'search' && (
           <div className="fixed inset-0 bg-black/40 backdrop-blur-sm z-10 flex items-center justify-center">
             <div className="bg-black/80 p-6 rounded-sm border border-amber-500/20 shadow-lg flex items-center space-x-4">
               <div className="animate-spin rounded-full h-10 w-10 border-t-2 border-b-2 border-amber-500"></div>
