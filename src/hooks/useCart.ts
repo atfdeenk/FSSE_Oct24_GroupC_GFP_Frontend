@@ -105,6 +105,14 @@ export function useCart() {
       setLoading(true);
       await cartService.updateCartItem(id, { quantity: newQuantity });
       let updatedItem = cartItems.find(item => item.id === id);
+      let productName = updatedItem?.name || '';
+      // Fallback: fetch product details if not found in state
+      if (!productName) {
+        try {
+          const productDetails = await (await import('@/services/api/products')).default.getProduct(id);
+          productName = productDetails?.name || '';
+        } catch {}
+      }
       let mapped: CartItemWithDetails[] = [];
       setCartItems(prevItems => {
         mapped = prevItems.map(item =>
@@ -112,10 +120,8 @@ export function useCart() {
         );
         return mapped;
       });
-      // After state update, show toast (using mapped or fallback)
-      updatedItem = mapped.find(item => item.id === id) || updatedItem;
       showToast({
-        message: `Updated ${updatedItem && updatedItem.name ? updatedItem.name : 'item'} to ${newQuantity} pcs`,
+        message: `Updated${productName ? ` ${productName}` : ' item'} to ${newQuantity} pcs`,
         type: 'success',
       });
     } catch (err) {
@@ -127,13 +133,22 @@ export function useCart() {
     } finally {
       setLoading(false);
     }
-  }, []);
+  }, [cartItems]);
 
   const removeItem = useCallback(async (id: number | string) => {
     try {
       setLoading(true);
       // Get item details before removing
-      const itemToRemove = cartItems.find(item => item.id === id);
+      let itemToRemove = cartItems.find(item => item.id === id);
+      let productName = itemToRemove?.name || '';
+      let quantity = itemToRemove?.quantity || '';
+      // Fallback: fetch product details if not found in state
+      if (!productName) {
+        try {
+          const productDetails = await (await import('@/services/api/products')).default.getProduct(id);
+          productName = productDetails?.name || '';
+        } catch {}
+      }
       await cartService.removeFromCart(id);
       setCartItems(prevItems => prevItems.filter(item => item.id !== id));
       setSelectedItems(prevSelected => {
@@ -142,7 +157,7 @@ export function useCart() {
         return newSelected;
       });
       showToast({
-        message: `Removed${itemToRemove ? ` ${itemToRemove.name}` : ' item'}${itemToRemove && itemToRemove.quantity ? ` (${itemToRemove.quantity} pcs)` : ''} from cart`,
+        message: `Removed${productName ? ` ${productName}` : ' item'}${quantity ? ` (${quantity} pcs)` : ''} from cart`,
         type: 'success',
       });
     } catch (err) {
@@ -154,7 +169,7 @@ export function useCart() {
     } finally {
       setLoading(false);
     }
-  }, []);
+  }, [cartItems]);
 
   // Selection logic
   const toggleSelectItem = useCallback((id: string | number) => {
