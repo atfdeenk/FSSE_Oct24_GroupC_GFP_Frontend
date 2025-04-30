@@ -9,7 +9,7 @@ interface ToastProps {
 }
 
 const toastStyles = {
-  base: "fixed z-50 left-1/2 -translate-x-1/2 top-6 px-6 py-3 rounded shadow-lg text-base font-medium flex items-center space-x-2 transition-all animate-fade-in",
+  base: "fixed z-50 top-20 right-8 px-6 py-3 rounded shadow-lg text-base font-medium flex items-center space-x-2 transition-all animate-fade-in sm:right-8 right-2",
   success: "bg-green-600 text-white border border-green-400",
   error: "bg-red-700 text-white border border-red-400",
   info: "bg-neutral-800 text-white border border-white/20",

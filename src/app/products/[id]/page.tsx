@@ -349,23 +349,7 @@ export default function ProductDetail() {
                   </button>
                 </div>
                 
-                {/* Cart Message */}
-                {cartMessage && (
-                  <div className="mt-4">
-                    <div className={`p-3 rounded-sm text-sm flex items-center ${cartMessage.type === 'success' ? 'bg-green-500/20 text-green-400' : 'bg-red-500/20 text-red-400'}`}>
-                      {cartMessage.type === 'success' ? (
-                        <svg className="w-4 h-4 mr-2" fill="none" viewBox="0 0 24 24" stroke="currentColor">
-                          <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M5 13l4 4L19 7" />
-                        </svg>
-                      ) : (
-                        <svg className="w-4 h-4 mr-2" fill="none" viewBox="0 0 24 24" stroke="currentColor">
-                          <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M12 8v4m0 4h.01M21 12a9 9 0 11-18 0 9 9 0 0118 0z" />
-                        </svg>
-                      )}
-                      {cartMessage?.text}
-                    </div>
-                  </div>
-                )}
+                
               </div>
             </div>
 
