@@ -41,7 +41,7 @@ const ProductCard: React.FC<ProductCardProps> = ({ product }) => {
   return (
     <a
       href={`/products/${product.id}`}
-      className="group bg-white dark:bg-neutral-900 border border-neutral-200 dark:border-white/10 rounded-xl shadow-sm hover:shadow-lg transition-shadow duration-200 flex flex-col h-full overflow-hidden focus:outline-none focus:ring-2 focus:ring-amber-400"
+      className="group bg-neutral-900/80 backdrop-blur-sm border border-white/10 shadow-lg hover:shadow-2xl transition-shadow duration-200 flex flex-col h-full overflow-hidden rounded-xl focus:outline-none focus:ring-2 focus:ring-amber-400"
       tabIndex={0}
       aria-label={`View details for ${product.name}`}
     >
@@ -88,7 +88,7 @@ const ProductCard: React.FC<ProductCardProps> = ({ product }) => {
       </div>
       {/* Card content */}
       <div className="flex flex-col gap-1 p-3 flex-1">
-        <div className="text-base font-medium text-neutral-900 dark:text-white truncate" title={product.name}>
+        <div className="text-base font-medium text-white/90 dark:text-white truncate" title={product.name}>
           {product.name}
         </div>
         <div className="text-amber-600 dark:text-amber-400 text-lg font-bold mb-1">
