@@ -2,18 +2,23 @@
 import { useEffect, useState } from "react";
 import dynamic from "next/dynamic";
 import productService from '@/services/api/products';
-import type { Product, ProductsResponse } from '@/types/apiResponses';
+import categoryService from '@/services/api/categories';
+import type { Product, ProductsResponse, CategoriesResponse, Category } from '@/types/apiResponses';
 import { Header, Footer, LoginForm } from "@/components";
 import ProductsHeroBanner from '@/components/sections/ProductsHeroBanner';
 import ProductCard from '@/components/ui/ProductCard';
 import { getImageUrl, handleImageError } from '@/utils/imageUtils';
 import useDebounce from '@/hooks/useDebounce';
-
 import ProductImage from '@/components/ui/ProductImage';
 import PaginationControls from '@/components/ui/PaginationControls';
+import UnifiedProductControls from '@/components/ui/UnifiedProductControls';
 
 
 export default function ProductsPage() {
+  const [categories, setCategories] = useState<{ id: number | string; name: string }[]>([]);
+  const [locations, setLocations] = useState<string[]>([]);
+  const [selectedCategory, setSelectedCategory] = useState<string>('');
+  const [selectedLocation, setSelectedLocation] = useState<string>('');
   const [products, setProducts] = useState<Product[]>([]);
   const [error, setError] = useState('');
   const [searchInput, setSearchInput] = useState('');
@@ -66,6 +71,16 @@ export default function ProductsPage() {
         }
       }
 
+      // Add category filter
+      if (selectedCategory) {
+        filters.category_id = selectedCategory;
+      }
+
+      // Add location filter
+      if (selectedLocation) {
+        filters.location = selectedLocation;
+      }
+
       const response = await productService.getProducts(filters);
       console.timeEnd('fetchProducts: network');
 
@@ -73,6 +88,9 @@ export default function ProductsPage() {
         setProducts(response.products || []);
         setTotalProducts(response.total || 0);
         setTotalPages(Math.ceil((response.total || 0) / pageSize));
+        // Derive locations from loaded products (unique, sorted)
+        const uniqueLocations = Array.from(new Set((response.products || []).map(p => p.location).filter(Boolean)));
+        setLocations(uniqueLocations.sort((a, b) => a.localeCompare(b)));
         // Wait for the next paint to measure render time
         requestAnimationFrame(() => {
           console.timeEnd('fetchProducts: total');
@@ -91,23 +109,47 @@ export default function ProductsPage() {
     }
   };
 
-  // Fetch products when page, sort, or search changes
+  // Fetch products when search changes
   useEffect(() => {
-    if (debouncedSearch) {
-      fetchProducts('search');
-    } else if (page > 1) {
-      fetchProducts('pagination');
-    } else if (sort) {
-      fetchProducts('sort');
-    } else {
-      fetchProducts('initial');
-    }
-  }, [page, sort, debouncedSearch]);
+    fetchProducts('search');
+  }, [debouncedSearch]);
 
-  // Reset to page 1 when search changes
+  // Fetch products when page changes
+  useEffect(() => {
+    fetchProducts('pagination');
+  }, [page]);
+
+  // Fetch products when sort changes
+  useEffect(() => {
+    fetchProducts('sort');
+  }, [sort]);
+
+  // Fetch products when category or location changes
+  useEffect(() => {
+    fetchProducts('initial');
+  }, [selectedCategory, selectedLocation]);
+
+  // Reset to page 1 when search or filter changes
   useEffect(() => {
     setPage(1);
-  }, [debouncedSearch]);
+  }, [debouncedSearch, selectedCategory, selectedLocation]);
+
+  // Fetch categories on mount
+  useEffect(() => {
+    const fetchCategories = async () => {
+      try {
+        const res = await categoryService.getCategories() as CategoriesResponse;
+        if (Array.isArray(res)) {
+          setCategories(res.map((c: Category) => ({ id: c.id, name: c.name })));
+        } else {
+          setCategories([]);
+        }
+      } catch (e) {
+        setCategories([]);
+      }
+    };
+    fetchCategories();
+  }, []);
 
   return (
     <div className="min-h-screen bg-black text-white">
@@ -117,69 +159,34 @@ export default function ProductsPage() {
 
       {/* Main content */}
       <div className="max-w-6xl mx-auto px-6 py-12">
+        {/* Unified controls row as component */}
+        <UnifiedProductControls
+          searchInput={searchInput}
+          setSearchInput={setSearchInput}
+          debouncedSearch={debouncedSearch}
+          loading={loading}
+          categories={categories}
+          selectedCategory={selectedCategory}
+          setSelectedCategory={setSelectedCategory}
+          locations={locations}
+          selectedLocation={selectedLocation}
+          setSelectedLocation={setSelectedLocation}
+          sort={sort}
+          setSort={setSort}
+          page={page}
+          totalPages={totalPages}
+          totalProducts={totalProducts}
+          onFirst={() => setPage(1)}
+          onPrev={() => setPage(p => Math.max(1, p - 1))}
+          onNext={() => setPage(p => p + 1)}
+          onLast={() => setPage(totalPages)}
+        />
         {error && (
           <div className="bg-red-900/20 border border-red-500/50 text-red-400 px-4 py-3 rounded-sm mb-8 text-center">{error}</div>
         )}
 
-        {/* Search, Sort, Pagination Controls - Unified Inline Row */}
-        <div className="flex flex-col md:flex-row md:items-center md:space-x-4 gap-4 mb-6">
-          {/* Search input and icons */}
-          <div className="relative flex-1 w-full md:w-64">
-            <input
-              type="text"
-              placeholder="Search products..."
-              className="w-full bg-black/50 border border-white/10 rounded-sm px-4 py-3 focus:outline-none focus:border-amber-500/50 text-white placeholder-white/40 disabled:opacity-50"
-              value={searchInput}
-              onChange={e => setSearchInput(e.target.value)}
-              disabled={loading}
-            />
-            {(searchInput !== debouncedSearch || loading) && (
-              <span className="absolute right-10 top-3.5 w-4 h-4">
-                <svg className="animate-spin text-amber-500/50" xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24">
-                  <circle className="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" strokeWidth="4"></circle>
-                  <path className="opacity-75" fill="currentColor" d="M4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4zm2 5.291A7.962 7.962 0 014 12H0c0 3.042 1.135 5.824 3 7.938l3-2.647z"></path>
-                </svg>
-              </span>
-            )}
-            <svg className="absolute right-3 top-3.5 w-5 h-5 text-white/40" fill="none" viewBox="0 0 24 24" stroke="currentColor">
-              <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M21 21l-6-6m2-5a7 7 0 11-14 0 7 7 0 0114 0z" />
-            </svg>
-          </div>
-          {/* Sort select */}
-          <div className="relative w-full md:w-48">
-            <select
-              className="w-full appearance-none bg-black/50 border border-white/10 rounded-sm px-4 py-3 focus:outline-none focus:border-amber-500/50 text-white disabled:opacity-50"
-              value={sort}
-              onChange={e => setSort(e.target.value)}
-              disabled={loading}
-            >
-              <option value="">Sort by</option>
-              <option value="name">Name</option>
-              <option value="priceLow">Price: Low to High</option>
-              <option value="priceHigh">Price: High to Low</option>
-            </select>
-            <svg className="absolute right-3 top-3.5 w-5 h-5 text-white/40" fill="none" viewBox="0 0 24 24" stroke="currentColor">
-              <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M19 9l-7 7-7-7" />
-            </svg>
-          </div>
-          {/* Pagination controls */}
-          <div className="w-full md:w-auto">
-            <PaginationControls
-              page={page}
-              totalPages={totalPages}
-              totalItems={totalProducts}
-              loading={loading}
-              onFirst={() => setPage(1)}
-              onPrev={() => setPage(p => Math.max(1, p - 1))}
-              onNext={() => setPage(p => p + 1)}
-              onLast={() => setPage(totalPages)}
-              className="md:justify-end w-full md:w-auto md:mt-0 mt-4"
-            />
-          </div>
-        </div>
-
         {/* Products grid */}
-        {/* Loading overlay */}
+        {/* Loading overlay: do NOT show while searching (loadingReason === 'search') */}
         {loading && loadingReason !== 'search' && (
           <div className="fixed inset-0 bg-black/40 backdrop-blur-sm z-10 flex items-center justify-center">
             <div className="bg-black/80 p-6 rounded-sm border border-amber-500/20 shadow-lg flex items-center space-x-4">
