@@ -9,7 +9,7 @@ interface ToastProps {
 }
 
 const toastStyles = {
-  base: "fixed z-50 top-20 right-8 px-6 py-3 rounded shadow-lg text-base font-medium flex items-center space-x-2 transition-all animate-fade-in sm:right-8 right-2",
+  base: "fixed z-50 top-20 right-8 px-2 py-3 rounded shadow-lg text-base font-medium flex items-center space-x-2 transition-all animate-fade-in sm:right-8 right-2",
   success: "bg-green-600 text-white border border-green-400",
   error: "bg-red-700 text-white border border-red-400",
   info: "bg-neutral-800 text-white border border-white/20",
@@ -33,7 +33,7 @@ const Toast: React.FC<ToastProps> = ({ message, type = "info", onClose, duration
   const barColor = "bg-white";
 
   return (
-    <div className={`${toastStyles.base} ${toastStyles[type]}`}
+    <div className={`${toastStyles.base} ${toastStyles[type]} w-auto rounded-l-lg`}
       role="alert"
       aria-live="assertive"
     >
@@ -44,7 +44,7 @@ const Toast: React.FC<ToastProps> = ({ message, type = "info", onClose, duration
         <svg className="w-5 h-5 text-white" fill="none" viewBox="0 0 24 24" stroke="currentColor"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M6 18L18 6M6 6l12 12" /></svg>
       )}
       <span>{message}</span>
-      <button onClick={onClose} className="ml-4 text-white/80 hover:text-white text-lg">×</button>
+
       {/* Progress Bar */}
       <div className="absolute left-0 bottom-0 w-full h-1 bg-white/10 rounded-b overflow-hidden">
         <div
