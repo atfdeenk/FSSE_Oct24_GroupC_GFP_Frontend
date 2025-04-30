@@ -1,17 +1,14 @@
 "use client";
 import { useEffect, useState } from "react";
-import dynamic from "next/dynamic";
 import productService from '@/services/api/products';
 import categoryService from '@/services/api/categories';
-import type { Product, ProductsResponse, CategoriesResponse, Category } from '@/types/apiResponses';
-import { Header, Footer, LoginForm } from "@/components";
+import type { Product, CategoriesResponse } from '@/types/apiResponses';
+import { Header, Footer } from "@/components";
 import ProductsHeroBanner from '@/components/sections/ProductsHeroBanner';
-import ProductCard from '@/components/ui/ProductCard';
-import { getImageUrl, handleImageError } from '@/utils/imageUtils';
 import useDebounce from '@/hooks/useDebounce';
-import ProductImage from '@/components/ui/ProductImage';
 import PaginationControls from '@/components/ui/PaginationControls';
 import UnifiedProductControls from '@/components/ui/UnifiedProductControls';
+import ProductCard from '@/components/ui/ProductCard';
 
 
 export default function ProductsPage() {
@@ -138,7 +135,7 @@ export default function ProductsPage() {
       try {
         const res = await categoryService.getCategories() as CategoriesResponse;
         if (Array.isArray(res)) {
-          setCategories(res.map((c: Category) => ({ id: c.id, name: c.name })));
+          setCategories(res.map((c: any) => ({ id: c.id, name: c.name })));
         } else {
           setCategories([]);
         }
@@ -184,8 +181,6 @@ export default function ProductsPage() {
         )}
 
         {/* Products grid */}
-
-
         <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4 gap-6">
           {loading && products.length === 0 && (
             <div className="col-span-full flex flex-col items-center justify-center py-20">
