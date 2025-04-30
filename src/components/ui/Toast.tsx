@@ -16,10 +16,21 @@ const toastStyles = {
 };
 
 const Toast: React.FC<ToastProps> = ({ message, type = "info", onClose, duration = 3000 }) => {
+  const [progress, setProgress] = React.useState(100);
+  React.useEffect(() => {
+    setProgress(100);
+    // Use a timeout to set progress to 0 after mount, triggering the transition
+    const timeout = setTimeout(() => setProgress(0), 50); // allow mount first
+    return () => clearTimeout(timeout);
+  }, [duration, message]);
+
   useEffect(() => {
     const timer = setTimeout(onClose, duration);
     return () => clearTimeout(timer);
   }, [onClose, duration]);
+
+  // Color map for progress bar
+  const barColor = "bg-white";
 
   return (
     <div className={`${toastStyles.base} ${toastStyles[type]}`}
@@ -34,6 +45,16 @@ const Toast: React.FC<ToastProps> = ({ message, type = "info", onClose, duration
       )}
       <span>{message}</span>
       <button onClick={onClose} className="ml-4 text-white/80 hover:text-white text-lg">×</button>
+      {/* Progress Bar */}
+      <div className="absolute left-0 bottom-0 w-full h-1 bg-white/10 rounded-b overflow-hidden">
+        <div
+          className={`h-full ${barColor} origin-right`}
+          style={{
+            transform: `scaleX(${progress / 100})`,
+            transition: `transform ${duration}ms linear`,
+          }}
+        />
+      </div>
     </div>
   );
 };
