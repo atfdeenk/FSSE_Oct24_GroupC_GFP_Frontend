@@ -3,39 +3,14 @@ import { useEffect, useState } from "react";
 import dynamic from "next/dynamic";
 import productService from '@/services/api/products';
 import type { Product, ProductsResponse } from '@/types/apiResponses';
-import { Header, Footer, LoginForm } from '@/components';
+import { Header, Footer, LoginForm } from "@/components";
+import ProductsHeroBanner from '@/components/sections/ProductsHeroBanner';
+import ProductCard from '@/components/ui/ProductCard';
 import { getImageUrl, handleImageError } from '@/utils/imageUtils';
 import useDebounce from '@/hooks/useDebounce';
 
-import Image from 'next/image';
+import ProductImage from '@/components/ui/ProductImage';
 
-function ProductImage({ src, alt, width = 400, height = 192, className = '', onError }: {
-  src: string;
-  alt: string;
-  width?: number;
-  height?: number;
-  className?: string;
-  onError?: (e: any) => void;
-}) {
-  const [imageLoaded, setImageLoaded] = useState(false);
-  return (
-    <div className="relative w-full h-full">
-      <Image
-        src={src}
-        alt={alt}
-        width={width}
-        height={height}
-        className={`w-full h-full object-cover transition-transform duration-500 group-hover:scale-110 ${imageLoaded ? 'opacity-100' : 'opacity-0'} ${className}`}
-        onLoadingComplete={() => setImageLoaded(true)}
-        onError={onError}
-        loading="lazy"
-      />
-      {!imageLoaded && (
-        <div className="absolute inset-0 bg-neutral-800 animate-pulse" />
-      )}
-    </div>
-  );
-}
 
 export default function ProductsPage() {
   const [products, setProducts] = useState<Product[]>([]);
@@ -126,19 +101,7 @@ export default function ProductsPage() {
     <div className="min-h-screen bg-black text-white">
       <Header />
       {/* Hero banner */}
-      <div className="w-full bg-black relative overflow-hidden py-20 px-6">
-        <div className="absolute inset-0 bg-[url('/coffee-beans-dark.jpg')] bg-cover bg-center opacity-20"></div>
-        <div className="absolute inset-0 bg-gradient-to-b from-black via-transparent to-black"></div>
-
-        <div className="max-w-6xl mx-auto relative z-10 text-center">
-          <span className="inline-block text-amber-500 font-bold tracking-widest uppercase text-sm mb-4 animate-fade-in">Discover</span>
-          <h1 className="text-4xl md:text-6xl font-black text-white mb-6 animate-fade-in delay-100">Premium Coffee Collection</h1>
-          <div className="h-1 w-24 bg-amber-500 mx-auto mb-8 animate-fade-in delay-200"></div>
-          <p className="text-white/80 max-w-2xl mx-auto text-lg animate-fade-in delay-300 mb-8">
-            Explore our curated selection of locally sourced, artisanal coffee products
-          </p>
-        </div>
-      </div>
+      <ProductsHeroBanner />
 
       {/* Main content */}
       <div className="max-w-6xl mx-auto px-6 py-12">
@@ -230,47 +193,7 @@ export default function ProductsPage() {
           )}
 
           {products.map(product => (
-            <a
-              key={product.id}
-              href={`/products/${product.id}`}
-              className="group bg-neutral-900/50 backdrop-blur-sm rounded-sm overflow-hidden border border-white/5 hover:border-amber-500/30 transition-all duration-300 flex flex-col h-full"
-            >
-              <div className="relative h-48 overflow-hidden bg-neutral-900 rounded-t-sm">
-                {/* Progressive image loading with skeleton */}
-                <ProductImage
-                  src={getImageUrl(product.image_url)}
-                  alt={product.name}
-                  width={400}
-                  height={192}
-                  onError={handleImageError()}
-                />
-
-                <div className="absolute inset-0 bg-gradient-to-t from-black/80 to-transparent opacity-0 group-hover:opacity-100 transition-opacity duration-300"></div>
-                <div className="absolute bottom-0 left-0 p-4 w-full">
-                  <span className="inline-block bg-amber-500/90 text-black text-xs font-bold px-3 py-1 rounded-sm mb-2 opacity-0 group-hover:opacity-100 transition-opacity duration-300 translate-y-2 group-hover:translate-y-0">
-                    {product.location}
-                  </span>
-                </div>
-              </div>
-
-              <div className="p-6 flex flex-col flex-grow">
-                <div className="flex justify-between items-start mb-2">
-                  <h2 className="font-bold text-xl text-white group-hover:text-amber-400 transition-colors duration-300">{product.name}</h2>
-                  <span className="font-mono text-amber-500 font-bold">{product.price} {product.currency}</span>
-                </div>
-
-                <p className="text-white/60 text-sm mb-4 line-clamp-2 flex-grow">{product.description}</p>
-
-                <div className="mt-auto pt-4 border-t border-white/5">
-                  <span className="inline-flex items-center text-amber-500 font-bold group-hover:text-amber-400 transition-colors">
-                    View Details
-                    <svg className="w-4 h-4 ml-2 transform group-hover:translate-x-1 transition-transform" fill="none" viewBox="0 0 24 24" stroke="currentColor">
-                      <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M14 5l7 7m0 0l-7 7m7-7H3" />
-                    </svg>
-                  </span>
-                </div>
-              </div>
-            </a>
+            <ProductCard key={product.id} product={product} />
           ))}
         </div>
 
