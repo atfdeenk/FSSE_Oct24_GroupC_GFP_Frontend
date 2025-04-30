@@ -88,6 +88,38 @@ const ProductCard: React.FC<ProductCardProps> = ({ product }) => {
       </div>
       {/* Card content */}
       <div className="flex flex-col gap-1 p-3 flex-1">
+        {/* Categories badge group */}
+        {product.categories && product.categories.length > 0 && (
+          <div className="flex flex-wrap gap-2 mb-1">
+            {product.categories.map((cat) => {
+              // Helper to determine badge style
+              const getCategoryBadgeClass = (name: string) => {
+                const n = name.toLowerCase();
+                if (n.includes('premium')) {
+                  return 'bg-gradient-to-r from-amber-400 to-yellow-200 text-amber-900 border border-amber-300 dark:from-yellow-500 dark:to-yellow-300 dark:text-yellow-900';
+                } else if (n.includes('standard')) {
+                  return 'bg-neutral-200/80 text-neutral-700 border border-neutral-300 dark:bg-neutral-700/70 dark:text-white dark:border-neutral-500';
+                } else if (n.includes('first grade')) {
+                  return 'bg-green-100/80 text-green-800 border border-green-300 dark:bg-green-900/70 dark:text-green-200 dark:border-green-700';
+                } else if (n.includes('second grade')) {
+                  return 'bg-blue-100/80 text-blue-800 border border-blue-300 dark:bg-blue-900/70 dark:text-blue-200 dark:border-blue-700';
+                } else if (n.includes('third grade')) {
+                  return 'bg-purple-100/80 text-purple-800 border border-purple-300 dark:bg-purple-900/70 dark:text-purple-200 dark:border-purple-700';
+                } else {
+                  return 'bg-amber-100/80 text-amber-700 dark:bg-neutral-800/80 dark:text-amber-200 border border-amber-200 dark:border-neutral-700';
+                }
+              };
+              return (
+                <span
+                  key={cat.id}
+                  className={`px-2 py-0.5 text-xs rounded-full font-semibold ${getCategoryBadgeClass(cat.name)}`}
+                >
+                  {cat.name}
+                </span>
+              );
+            })}
+          </div>
+        )}
         <div className="text-base font-medium text-white/90 dark:text-white truncate" title={product.name}>
           {product.name}
         </div>
