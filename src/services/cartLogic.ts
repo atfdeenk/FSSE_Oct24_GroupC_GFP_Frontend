@@ -21,7 +21,7 @@ export async function fetchCartWithDetails() {
     return [];
   }
   const itemsWithDetails = await Promise.all(
-    cartResponse.data.items.map(async (item) => {
+    cartResponse.data.items.map(async (item: ApiCartItem) => {
       try {
         const product = await productService.getProduct(item.product_id);
         return {

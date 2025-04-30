@@ -5,6 +5,7 @@ import { useParams, useRouter } from "next/navigation";
 import type { Product } from '@/types/apiResponses';
 import productService from '@/services/api/products';
 import { useCart } from '@/hooks/useCart';
+import { useToastContext } from '@/context/ToastContext';
 import { ToastStack } from '@/components/ui/Toast';
 import { Header, Footer } from '@/components';
 import {
@@ -64,7 +65,8 @@ export default function ProductDetail() {
   }, [params?.id]);
 
   const [addingToCart, setAddingToCart] = useState(false);
-  const { addToCartWithCountCheck, toasts, closeToast } = useCart();
+  const { addToCartWithCountCheck } = useCart();
+const { toasts, closeToast } = useToastContext();
 
   const handleAddToCart = async () => {
     if (!product) return;

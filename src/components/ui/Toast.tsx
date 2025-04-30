@@ -4,8 +4,9 @@ import React, { useEffect } from "react";
 interface ToastProps {
   message: string;
   type?: "success" | "error" | "info";
-  onClose: () => void;
   duration?: number; // ms
+  toastKey: string | number;
+  onRequestClose: (key: string | number) => void;
 }
 
 const toastStyles = {
@@ -15,7 +16,14 @@ const toastStyles = {
   info: "bg-neutral-800 text-white border border-white/20",
 };
 
-const Toast: React.FC<ToastProps> = ({ message, type = "info", onClose, duration = 3000 }) => {
+const Toast: React.FC<ToastProps> = ({ message, type = "info", duration = 3000, toastKey, onRequestClose }) => {
+  // DIAGNOSTIC LOGGING
+  React.useEffect(() => {
+    console.log(`[Toast] MOUNT key=${toastKey}, message="${message}"`);
+    return () => {
+      console.log(`[Toast] UNMOUNT key=${toastKey}, message="${message}"`);
+    };
+  }, [toastKey, message]);
   const [progress, setProgress] = React.useState(100);
   React.useEffect(() => {
     setProgress(100);
@@ -25,9 +33,12 @@ const Toast: React.FC<ToastProps> = ({ message, type = "info", onClose, duration
   }, [duration, message]);
 
   useEffect(() => {
-    const timer = setTimeout(onClose, duration);
+    const timer = setTimeout(() => {
+      console.log(`[Toast] onRequestClose called for key=${toastKey}, message="${message}"`);
+      onRequestClose(toastKey);
+    }, duration);
     return () => clearTimeout(timer);
-  }, [onClose, duration]);
+  }, [onRequestClose, toastKey, duration]);
 
   // Color map for progress bar
   const barColor = "bg-white";
@@ -63,20 +74,29 @@ export default Toast;
 
 // ToastStack: Accepts an array of toasts and stacks them vertically
 interface ToastStackProps {
-  toasts: Array<ToastProps & { key: string | number }>;
+  toasts: Array<Omit<ToastProps, 'onRequestClose' | 'toastKey'> & { key: string | number }>;
   onClose: (key: string | number) => void;
 }
 
-export const ToastStack: React.FC<ToastStackProps> = ({ toasts, onClose }) => (
-  <div className="fixed top-20 right-8 z-50 flex flex-col gap-3 items-end">
-    {toasts.map((toast) => (
-      <Toast
-        key={toast.key}
-        message={toast.message}
-        type={toast.type}
-        duration={toast.duration}
-        onClose={() => onClose(toast.key)}
-      />
-    ))}
-  </div>
-);
+export const ToastStack: React.FC<ToastStackProps> = React.memo(({ toasts, onClose }) => {
+  React.useEffect(() => {
+    console.log('[ToastStack] MOUNT');
+    return () => console.log('[ToastStack] UNMOUNT');
+  }, []);
+  // Only render the latest toast if present
+  const latestToast = toasts.length > 0 ? toasts[toasts.length - 1] : null;
+  return (
+    <div className="fixed top-20 right-8 z-50 flex flex-col gap-3 items-end">
+      {latestToast && (
+        <Toast
+          key={latestToast.key}
+          message={latestToast.message}
+          type={latestToast.type}
+          duration={latestToast.duration}
+          toastKey={latestToast.key}
+          onRequestClose={onClose}
+        />
+      )}
+    </div>
+  );
+});
