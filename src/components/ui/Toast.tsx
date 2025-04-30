@@ -9,7 +9,7 @@ interface ToastProps {
 }
 
 const toastStyles = {
-  base: "fixed z-50 top-20 right-8 px-2 py-3 rounded shadow-lg text-base font-medium flex items-center space-x-2 transition-all animate-fade-in sm:right-8 right-2",
+  base: "relative z-50 px-2 py-3 rounded shadow-lg text-base font-medium flex items-center space-x-2 transition-all animate-fade-in w-auto rounded-l-lg",
   success: "bg-green-600 text-white border border-green-400",
   error: "bg-red-700 text-white border border-red-400",
   info: "bg-neutral-800 text-white border border-white/20",
@@ -60,3 +60,23 @@ const Toast: React.FC<ToastProps> = ({ message, type = "info", onClose, duration
 };
 
 export default Toast;
+
+// ToastStack: Accepts an array of toasts and stacks them vertically
+interface ToastStackProps {
+  toasts: Array<ToastProps & { key: string | number }>;
+  onClose: (key: string | number) => void;
+}
+
+export const ToastStack: React.FC<ToastStackProps> = ({ toasts, onClose }) => (
+  <div className="fixed top-20 right-8 z-50 flex flex-col gap-3 items-end">
+    {toasts.map((toast) => (
+      <Toast
+        key={toast.key}
+        message={toast.message}
+        type={toast.type}
+        duration={toast.duration}
+        onClose={() => onClose(toast.key)}
+      />
+    ))}
+  </div>
+);

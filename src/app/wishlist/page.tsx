@@ -7,7 +7,8 @@ import { Header, Footer, SelectionControls } from "@/components";
 import { isAuthenticated } from "@/lib/auth";
 import wishlistService, { WishlistItem } from "@/services/api/wishlist";
 import productService from "@/services/api/products";
-import cartService from "@/services/api/cart";
+import { useCart } from '@/hooks/useCart';
+import { useToast } from '@/context/ToastContext';
 import { getProductImageUrl, handleProductImageError } from "@/utils/imageUtils";
 import { Product } from "@/types/apiResponses";
 import { isProductInStock, hasInStockProperty } from "@/utils/products";
@@ -30,13 +31,16 @@ export default function WishlistPage() {
   const [loading, setLoading] = useState(true);
   const [showOrderSummary, setShowOrderSummary] = useState(true);
   const [addingToCart, setAddingToCart] = useState<Set<string | number>>(new Set());
-  const [actionMessage, setActionMessage] = useState<{ type: 'success' | 'error', text: string } | null>(null);
+
   const [filterBy, setFilterBy] = useState<'all' | 'inStock' | 'outOfStock'>('all');
   const [sortBy, setSortBy] = useState<'default' | 'priceAsc' | 'priceDesc' | 'nameAsc'>('default');
 
+  const { addToCartWithCountCheck } = useCart();
+  const { showToast } = useToast();
+
   const fetchWishlist = useCallback(async () => {
     setLoading(true);
-    setActionMessage(null);
+
 
     try {
       const wishlistResponse = await wishlistService.getWishlist();
@@ -67,7 +71,6 @@ export default function WishlistPage() {
               }
               return item;
             } catch (error) {
-              console.error(`Error fetching product ${item.product_id}:`, error);
               return item;
             }
           })
@@ -88,11 +91,10 @@ export default function WishlistPage() {
         setSelectedItems(new Set());
       }
     } catch (error) {
-      console.error('Error fetching wishlist:', error);
       setWishlistItems([]);
-      setActionMessage({
+      showToast({
+        message: 'Failed to load your wishlist. Please try again.',
         type: 'error',
-        text: 'Failed to load your wishlist. Please try again.'
       });
     } finally {
       setLoading(false);
@@ -125,18 +127,17 @@ export default function WishlistPage() {
       }
 
       // Show success message
-      setActionMessage({
+      showToast({
+        message: `${itemToRemove.name || 'Item'} removed from wishlist`,
         type: 'success',
-        text: `${itemToRemove.name || 'Item'} removed from wishlist`
       });
 
       // Call API
       await wishlistService.removeFromWishlist(id);
     } catch (error) {
-      console.error('Error removing item from wishlist:', error);
-      setActionMessage({
+      showToast({
+        message: 'Failed to remove item from wishlist',
         type: 'error',
-        text: 'Failed to remove item from wishlist'
       });
 
       // Revert optimistic update on error
@@ -202,46 +203,13 @@ export default function WishlistPage() {
 
   const addToCart = async (productId: number | string) => {
     try {
-      // Add to loading set to show loading state for this specific item
       setAddingToCart(prev => new Set(prev).add(productId));
-
       const itemToAdd = wishlistItems.find(item => item.product_id === productId);
       if (!itemToAdd) return;
-
-      const response = await cartService.addToCart({
-        product_id: productId,
-        quantity: 1
-      });
-
-      if (response.success) {
-        // Refresh the header cart count
-        const event = new CustomEvent('cart-updated');
-        window.dispatchEvent(event);
-
-        // Show success message
-        setActionMessage({
-          type: 'success',
-          text: `${itemToAdd.name || 'Item'} added to cart`
-        });
-
-        // Clear success message after 3 seconds
-        setTimeout(() => {
-          setActionMessage(null);
-        }, 3000);
-      } else {
-        setActionMessage({
-          type: 'error',
-          text: response.message || 'Failed to add item to cart'
-        });
-      }
-    } catch (error: any) {
-      console.error('Error adding to cart:', error);
-      setActionMessage({
-        type: 'error',
-        text: error?.message || 'Failed to add item to cart'
-      });
+      await addToCartWithCountCheck({ product_id: productId, quantity: 1 });
+      const event = new CustomEvent('cart-updated');
+      window.dispatchEvent(event);
     } finally {
-      // Remove from loading set
       setAddingToCart(prev => {
         const newSet = new Set(prev);
         newSet.delete(productId);
@@ -279,12 +247,6 @@ export default function WishlistPage() {
   const addSelectedToCart = async () => {
     const selectedIds = Array.from(selectedItems);
     if (selectedIds.length === 0) return;
-
-    setActionMessage({
-      type: 'success',
-      text: 'Adding selected items to cart...'
-    });
-
     for (const id of selectedIds) {
       const item = wishlistItems.find(item => item.id === id);
       if (item && item.inStock) {

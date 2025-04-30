@@ -34,8 +34,6 @@ export default function ProductsPage() {
 
   // Fetch products with pagination and filtering
   const fetchProducts = async (reason: 'search' | 'pagination' | 'sort' | 'initial' = 'initial') => {
-    console.time('fetchProducts: total');
-    console.time('fetchProducts: network');
     setLoading(true);
     setLoadingReason(reason);
 
@@ -79,7 +77,6 @@ export default function ProductsPage() {
       }
 
       const response = await productService.getProducts(filters);
-      console.timeEnd('fetchProducts: network');
 
       if (response && response.products) {
         setProducts(response.products || []);
@@ -88,17 +85,11 @@ export default function ProductsPage() {
         // Derive locations from loaded products (unique, sorted)
         const uniqueLocations = Array.from(new Set((response.products || []).map(p => p.location).filter(Boolean)));
         setLocations(uniqueLocations.sort((a, b) => a.localeCompare(b)));
-        // Wait for the next paint to measure render time
-        requestAnimationFrame(() => {
-          console.timeEnd('fetchProducts: total');
-        });
       } else {
         setError('Failed to load products.');
-        console.timeEnd('fetchProducts: total');
       }
     } catch (e: any) {
       setError(e?.message || 'Failed to load products.');
-      console.error('Error loading products:', e);
     } finally {
       setLoading(false);
       // Optionally reset loadingReason after a delay

@@ -10,18 +10,14 @@ export function useAuthUser() {
 
   // Fetch and update user state
   const refreshUser = useCallback(async () => {
-    console.log('[useAuthUser] Refreshing user');
     const authStatus = isAuthenticated();
-    console.log('[useAuthUser] Auth status:', authStatus);
     setIsLoggedIn(authStatus);
     
     if (authStatus) {
       try {
         const currentUser = await getCurrentUser();
-        console.log('[useAuthUser] Current user:', currentUser);
         setUser(currentUser);
       } catch (error) {
-        console.error('[useAuthUser] Error getting current user:', error);
         setUser(null);
       }
     } else {
@@ -32,12 +28,10 @@ export function useAuthUser() {
   // Listen for login/logout events
   useEffect(() => {
     const handleLoginEvent = () => {
-      console.log('[useAuthUser] Login event detected');
       refreshUser();
     };
 
     const handleLogoutEvent = () => {
-      console.log('[useAuthUser] Logout event detected');
       setIsLoggedIn(false);
       setUser(null);
     };
@@ -55,11 +49,6 @@ export function useAuthUser() {
       window.removeEventListener('user:logout', handleLogoutEvent);
     };
   }, [refreshUser]);
-
-  // Debug: log state changes
-  useEffect(() => {
-    console.log('[useAuthUser] isLoggedIn changed:', isLoggedIn);
-  }, [isLoggedIn]);
 
   return { user, isLoggedIn, refreshUser, setUser, setIsLoggedIn };
 }

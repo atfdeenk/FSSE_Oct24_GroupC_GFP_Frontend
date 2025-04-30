@@ -4,7 +4,8 @@ import React, { useEffect, useState } from "react";
 import { useParams, useRouter } from "next/navigation";
 import type { Product } from '@/types/apiResponses';
 import productService from '@/services/api/products';
-import cartService from '@/services/api/cart';
+import { useCart } from '@/hooks/useCart';
+import { ToastStack } from '@/components/ui/Toast';
 import { Header, Footer } from '@/components';
 import {
   Toast,
@@ -55,7 +56,6 @@ export default function ProductDetail() {
         setRelatedProducts(randomProducts);
       })
       .catch((error: any) => {
-        console.error('Error loading product:', error);
         setError(error?.message || "Failed to load product.");
       })
       .finally(() => {
@@ -64,34 +64,14 @@ export default function ProductDetail() {
   }, [params?.id]);
 
   const [addingToCart, setAddingToCart] = useState(false);
-  const [cartMessage, setCartMessage] = useState<{ type: 'success' | 'error', text: string } | null>(null);
+  const { addToCartWithCountCheck, toasts, closeToast } = useCart();
 
   const handleAddToCart = async () => {
     if (!product) return;
-
     setAddingToCart(true);
-    setCartMessage(null);
-
     try {
-      await cartService.addToCart({
-        product_id: product.id,
-        quantity: quantity
-      });
-      setCartMessage({
-        type: 'success',
-        text: `Added ${quantity} ${product.name} to cart!`
-      });
-      // Refresh the header cart count
-      const event = new CustomEvent('cart-updated');
-      window.dispatchEvent(event);
-      // Clear success message after 3 seconds
-      setTimeout(() => setCartMessage(null), 3000);
-    } catch (error: any) {
-      console.error('Error adding to cart:', error);
-      setCartMessage({
-        type: 'error',
-        text: error?.message || 'Failed to add item to cart'
-      });
+      await addToCartWithCountCheck({ product_id: product.id, quantity });
+      window.dispatchEvent(new CustomEvent('cart-updated'));
     } finally {
       setAddingToCart(false);
     }
@@ -133,13 +113,7 @@ export default function ProductDetail() {
     <div className="min-h-screen bg-black text-white flex flex-col">
       <Header />
       {/* Toast Notification */}
-      {cartMessage && (
-        <Toast
-          message={cartMessage.text}
-          type={cartMessage.type}
-          onClose={() => setCartMessage(null)}
-        />
-      )}
+      <ToastStack toasts={toasts.map(t => ({ ...t, onClose: () => closeToast(t.key) }))} onClose={closeToast} />
       {/* Breadcrumb */}
       <div className="bg-neutral-900/50 border-b border-white/5">
         <div className="max-w-6xl mx-auto px-6 py-4">

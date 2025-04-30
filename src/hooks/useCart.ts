@@ -1,9 +1,11 @@
+"use client";
 import { useState, useEffect, useCallback } from 'react';
 import { useRouter } from 'next/navigation';
 import { fetchCartWithDetails } from '@/services/cartLogic';
 import cartService from '@/services/api/cart';
 import { CartItemWithDetails } from '@/types/cart';
 import { isAuthenticated } from '@/lib/auth';
+import { useToast } from '@/context/ToastContext';
 
 export function useCart() {
   const router = useRouter();
@@ -12,6 +14,7 @@ export function useCart() {
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
 
+
   const fetchCart = useCallback(async () => {
     setLoading(true);
     try {
@@ -19,6 +22,7 @@ export function useCart() {
         router.push('/login?redirect=cart');
         return;
       }
+      const cartResponse = await cartService.getCart();
       const itemsWithDetails = await fetchCartWithDetails();
       setCartItems(itemsWithDetails);
       setSelectedItems(new Set(itemsWithDetails.map(item => item.id)));
@@ -35,6 +39,66 @@ export function useCart() {
     fetchCart();
   }, [fetchCart]);
 
+  // Add to cart with count check
+  // Helper: deep compare cart items (product_id and quantity)
+  function areCartItemsIdentical(before: any[], after: any[]): boolean {
+    if (before.length !== after.length) return false;
+    const sortById = (arr: any[]) => [...arr].sort((a, b) => a.product_id - b.product_id);
+    const sortedBefore = sortById(before);
+    const sortedAfter = sortById(after);
+    return sortedBefore.every((item, idx) =>
+      item.product_id === sortedAfter[idx].product_id &&
+      item.quantity === sortedAfter[idx].quantity
+    );
+  }
+
+  const { showToast, closeToast } = useToast();
+
+  const addToCartWithCountCheck = useCallback(async (itemData: { product_id: number | string; quantity: number }) => {
+    setLoading(true);
+    try {
+      // Get before-cart info
+      const beforeCart = await cartService.getCart();
+      const beforeItems = Array.isArray(beforeCart.data?.items) ? beforeCart.data.items : [];
+
+      // Add to cart
+      const response = await cartService.addToCart(itemData);
+
+      // Get product name for toast
+      let productName = '';
+      try {
+        const productDetails = await (await import('@/services/api/products')).default.getProduct(itemData.product_id);
+        productName = productDetails?.name || '';
+      } catch (e) {
+        productName = '';
+      }
+
+      // Get after-cart info
+      const afterCart = await cartService.getCart();
+      const afterItems = Array.isArray(afterCart.data?.items) ? afterCart.data.items : [];
+
+      if (!areCartItemsIdentical(beforeItems, afterItems)) {
+        showToast({
+          message: `Added ${itemData.quantity}x${productName ? ` ${productName}` : ''} to cart!`,
+          type: 'success',
+        });
+        fetchCart(); // refresh cart state
+      } else {
+        showToast({
+          message: response.error || `Failed to add${productName ? ` ${productName}` : ''} to cart (cart unchanged)`,
+          type: 'error',
+        });
+      }
+    } catch (err: any) {
+      showToast({
+        message: err?.message || 'Failed to add to cart',
+        type: 'error',
+      });
+    } finally {
+      setLoading(false);
+    }
+  }, [fetchCart]);
+
   const updateQuantity = useCallback(async (id: number | string, newQuantity: number) => {
     if (newQuantity < 1) return;
     try {
@@ -45,8 +109,16 @@ export function useCart() {
           item.id === id ? { ...item, quantity: newQuantity } : item
         )
       );
+      showToast({
+        message: 'Quantity updated',
+        type: 'success',
+      });
     } catch (err) {
       setError(`Error updating quantity for item ${id}`);
+      showToast({
+        message: `Error updating quantity for item ${id}`,
+        type: 'error',
+      });
     } finally {
       setLoading(false);
     }
@@ -62,8 +134,16 @@ export function useCart() {
         newSelected.delete(id);
         return newSelected;
       });
+      showToast({
+        message: 'Item removed from cart',
+        type: 'success',
+      });
     } catch (err) {
       setError(`Error removing item ${id} from cart`);
+      showToast({
+        message: `Error removing item ${id} from cart`,
+        type: 'error',
+      });
     } finally {
       setLoading(false);
     }
@@ -90,6 +170,8 @@ export function useCart() {
     setSelectedItems(new Set());
   }, []);
 
+
+
   return {
     cartItems,
     setCartItems,
@@ -100,8 +182,10 @@ export function useCart() {
     fetchCart,
     updateQuantity,
     removeItem,
+    addToCartWithCountCheck,
     toggleSelectItem,
     selectAllItems,
     clearAllSelections,
+
   };
 }

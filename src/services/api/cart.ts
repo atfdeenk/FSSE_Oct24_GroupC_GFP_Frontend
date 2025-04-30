@@ -18,152 +18,92 @@ export interface UpdateCartItemData {
   quantity: number;
 }
 
+// --- Centralized cart API response normalization ---
+function normalizeCartResponse(response: any, fallbackMsg = 'Cart operation failed') {
+  if (response && response.data && Array.isArray(response.data.items)) {
+    return { success: true, error: null, data: response.data };
+  }
+  return {
+    success: false,
+    error: response?.message || fallbackMsg,
+    data: response?.data || { items: [], total: 0 }
+  };
+}
+
 // Cart service with Axios
 const cartService = {
   // Get the current user's cart
-  getCart: async (): Promise<CartResponse> => {
+  getCart: async (): Promise<{ success: boolean; error: string | null; data?: any }> => {
     try {
       // First get basic cart info
-      console.log('Fetching cart from:', API_CONFIG.ENDPOINTS.cart.get);
-      const cartResponse = await axiosInstance.get<any>(
-        API_CONFIG.ENDPOINTS.cart.get
-      );
-      console.log('Cart API response:', cartResponse.data);
-      
+      const cartResponse = await axiosInstance.get<any>(API_CONFIG.ENDPOINTS.cart.get);
       // Then get cart items
-      console.log('Fetching cart items from:', API_CONFIG.ENDPOINTS.cart.items);
-      const itemsResponse = await axiosInstance.get<any>(
-        API_CONFIG.ENDPOINTS.cart.items
-      );
-      console.log('Cart items API response:', itemsResponse.data);
-      
-      // Process cart items
-      if (itemsResponse.data && Array.isArray(itemsResponse.data)) {
-        const items = itemsResponse.data;
-        // Calculate total from items
-        const total = items.reduce((sum: number, item: any) => {
-          return sum + ((item.price || 0) * (item.quantity || 0));
-        }, 0);
-        
-        return {
-          success: true,
-          message: 'Cart retrieved successfully',
-          data: {
-            id: cartResponse.data?.cart_id,
-            user_id: cartResponse.data?.user_id,
-            items: items,
-            total: total
-          }
-        };
-      }
-      
-      // Default empty response
-      return {
-        success: true,
-        message: 'Cart is empty',
-        data: {
-          id: cartResponse.data?.cart_id,
-          user_id: cartResponse.data?.user_id,
-          items: [],
-          total: 0
-        }
+      const itemsResponse = await axiosInstance.get<any>(API_CONFIG.ENDPOINTS.cart.items);
+      // Compose a unified object for normalization
+      const merged = {
+        ...cartResponse.data,
+        items: Array.isArray(itemsResponse.data) ? itemsResponse.data : [],
+        total: Array.isArray(itemsResponse.data)
+          ? itemsResponse.data.reduce((sum: number, item: any) => sum + ((item.price || 0) * (item.quantity || 0)), 0)
+          : 0
       };
+      return normalizeCartResponse({ data: merged }, 'Cart not found');
     } catch (error: any) {
       console.error('Get cart error:', error);
-      // Return a default empty cart if there's an error
-      return {
-        success: false,
-        message: error?.response?.data?.message || 'Cart not found',
-        data: {
-          items: [],
-          total: 0
-        }
-      };
+      return normalizeCartResponse(error.response?.data || {}, 'Cart not found');
     }
   },
 
   // Add an item to the cart
-  addToCart: async (itemData: AddToCartData): Promise<CartResponse> => {
+  addToCart: async (itemData: AddToCartData): Promise<{ success: boolean; error: string | null; data?: any }> => {
     try {
       const response = await axiosInstance.post<CartResponse>(
         API_CONFIG.ENDPOINTS.cart.items,
         itemData
       );
-      return response.data;
+      return normalizeCartResponse(response.data, 'Failed to add to cart');
     } catch (error: any) {
-      console.error('Add to cart error:', error);
-      // Handle specific error cases
-      if (error.response?.data) {
-        return {
-          success: false,
-          message: error.response.data.message || 'Failed to add item to cart',
-          data: error.response.data.data || { items: [], total: 0 }
-        };
-      }
-      throw error;
+      return normalizeCartResponse(error.response?.data || {}, 'Failed to add to cart');
     }
   },
 
   // Update a cart item quantity
-  updateCartItem: async (itemId: number | string, updateData: UpdateCartItemData): Promise<CartResponse> => {
+  updateCartItem: async (itemId: number | string, updateData: UpdateCartItemData): Promise<{ success: boolean; error: string | null; data?: any }> => {
     try {
       const response = await axiosInstance.patch<CartResponse>(
         API_CONFIG.ENDPOINTS.cart.item(itemId),
         updateData
       );
-      return response.data;
+      return normalizeCartResponse(response.data, `Failed to update cart item ${itemId}`);
     } catch (error: any) {
       console.error(`Update cart item ${itemId} error:`, error);
-      // Handle specific error cases
-      if (error.response?.data) {
-        return {
-          success: false,
-          message: error.response.data.message || `Failed to update cart item ${itemId}`,
-          data: error.response.data.data || { items: [], total: 0 }
-        };
-      }
-      throw error;
+      return normalizeCartResponse(error.response?.data || {}, `Failed to update cart item ${itemId}`);
     }
   },
 
   // Remove an item from the cart
-  removeFromCart: async (itemId: number | string): Promise<CartResponse | BaseResponse> => {
+  removeFromCart: async (itemId: number | string): Promise<{ success: boolean; error: string | null; data?: any }> => {
     try {
       const response = await axiosInstance.delete<CartResponse>(
         API_CONFIG.ENDPOINTS.cart.item(itemId)
       );
-      return response.data;
+      return normalizeCartResponse(response.data, `Failed to remove cart item ${itemId}`);
     } catch (error: any) {
       console.error(`Remove from cart item ${itemId} error:`, error);
-      // Handle specific error cases
-      if (error.response?.data) {
-        return {
-          success: false,
-          message: error.response.data.message || `Failed to remove cart item ${itemId}`,
-          ...(error.response.data.data ? { data: error.response.data.data } : {})
-        };
-      }
-      throw error;
+      return normalizeCartResponse(error.response?.data || {}, `Failed to remove cart item ${itemId}`);
     }
   },
 
   // Clear the entire cart
-  clearCart: async (): Promise<CartResponse | BaseResponse> => {
+  clearCart: async (): Promise<{ success: boolean; error: string | null; data?: any }> => {
     try {
       const response = await axiosInstance.delete<CartResponse>(
         API_CONFIG.ENDPOINTS.cart.items
       );
-      return response.data;
+      return normalizeCartResponse(response.data, 'Failed to clear cart');
     } catch (error: any) {
       console.error('Clear cart error:', error);
-      // Handle specific error cases
-      if (error.response?.data) {
-        return {
-          success: false,
-          message: error.response.data.message || 'Failed to clear cart'
-        };
-      }
-      throw error;
+      return normalizeCartResponse(error.response?.data || {}, 'Failed to clear cart');
     }
   },
   

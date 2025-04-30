@@ -3,6 +3,9 @@
 import React from "react";
 import HeartIcon from "@/components/ui/HeartIcon";
 import CartIcon from "@/components/ui/CartIcon";
+import { useState } from 'react';
+import { useCart } from '@/hooks/useCart';
+import { useToast } from '@/context/ToastContext';
 import type { Product } from '@/types/apiResponses';
 import { getImageUrl, handleImageError } from '@/utils/imageUtils';
 // Import ProductImage directly from products/page.tsx
@@ -13,6 +16,8 @@ interface ProductCardProps {
 }
 
 const ProductCard: React.FC<ProductCardProps> = ({ product }) => {
+  const [cartLoading, setCartLoading] = useState(false);
+  const { addToCartWithCountCheck } = useCart();
   return (
     <a
       href={`/products/${product.id}`}
@@ -47,8 +52,27 @@ const ProductCard: React.FC<ProductCardProps> = ({ product }) => {
             type="button"
             aria-label="Add to cart"
             className="rounded-full bg-white/90 dark:bg-neutral-900/80 p-1 shadow hover:bg-amber-100 dark:hover:bg-amber-400/10 transition-all duration-300 ease-out opacity-0 scale-90 translate-y-2 group-hover:opacity-100 group-hover:scale-100 group-hover:translate-y-0 group-focus-within:opacity-100 group-focus-within:scale-100 group-focus-within:translate-y-0 focus:opacity-100 focus:scale-100 focus:translate-y-0 focus-visible:opacity-100 focus-visible:scale-100 focus-visible:translate-y-0 pointer-events-auto"
+            onClick={async (e) => {
+              e.preventDefault();
+              if (cartLoading) return;
+              setCartLoading(true);
+              try {
+                await addToCartWithCountCheck({ product_id: product.id, quantity: 1 });
+                window.dispatchEvent(new CustomEvent('cart-updated'));
+              } finally {
+                setCartLoading(false);
+              }
+            }}
+            disabled={cartLoading}
           >
-            <CartIcon className="w-6 h-6 text-amber-500 group-hover/cart:fill-amber-400 group-hover/cart:text-amber-600 transition-colors" />
+            {cartLoading ? (
+              <svg className="w-5 h-5 animate-spin text-amber-500" fill="none" viewBox="0 0 24 24">
+                <circle className="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" strokeWidth="4"></circle>
+                <path className="opacity-75" fill="currentColor" d="M4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4zm2 5.291A7.962 7.962 0 014 12H0c0 3.042 1.135 5.824 3 7.938l3-2.647z"></path>
+              </svg>
+            ) : (
+              <CartIcon className="w-6 h-6 text-amber-500 group-hover/cart:fill-amber-400 group-hover/cart:text-amber-600 transition-colors" />
+            )}
           </button>
         </div>
       </div>

@@ -57,7 +57,6 @@ export const authService = {
             message: response.data.msg || 'Login successful'
           };
         } catch (profileError) {
-          console.error('Error fetching user profile after login:', profileError);
           // Return success with token but without user data
           return {
             success: true,
@@ -79,7 +78,6 @@ export const authService = {
         };
       }
     } catch (error: any) {
-      console.error('Login error:', error);
       return {
         success: false,
         data: {
@@ -105,7 +103,6 @@ export const authService = {
         message: response.data.msg || 'Registration successful'
       };
     } catch (error: any) {
-      console.error('Registration error:', error);
       return {
         success: false,
         message: error?.response?.data?.msg || error?.message || 'Registration failed'
@@ -120,7 +117,6 @@ export const authService = {
       const response = await axiosInstance.get<User>(API_CONFIG.ENDPOINTS.auth.me);
       return response.data;
     } catch (error: any) {
-      console.error('Get profile error:', error);
       return null;
     }
   },
@@ -133,7 +129,6 @@ export const authService = {
       );
       return response.data;
     } catch (error: any) {
-      console.error(`Get user ${id} error:`, error);
       return null;
     }
   },
@@ -146,7 +141,6 @@ export const authService = {
       );
       return response.data;
     } catch (error: any) {
-      console.error('Get users error:', error);
       return [];
     }
   },

@@ -17,6 +17,8 @@ export const metadata: Metadata = {
   description: "Building sustainable communities, one purchase at a time.",
 };
 
+import { ToastProvider } from "@/context/ToastContext";
+
 export default function RootLayout({
   children,
 }: Readonly<{
@@ -27,9 +29,11 @@ export default function RootLayout({
       <body
         className={`${geistSans.variable} ${geistMono.variable} antialiased`}
       >
-        {children}
-        {/* Portal container for modals */}
-        <div id="modal-root"></div>
+        <ToastProvider>
+          {children}
+          {/* Portal container for modals */}
+          <div id="modal-root"></div>
+        </ToastProvider>
       </body>
     </html>
   );
