@@ -40,10 +40,8 @@ export default function ProductsPage() {
     setLoading(true);
     setLoadingReason(reason);
 
-    // Clear products when changing search or sort to show loading state
-    if (debouncedSearch || sort) {
-      setProducts([]);
-    }
+    // Clear products to show loading state for ALL fetches (search, sort, filter, pagination)
+    setProducts([]);
 
     try {
       // Prepare filters for API call
@@ -186,15 +184,7 @@ export default function ProductsPage() {
         )}
 
         {/* Products grid */}
-        {/* Loading overlay: do NOT show while searching (loadingReason === 'search') */}
-        {loading && loadingReason !== 'search' && (
-          <div className="fixed inset-0 bg-black/40 backdrop-blur-sm z-10 flex items-center justify-center">
-            <div className="bg-black/80 p-6 rounded-sm border border-amber-500/20 shadow-lg flex items-center space-x-4">
-              <div className="animate-spin rounded-full h-10 w-10 border-t-2 border-b-2 border-amber-500"></div>
-              <div className="text-white font-medium">Loading products...</div>
-            </div>
-          </div>
-        )}
+
 
         <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4 gap-6">
           {loading && products.length === 0 && (
