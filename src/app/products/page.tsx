@@ -11,8 +11,6 @@ import useDebounce from '@/hooks/useDebounce';
 import { PaginationControls } from '@/components/ui';
 import { UnifiedProductControls } from '@/components/ui';
 
-
-
 export default function ProductsPage() {
   const [categories, setCategories] = useState<{ id: number | string; name: string }[]>([]);
   const [locations, setLocations] = useState<string[]>([]);
@@ -192,10 +190,10 @@ export default function ProductsPage() {
           loading={loading}
           loadingMessage={
             loadingReason === 'search' ? 'Searching products...'
-            : loadingReason === 'pagination' ? 'Loading more products...'
-            : loadingReason === 'sort' ? 'Sorting products...'
-            : loadingReason === 'filter' ? 'Filtering products...'
-            : 'Fetching products...'
+              : loadingReason === 'pagination' ? 'Loading more products...'
+                : loadingReason === 'sort' ? 'Sorting products...'
+                  : loadingReason === 'filter' ? 'Filtering products...'
+                    : 'Fetching products...'
           }
         >
           {products.length === 0 && !loading && (
