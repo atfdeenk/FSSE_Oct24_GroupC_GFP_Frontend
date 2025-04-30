@@ -10,6 +10,7 @@ import { getImageUrl, handleImageError } from '@/utils/imageUtils';
 import useDebounce from '@/hooks/useDebounce';
 
 import ProductImage from '@/components/ui/ProductImage';
+import PaginationControls from '@/components/ui/PaginationControls';
 
 
 export default function ProductsPage() {
@@ -210,34 +211,16 @@ export default function ProductsPage() {
 
         {/* Bottom pagination for mobile */}
         {products.length > 0 && (
-          <div className="flex justify-center mt-12">
-            <div className="flex items-center space-x-4">
-              <button
-                className="w-10 h-10 flex items-center justify-center rounded-sm bg-amber-500/10 text-amber-500 border border-amber-500/20 hover:bg-amber-500/20 disabled:opacity-30 disabled:hover:bg-amber-500/10 transition-colors"
-                onClick={() => setPage(p => Math.max(1, p - 1))}
-                disabled={page === 1 || loading}
-              >
-                <svg className="w-5 h-5" fill="none" viewBox="0 0 24 24" stroke="currentColor">
-                  <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M15 19l-7-7 7-7" />
-                </svg>
-              </button>
-              <span className="text-white/70">
-                Page {page} of {totalPages || 1}
-                {totalProducts > 0 && (
-                  <span className="ml-2 text-white/50 text-xs">({totalProducts} items)</span>
-                )}
-              </span>
-              <button
-                className="w-10 h-10 flex items-center justify-center rounded-sm bg-amber-500/10 text-amber-500 border border-amber-500/20 hover:bg-amber-500/20 disabled:opacity-30 disabled:hover:bg-amber-500/10 transition-colors"
-                onClick={() => setPage(p => p + 1)}
-                disabled={page >= totalPages || loading}
-              >
-                <svg className="w-5 h-5" fill="none" viewBox="0 0 24 24" stroke="currentColor">
-                  <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M9 5l7 7-7 7" />
-                </svg>
-              </button>
-            </div>
-          </div>
+          <PaginationControls
+            page={page}
+            totalPages={totalPages}
+            totalItems={totalProducts}
+            loading={loading}
+            onFirst={() => setPage(1)}
+            onPrev={() => setPage(p => Math.max(1, p - 1))}
+            onNext={() => setPage(p => p + 1)}
+            onLast={() => setPage(totalPages)}
+          />
         )}
       </div>
 
