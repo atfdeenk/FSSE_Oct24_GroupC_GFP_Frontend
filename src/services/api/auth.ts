@@ -157,6 +157,48 @@ export const authService = {
   isAuthenticated: () => {
     if (typeof window === 'undefined') return false;
     return !!localStorage.getItem('token');
+  },
+
+  // Update user profile
+  updateUser: async (id: string | number, userData: Partial<UserProfile>) => {
+    try {
+      const response = await axiosInstance.put<UserProfile>(
+        API_CONFIG.ENDPOINTS.auth.user(id),
+        userData
+      );
+      return {
+        success: true,
+        data: response.data,
+        message: 'Profile updated successfully'
+      };
+    } catch (error: any) {
+      return {
+        success: false,
+        data: null,
+        message: error?.response?.data?.msg || error?.message || 'Failed to update profile'
+      };
+    }
+  },
+
+  // Delete user account
+  deleteUser: async (id: string | number) => {
+    try {
+      await axiosInstance.delete(API_CONFIG.ENDPOINTS.auth.user(id));
+      // If successful, also log out the user
+      if (typeof window !== 'undefined') {
+        localStorage.removeItem('token');
+        localStorage.removeItem('user');
+      }
+      return {
+        success: true,
+        message: 'Account deleted successfully'
+      };
+    } catch (error: any) {
+      return {
+        success: false,
+        message: error?.response?.data?.msg || error?.message || 'Failed to delete account'
+      };
+    }
   }
 };
 

@@ -2,9 +2,10 @@
 
 import { useState, FormEvent, useRef, useEffect } from "react";
 import { AuthUser } from "@/lib/auth";
-import { showError } from "@/utils/toast";
+import { showError, showSuccess } from "@/utils/toast";
 import { ProfileViewMode, ProfileEditMode } from "@/components/profile";
 import Image from "next/image";
+import authService from "@/services/api/auth";
 
 interface ProfileCardProps {
   user: AuthUser | null;
@@ -15,6 +16,8 @@ export default function ProfileCard({ user, onProfileUpdate }: ProfileCardProps)
   const [isEditMode, setIsEditMode] = useState(false);
   const [formData, setFormData] = useState<Partial<AuthUser>>(user || {});
   const [saving, setSaving] = useState(false);
+  const [deleting, setDeleting] = useState(false);
+  const [showDeleteConfirm, setShowDeleteConfirm] = useState(false);
   const [validationErrors, setValidationErrors] = useState<Record<string, string>>({});
   const [avatarHover, setAvatarHover] = useState(false);
   const cardRef = useRef<HTMLDivElement>(null);
@@ -76,26 +79,36 @@ export default function ProfileCard({ user, onProfileUpdate }: ProfileCardProps)
 
     setSaving(true);
     try {
-      // In a real app, you would call an API to update the profile
-      // For now, we'll simulate a successful update
-      await new Promise(resolve => setTimeout(resolve, 1000));
+      if (!user?.id) {
+        throw new Error('User ID not found');
+      }
 
-      // Update the user in parent component if callback is provided
-      if (user && onProfileUpdate) {
-        const updatedUser = { ...user, ...formData };
-        onProfileUpdate(updatedUser);
-      }
+      // Call the API to update the user profile
+      const result = await authService.updateUser(user.id, formData);
       
-      // Close edit mode
-      setIsEditMode(false);
-      
-      // Scroll to top of card for better UX
-      if (cardRef.current) {
-        cardRef.current.scrollIntoView({ behavior: 'smooth', block: 'start' });
+      if (result.success) {
+        // Update the user in parent component if callback is provided
+        if (user && onProfileUpdate && result.data) {
+          const updatedUser = { ...user, ...result.data };
+          onProfileUpdate(updatedUser);
+        }
+        
+        // Show success message
+        showSuccess(result.message || 'Profile updated successfully');
+        
+        // Close edit mode
+        setIsEditMode(false);
+        
+        // Scroll to top of card for better UX
+        if (cardRef.current) {
+          cardRef.current.scrollIntoView({ behavior: 'smooth', block: 'start' });
+        }
+      } else {
+        showError(result.message || 'Failed to update profile');
       }
-    } catch (err) {
+    } catch (err: any) {
       console.error('Profile update error:', err);
-      showError("Failed to update profile");
+      showError(err?.message || "Failed to update profile");
     } finally {
       setSaving(false);
     }
@@ -109,6 +122,36 @@ export default function ProfileCard({ user, onProfileUpdate }: ProfileCardProps)
       setValidationErrors({});
     }
     setIsEditMode(!isEditMode);
+    // Hide delete confirmation if it was showing
+    setShowDeleteConfirm(false);
+  };
+
+  // Handle delete account
+  const handleDeleteAccount = async () => {
+    if (!user?.id) {
+      showError('User ID not found');
+      return;
+    }
+
+    setDeleting(true);
+    try {
+      const result = await authService.deleteUser(user.id);
+      
+      if (result.success) {
+        showSuccess(result.message || 'Account deleted successfully');
+        // Redirect to login page or home page after successful deletion
+        window.location.href = '/login';
+      } else {
+        showError(result.message || 'Failed to delete account');
+        setShowDeleteConfirm(false);
+      }
+    } catch (err: any) {
+      console.error('Account deletion error:', err);
+      showError(err?.message || 'Failed to delete account');
+      setShowDeleteConfirm(false);
+    } finally {
+      setDeleting(false);
+    }
   };
 
   // Add scroll to top effect when switching modes
@@ -209,6 +252,55 @@ export default function ProfileCard({ user, onProfileUpdate }: ProfileCardProps)
           {/* View Mode */}
           <div className={`${isEditMode ? 'hidden' : 'block'}`}>
             <ProfileViewMode user={user} />
+            
+            {/* Delete Account Button - only visible in view mode */}
+            <div className="mt-8 border-t border-neutral-800 pt-6">
+              {!showDeleteConfirm ? (
+                <button 
+                  onClick={() => setShowDeleteConfirm(true)}
+                  className="text-sm text-red-500 hover:text-red-400 flex items-center"
+                  type="button"
+                >
+                  <svg className="w-4 h-4 mr-1" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                    <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={1.5} d="M19 7l-.867 12.142A2 2 0 0116.138 21H7.862a2 2 0 01-1.995-1.858L5 7m5 4v6m4-6v6m1-10V4a1 1 0 00-1-1h-4a1 1 0 00-1 1v3M4 7h16" />
+                  </svg>
+                  Delete Account
+                </button>
+              ) : (
+                <div className="bg-red-900/20 border border-red-500/30 rounded-lg p-4">
+                  <h3 className="text-red-400 font-medium mb-2">Delete Account?</h3>
+                  <p className="text-white/70 text-sm mb-4">This action cannot be undone. All your data will be permanently removed.</p>
+                  <div className="flex gap-3">
+                    <button
+                      onClick={handleDeleteAccount}
+                      className="px-4 py-2 bg-red-600 hover:bg-red-700 text-white text-sm rounded-lg flex items-center"
+                      disabled={deleting}
+                      type="button"
+                    >
+                      {deleting ? (
+                        <>
+                          <svg className="animate-spin h-4 w-4 mr-2 text-white" xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24">
+                            <circle className="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" strokeWidth="4"></circle>
+                            <path className="opacity-75" fill="currentColor" d="M4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4zm2 5.291A7.962 7.962 0 014 12H0c0 3.042 1.135 5.824 3 7.938l3-2.647z"></path>
+                          </svg>
+                          Deleting...
+                        </>
+                      ) : (
+                        <>Confirm Delete</>
+                      )}
+                    </button>
+                    <button
+                      onClick={() => setShowDeleteConfirm(false)}
+                      className="px-4 py-2 bg-neutral-800 hover:bg-neutral-700 text-white text-sm rounded-lg"
+                      disabled={deleting}
+                      type="button"
+                    >
+                      Cancel
+                    </button>
+                  </div>
+                </div>
+              )}
+            </div>
           </div>
           
           {/* Edit Mode */}
