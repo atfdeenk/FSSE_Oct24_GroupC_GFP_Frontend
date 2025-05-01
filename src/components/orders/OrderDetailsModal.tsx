@@ -9,7 +9,7 @@ import orderService from "@/services/api/orders";
 import { exportOrder } from "@/utils/export";
 import { Menu, Transition } from "@headlessui/react";
 import LoadingOverlay from "@/components/ui/LoadingOverlay";
-import { useRouter } from "next/navigation";
+import { ReviewModal } from "@/components/reviews";
 
 interface OrderDetailsModalProps {
   orderId: string | null;
@@ -19,10 +19,17 @@ interface OrderDetailsModalProps {
 type ExportFormat = 'pdf' | 'excel' | 'csv';
 
 export default function OrderDetailsModal({ orderId, onClose }: OrderDetailsModalProps) {
-  const router = useRouter();
   const [order, setOrder] = useState<Order | null>(null);
   const [loading, setLoading] = useState<boolean>(false);
   const [error, setError] = useState<string | null>(null);
+  const [reviewModalOpen, setReviewModalOpen] = useState<boolean>(false);
+  const [selectedProduct, setSelectedProduct] = useState<{
+    id: string | number;
+    name: string;
+    image?: string;
+    price: string | number;
+    vendor?: string;
+  } | null>(null);
   
   // Handle exporting the order in different formats
   const handleExport = (format: ExportFormat) => {
@@ -202,7 +209,16 @@ export default function OrderDetailsModal({ orderId, onClose }: OrderDetailsModa
                               {/* Review button - only show for completed/delivered orders */}
                               {(order.status === 'completed' || order.status === 'delivered') && (
                                 <button
-                                  onClick={() => router.push(`/products/${item.product_id}/review`)}
+                                  onClick={() => {
+                                    setSelectedProduct({
+                                      id: item.product_id,
+                                      name: item.product_name,
+                                      image: item.image_url,
+                                      price: item.unit_price,
+                                      vendor: item.vendor_name
+                                    });
+                                    setReviewModalOpen(true);
+                                  }}
                                   className="mt-2 text-xs bg-amber-600 hover:bg-amber-700 text-white py-1 px-2 rounded-sm inline-flex items-center transition-colors"
                                 >
                                   <svg className="w-3 h-3 mr-1" fill="currentColor" viewBox="0 0 20 20" xmlns="http://www.w3.org/2000/svg">
@@ -358,6 +374,23 @@ export default function OrderDetailsModal({ orderId, onClose }: OrderDetailsModa
           </div>
         </div>
       </div>
+      
+      {/* Review Modal */}
+      {selectedProduct && (
+        <ReviewModal
+          isOpen={reviewModalOpen}
+          onClose={() => {
+            setReviewModalOpen(false);
+            // Reset selected product after animation completes
+            setTimeout(() => setSelectedProduct(null), 300);
+          }}
+          productId={selectedProduct.id}
+          productName={selectedProduct.name}
+          productImage={selectedProduct.image}
+          productPrice={selectedProduct.price}
+          vendorName={selectedProduct.vendor}
+        />
+      )}
     </div>
   );
 }
