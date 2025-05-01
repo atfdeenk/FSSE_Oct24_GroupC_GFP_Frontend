@@ -29,6 +29,10 @@ module.exports = module.exports = {
         protocol: 'https',
         hostname: 'ik.trn.asia',
       },
+      {
+        protocol: 'https',
+        hostname: 'ui-avatars.com',
+      },
       // Add more as needed
     ],
   },
