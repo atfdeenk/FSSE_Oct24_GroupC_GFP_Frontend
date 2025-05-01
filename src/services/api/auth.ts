@@ -162,14 +162,20 @@ export const authService = {
   // Update user profile
   updateUser: async (id: string | number, userData: Partial<UserProfile>) => {
     try {
-      const response = await axiosInstance.put<UserProfile>(
+      console.log('Auth service - updateUser - endpoint:', API_CONFIG.ENDPOINTS.auth.user(id));
+      console.log('Auth service - updateUser - payload:', userData);
+      
+      const response = await axiosInstance.patch<any>(
         API_CONFIG.ENDPOINTS.auth.user(id),
         userData
       );
+      
+      console.log('Auth service - updateUser - API response:', response.data);
+      
       return {
         success: true,
-        data: response.data,
-        message: 'Profile updated successfully'
+        data: response.data.data || response.data,
+        message: response.data.msg || 'Profile updated successfully'
       };
     } catch (error: any) {
       return {
@@ -183,7 +189,7 @@ export const authService = {
   // Delete user account
   deleteUser: async (id: string | number) => {
     try {
-      await axiosInstance.delete(API_CONFIG.ENDPOINTS.auth.user(id));
+      const response = await axiosInstance.delete<any>(API_CONFIG.ENDPOINTS.auth.user(id));
       // If successful, also log out the user
       if (typeof window !== 'undefined') {
         localStorage.removeItem('token');
@@ -191,7 +197,7 @@ export const authService = {
       }
       return {
         success: true,
-        message: 'Account deleted successfully'
+        message: response.data?.msg || 'Account deleted successfully'
       };
     } catch (error: any) {
       return {

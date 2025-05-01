@@ -22,6 +22,13 @@ export default function ProfileCard({ user, onProfileUpdate }: ProfileCardProps)
   const [avatarHover, setAvatarHover] = useState(false);
   const cardRef = useRef<HTMLDivElement>(null);
   
+  // Update formData when user prop changes
+  useEffect(() => {
+    if (user) {
+      setFormData(user);
+    }
+  }, [user]);
+  
   // Generate avatar URL based on user's name
   const avatarUrl = user ? `https://ui-avatars.com/api/?name=${encodeURIComponent(
     `${user.first_name || ''} ${user.last_name || ''}`
@@ -83,18 +90,61 @@ export default function ProfileCard({ user, onProfileUpdate }: ProfileCardProps)
         throw new Error('User ID not found');
       }
 
+      // Filter out fields that shouldn't be sent to the API
+      const updatableFields = {
+        first_name: formData.first_name,
+        last_name: formData.last_name,
+        email: formData.email,
+        phone: formData.phone,
+        address: formData.address,
+        city: formData.city,
+        state: formData.state,
+        country: formData.country,
+        zip_code: formData.zip_code
+      };
+      
+      // Log what we're sending to the API
+      console.log('Updating profile with data:', updatableFields);
+      console.log('User ID:', user.id);
+
       // Call the API to update the user profile
-      const result = await authService.updateUser(user.id, formData);
+      const result = await authService.updateUser(user.id, updatableFields);
+      
+      // Log the API response
+      console.log('ProfileCard - API response result:', result);
       
       if (result.success) {
         // Update the user in parent component if callback is provided
-        if (user && onProfileUpdate && result.data) {
+        if (user && result.data) {
+          // Create the updated user object with all fields from the API response
           const updatedUser = { ...user, ...result.data };
-          onProfileUpdate(updatedUser);
+          
+          // Update the local formData state to match the updated user
+          setFormData(updatedUser);
+          
+          // Call the callback if provided
+          if (onProfileUpdate) {
+            onProfileUpdate(updatedUser);
+          }
+          
+          // Create a more detailed success message
+          const updatedFields = Object.keys(updatableFields)
+            .filter(key => updatableFields[key as keyof typeof updatableFields] !== user[key as keyof typeof user])
+            .map(key => {
+              // Convert snake_case to Title Case for display
+              return key.split('_').map(word => word.charAt(0).toUpperCase() + word.slice(1)).join(' ');
+            });
+          
+          const detailedMessage = updatedFields.length > 0
+            ? `Profile updated successfully! Updated: ${updatedFields.join(', ')}`
+            : result.message || 'Profile updated successfully!';
+          
+          // Show enhanced success message
+          showSuccess(detailedMessage);
+        } else {
+          // Fallback to API message if no data
+          showSuccess(result.message || 'Profile updated successfully!');  
         }
-        
-        // Show success message
-        showSuccess(result.message || 'Profile updated successfully');
         
         // Close edit mode
         setIsEditMode(false);
@@ -104,7 +154,7 @@ export default function ProfileCard({ user, onProfileUpdate }: ProfileCardProps)
           cardRef.current.scrollIntoView({ behavior: 'smooth', block: 'start' });
         }
       } else {
-        showError(result.message || 'Failed to update profile');
+        showError(result.message);
       }
     } catch (err: any) {
       console.error('Profile update error:', err);
@@ -138,17 +188,23 @@ export default function ProfileCard({ user, onProfileUpdate }: ProfileCardProps)
       const result = await authService.deleteUser(user.id);
       
       if (result.success) {
-        showSuccess(result.message || 'Account deleted successfully');
-        // Redirect to login page or home page after successful deletion
-        window.location.href = '/login';
+        // Create a more detailed success message
+        const detailedMessage = `Account deleted successfully. User ID: ${user.id}, Email: ${user.email}`;
+        
+        // Show enhanced success message
+        showSuccess(detailedMessage);
+        
+        // Redirect to login page
+        setTimeout(() => {
+          window.location.href = "/login";
+        }, 2000); // Increased timeout to give user time to read the message
       } else {
-        showError(result.message || 'Failed to delete account');
+        showError(result.message);
         setShowDeleteConfirm(false);
       }
     } catch (err: any) {
       console.error('Account deletion error:', err);
       showError(err?.message || 'Failed to delete account');
-      setShowDeleteConfirm(false);
     } finally {
       setDeleting(false);
     }
@@ -170,8 +226,8 @@ export default function ProfileCard({ user, onProfileUpdate }: ProfileCardProps)
     >
       {/* Banner */}
       <div className="h-32 bg-gradient-to-r from-amber-900 via-amber-700 to-amber-500 relative overflow-hidden">
-        {/* Pattern overlay */}
-        <div className="absolute inset-0 bg-[url('/patterns/pattern-1.png')] opacity-20"></div>
+        {/* Decorative overlay */}
+        <div className="absolute inset-0 bg-black/10 opacity-20"></div>
         <div className="absolute inset-0 bg-gradient-to-r from-amber-900/80 via-amber-700/80 to-amber-500/80"></div>
         
         {/* Edit/Save/Cancel Buttons */}

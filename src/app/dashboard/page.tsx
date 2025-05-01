@@ -3,7 +3,6 @@
 import { useState, useEffect } from "react";
 import { useRouter } from "next/navigation";
 import { isAuthenticated, getCurrentUser, AuthUser } from "@/lib/auth";
-import { showSuccess } from "@/utils/toast";
 
 // Import components using centralized exports
 import { 
@@ -78,7 +77,7 @@ export default function DashboardPage() {
   // Handle profile update
   const handleProfileUpdate = (updatedUser: AuthUser) => {
     setUser(updatedUser);
-    showSuccess("Profile updated successfully!");
+    // Toast notification is now handled in the ProfileCard component
   };
 
   return (
