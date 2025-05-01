@@ -17,6 +17,10 @@ export default function ProfileViewMode({ user }: ProfileViewModeProps) {
             <span className="w-2 h-2 bg-green-400 rounded-full mr-1.5 animate-pulse"></span>
             {user?.role === 'seller' ? 'Seller Account' : 'Consumer Account'}
           </span>
+          <span className="ml-1 px-3 py-1 bg-green-500/20 text-green-400 rounded-full text-xs font-medium inline-flex items-center">
+            <span className="w-2 h-2 bg-green-400 rounded-full mr-1.5 animate-pulse"></span>
+            Verified
+          </span>
         </h1>
         <p className="text-white/60 flex items-center">
           <svg className="w-4 h-4 mr-2 text-amber-500" fill="none" viewBox="0 0 24 24" stroke="currentColor">
@@ -25,7 +29,7 @@ export default function ProfileViewMode({ user }: ProfileViewModeProps) {
           {user?.email}
         </p>
       </div>
-      
+
       {/* Info Cards */}
       <div className="grid grid-cols-1 md:grid-cols-2 gap-6 mb-8">
         {/* Contact Information */}
@@ -57,7 +61,7 @@ export default function ProfileViewMode({ user }: ProfileViewModeProps) {
             </div>
           </div>
         </div>
-        
+
         {/* Location Information */}
         <div className="bg-white/5 backdrop-blur-sm rounded-xl p-6 border border-white/10 hover:border-amber-500/30 transition-colors duration-300 shadow-lg hover:shadow-amber-500/5">
           <h2 className="text-lg font-semibold text-white mb-4 flex items-center">
@@ -97,25 +101,6 @@ export default function ProfileViewMode({ user }: ProfileViewModeProps) {
             </div>
           </div>
         </div>
-      </div>
-      
-      {/* Account Status */}
-      <div className="bg-gradient-to-r from-amber-900/20 to-amber-500/10 rounded-xl p-4 border border-amber-500/20 flex items-center justify-between">
-        <div className="flex items-center">
-          <div className="w-10 h-10 rounded-full bg-amber-500/20 flex items-center justify-center mr-4">
-            <svg className="w-5 h-5 text-amber-500" fill="none" viewBox="0 0 24 24" stroke="currentColor">
-              <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={1.5} d="M9 12l2 2 4-4m5.618-4.016A11.955 11.955 0 0112 2.944a11.955 11.955 0 01-8.618 3.04A12.02 12.02 0 003 9c0 5.591 3.824 10.29 9 11.622 5.176-1.332 9-6.03 9-11.622 0-1.042-.133-2.052-.382-3.016z" />
-            </svg>
-          </div>
-          <div>
-            <h3 className="text-white font-medium">Account Status</h3>
-            <p className="text-amber-400/80 text-sm">Your account is active and in good standing</p>
-          </div>
-        </div>
-        <span className="px-3 py-1 bg-green-500/20 text-green-400 rounded-full text-xs font-medium inline-flex items-center">
-          <span className="w-2 h-2 bg-green-400 rounded-full mr-1.5 animate-pulse"></span>
-          Verified
-        </span>
       </div>
     </div>
   );
