@@ -179,6 +179,24 @@ export interface OrderResponse {
 export type OrdersResponse = BasicOrder[];
 
 // Cart types
+// Raw API response from GET /cart
+// export interface CartMetaResponse {
+//   cart_id: number | string;
+//   user_id: number | string;
+//   message: string;
+// }
+
+// Raw API response from GET /cart/items
+// export interface CartItemsResponse {
+//   items: Array<{
+//     id: number | string;
+//     product_id: number | string;
+//     quantity: number;
+//   }>;
+//   message: string;
+// }
+
+// Normalized/merged cart types for frontend use
 export interface CartItem {
   id: number | string;
   product_id: number | string;
@@ -189,6 +207,7 @@ export interface CartItem {
   product?: Product;
 }
 
+// Unified cart object used in the app after merging /cart and /cart/items
 export interface Cart {
   id?: number | string;
   user_id?: number | string;
@@ -196,6 +215,7 @@ export interface Cart {
   total: number;
 }
 
+// Unified cart response for frontend (not a direct API response)
 export interface CartResponse extends BaseResponse {
   data: Cart;
 }

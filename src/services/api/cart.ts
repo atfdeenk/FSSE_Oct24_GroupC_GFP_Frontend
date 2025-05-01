@@ -32,20 +32,40 @@ function normalizeCartResponse(response: any, fallbackMsg = 'Cart operation fail
 
 // Cart service with Axios
 const cartService = {
-  // Get the current user's cart
+  // Get the current user's cart meta (id, user_id)
+  getCartMeta: async () => {
+    try {
+      const response = await axiosInstance.get<any>(API_CONFIG.ENDPOINTS.cart.get);
+      return response.data; // { cart_id, user_id, message }
+    } catch (error: any) {
+      console.error('Get cart meta error:', error);
+      return null;
+    }
+  },
+
+  // Get the current user's cart items
+  getCartItems: async () => {
+    try {
+      const response = await axiosInstance.get<any>(API_CONFIG.ENDPOINTS.cart.items);
+      return response.data; // { items: [...], message }
+    } catch (error: any) {
+      console.error('Get cart items error:', error);
+      return { items: [], message: 'Failed to fetch cart items' };
+    }
+  },
+
+  // Get the normalized cart object for the frontend
   getCart: async (): Promise<{ success: boolean; error: string | null; data?: any }> => {
     try {
-      // First get basic cart info
-      const cartResponse = await axiosInstance.get<any>(API_CONFIG.ENDPOINTS.cart.get);
-      // Then get cart items
-      const itemsResponse = await axiosInstance.get<any>(API_CONFIG.ENDPOINTS.cart.items);
-      // Compose a unified object for normalization
+      const cartMeta = await cartService.getCartMeta();
+      const cartItemsResp = await cartService.getCartItems();
+      const items = Array.isArray(cartItemsResp.items) ? cartItemsResp.items : [];
+      const total = items.reduce((sum: number, item: { price?: number; quantity: number }) => sum + ((item.price || 0) * (item.quantity || 0)), 0);
       const merged = {
-        ...cartResponse.data,
-        items: Array.isArray(itemsResponse.data) ? itemsResponse.data : [],
-        total: Array.isArray(itemsResponse.data)
-          ? itemsResponse.data.reduce((sum: number, item: any) => sum + ((item.price || 0) * (item.quantity || 0)), 0)
-          : 0
+        id: cartMeta?.cart_id,
+        user_id: cartMeta?.user_id,
+        items,
+        total
       };
       return normalizeCartResponse({ data: merged }, 'Cart not found');
     } catch (error: any) {

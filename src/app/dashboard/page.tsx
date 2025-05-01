@@ -116,7 +116,7 @@ export default function DashboardPage() {
   return (
     <div className="min-h-screen flex flex-col bg-black">
       <Header />
-      
+
       <main className="flex-grow w-full max-w-6xl mx-auto px-6 py-12">
         {loading ? (
           <div className="flex justify-center items-center py-20">
@@ -138,7 +138,7 @@ export default function DashboardPage() {
                     </svg>
                   )}
                 </div>
-                
+
                 <div className="text-center md:text-left">
                   <h1 className="text-2xl font-bold text-white mb-1">
                     {user?.first_name} {user?.last_name}
@@ -153,10 +153,10 @@ export default function DashboardPage() {
                     </span>
                   </div>
                 </div>
-                
+
                 <div className="ml-auto mt-4 md:mt-0">
-                  <Link 
-                    href="/settings" 
+                  <Link
+                    href="/profile"
                     className="inline-flex items-center px-4 py-2 border border-white/20 rounded-sm text-white hover:bg-white/5 transition-colors"
                   >
                     <svg className="w-4 h-4 mr-2" fill="none" viewBox="0 0 24 24" stroke="currentColor">
@@ -168,7 +168,7 @@ export default function DashboardPage() {
                 </div>
               </div>
             </div>
-            
+
             {/* Dashboard Grid */}
             <div className="grid grid-cols-1 md:grid-cols-3 gap-8 mb-8">
               {/* Quick Stats */}
@@ -193,7 +193,7 @@ export default function DashboardPage() {
                   </div>
                 </div>
               </div>
-              
+
               {/* Recent Activity */}
               <div className="bg-neutral-900/80 backdrop-blur-sm rounded-sm border border-white/10 p-6">
                 <h2 className="text-lg font-bold text-white mb-4">Recent Activity</h2>
@@ -233,16 +233,16 @@ export default function DashboardPage() {
                   </div>
                 </div>
               </div>
-              
+
               {/* Recommended Products */}
               <div className="bg-neutral-900/80 backdrop-blur-sm rounded-sm border border-white/10 p-6">
                 <h2 className="text-lg font-bold text-white mb-4">Recommended For You</h2>
                 <div className="space-y-4">
                   <div className="flex items-center">
                     <div className="w-16 h-16 rounded-sm overflow-hidden mr-4 flex-shrink-0">
-                      <img 
-                        src="https://images.unsplash.com/photo-1559056199-641a0ac8b55e?q=80&w=300" 
-                        alt="Coffee Beans" 
+                      <img
+                        src="https://images.unsplash.com/photo-1559056199-641a0ac8b55e?q=80&w=300"
+                        alt="Coffee Beans"
                         className="w-full h-full object-cover"
                       />
                     </div>
@@ -255,9 +255,9 @@ export default function DashboardPage() {
                   </div>
                   <div className="flex items-center">
                     <div className="w-16 h-16 rounded-sm overflow-hidden mr-4 flex-shrink-0">
-                      <img 
-                        src="https://images.unsplash.com/photo-1514432324607-a09d9b4aefdd?q=80&w=300" 
-                        alt="Coffee Beans" 
+                      <img
+                        src="https://images.unsplash.com/photo-1514432324607-a09d9b4aefdd?q=80&w=300"
+                        alt="Coffee Beans"
                         className="w-full h-full object-cover"
                       />
                     </div>
@@ -274,24 +274,24 @@ export default function DashboardPage() {
                 </div>
               </div>
             </div>
-            
+
             {/* Recent Orders */}
             <div className="bg-neutral-900/80 backdrop-blur-sm rounded-sm border border-white/10 overflow-hidden">
               <div className="p-6 border-b border-white/10 flex justify-between items-center">
                 <h2 className="text-xl font-bold text-white">Recent Orders</h2>
-                <Link 
-                  href="/orders" 
+                <Link
+                  href="/orders"
                   className="text-amber-500 hover:text-amber-400 transition-colors text-sm"
                 >
                   View All Orders
                 </Link>
               </div>
-              
+
               {recentOrders.length === 0 ? (
                 <div className="p-8 text-center">
                   <p className="text-white/60">You haven't placed any orders yet.</p>
-                  <Link 
-                    href="/products" 
+                  <Link
+                    href="/products"
                     className="inline-block mt-4 px-4 py-2 bg-amber-500 text-black rounded-sm hover:bg-amber-400 transition-colors"
                   >
                     Start Shopping
@@ -343,7 +343,7 @@ export default function DashboardPage() {
                             {order.items} {order.items === 1 ? 'item' : 'items'}
                           </td>
                           <td className="px-6 py-4 whitespace-nowrap text-right text-sm">
-                            <Link 
+                            <Link
                               href={`/orders/${order.id}`}
                               className="text-amber-500 hover:text-amber-400 transition-colors"
                             >
@@ -360,7 +360,7 @@ export default function DashboardPage() {
           </>
         )}
       </main>
-      
+
       <Footer />
     </div>
   );

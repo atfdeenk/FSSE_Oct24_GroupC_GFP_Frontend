@@ -6,6 +6,7 @@ import CartIcon from "@/components/ui/CartIcon";
 import { useState } from 'react';
 import { useAuthUser } from '@/hooks/useAuthUser';
 import { useToast } from '@/context/ToastContext';
+import { useCart } from '@/hooks/useCart';
 import type { Product } from '@/types/apiResponses';
 import { getImageUrl, handleImageError } from '@/utils/imageUtils';
 // Import ProductImage directly from products/page.tsx
@@ -18,6 +19,7 @@ interface ProductCardProps {
 const ProductCard: React.FC<ProductCardProps> = ({ product }) => {
   const [cartLoading, setCartLoading] = useState(false);
   const { isLoggedIn } = useAuthUser();
+  const { addToCartWithCountCheck } = useCart();
 
   const handleAddToCart = async (e: React.MouseEvent<HTMLButtonElement>) => {
     e.preventDefault();
@@ -28,15 +30,13 @@ const ProductCard: React.FC<ProductCardProps> = ({ product }) => {
     }
     setCartLoading(true);
     try {
-      // Dynamically import useCart and call addToCartWithCountCheck
-      const { useCart } = await import('@/hooks/useCart');
-      const { addToCartWithCountCheck } = useCart();
       await addToCartWithCountCheck({ product_id: product.id, quantity: 1 });
       window.dispatchEvent(new CustomEvent('cart-updated'));
     } finally {
       setCartLoading(false);
     }
   };
+
 
   return (
     <a
