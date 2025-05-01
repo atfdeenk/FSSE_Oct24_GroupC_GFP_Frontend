@@ -21,14 +21,14 @@ export default function ProfileCard({ user, onProfileUpdate }: ProfileCardProps)
   const [validationErrors, setValidationErrors] = useState<Record<string, string>>({});
   const [avatarHover, setAvatarHover] = useState(false);
   const cardRef = useRef<HTMLDivElement>(null);
-  
+
   // Update formData when user prop changes
   useEffect(() => {
     if (user) {
       setFormData(user);
     }
   }, [user]);
-  
+
   // Generate avatar URL based on user's name
   const avatarUrl = user ? `https://ui-avatars.com/api/?name=${encodeURIComponent(
     `${user.first_name || ''} ${user.last_name || ''}`
@@ -102,31 +102,31 @@ export default function ProfileCard({ user, onProfileUpdate }: ProfileCardProps)
         country: formData.country,
         zip_code: formData.zip_code
       };
-      
+
       // Log what we're sending to the API
       console.log('Updating profile with data:', updatableFields);
       console.log('User ID:', user.id);
 
       // Call the API to update the user profile
       const result = await authService.updateUser(user.id, updatableFields);
-      
+
       // Log the API response
       console.log('ProfileCard - API response result:', result);
-      
+
       if (result.success) {
         // Update the user in parent component if callback is provided
         if (user && result.data) {
           // Create the updated user object with all fields from the API response
           const updatedUser = { ...user, ...result.data };
-          
+
           // Update the local formData state to match the updated user
           setFormData(updatedUser);
-          
+
           // Call the callback if provided
           if (onProfileUpdate) {
             onProfileUpdate(updatedUser);
           }
-          
+
           // Create a more detailed success message
           const updatedFields = Object.keys(updatableFields)
             .filter(key => updatableFields[key as keyof typeof updatableFields] !== user[key as keyof typeof user])
@@ -134,21 +134,21 @@ export default function ProfileCard({ user, onProfileUpdate }: ProfileCardProps)
               // Convert snake_case to Title Case for display
               return key.split('_').map(word => word.charAt(0).toUpperCase() + word.slice(1)).join(' ');
             });
-          
+
           const detailedMessage = updatedFields.length > 0
             ? `Profile updated successfully! Updated: ${updatedFields.join(', ')}`
             : result.message || 'Profile updated successfully!';
-          
+
           // Show enhanced success message
           showSuccess(detailedMessage);
         } else {
           // Fallback to API message if no data
-          showSuccess(result.message || 'Profile updated successfully!');  
+          showSuccess(result.message || 'Profile updated successfully!');
         }
-        
+
         // Close edit mode
         setIsEditMode(false);
-        
+
         // Scroll to top of card for better UX
         if (cardRef.current) {
           cardRef.current.scrollIntoView({ behavior: 'smooth', block: 'start' });
@@ -186,14 +186,14 @@ export default function ProfileCard({ user, onProfileUpdate }: ProfileCardProps)
     setDeleting(true);
     try {
       const result = await authService.deleteUser(user.id);
-      
+
       if (result.success) {
         // Create a more detailed success message
         const detailedMessage = `Account deleted successfully. User ID: ${user.id}, Email: ${user.email}`;
-        
+
         // Show enhanced success message
         showSuccess(detailedMessage);
-        
+
         // Redirect to login page
         setTimeout(() => {
           window.location.href = "/login";
@@ -220,16 +220,16 @@ export default function ProfileCard({ user, onProfileUpdate }: ProfileCardProps)
   if (!user) return null;
 
   return (
-    <div 
+    <div
       ref={cardRef}
       className="bg-neutral-900 rounded-xl overflow-hidden shadow-xl relative mb-8"
     >
       {/* Banner */}
-      <div className="h-32 bg-gradient-to-r from-amber-900 via-amber-700 to-amber-500 relative overflow-hidden">
+      <div className="h-20 bg-gradient-to-r from-amber-900 via-amber-700 to-amber-500 relative overflow-hidden">
         {/* Decorative overlay */}
         <div className="absolute inset-0 bg-black/10 opacity-20"></div>
         <div className="absolute inset-0 bg-gradient-to-r from-amber-900/80 via-amber-700/80 to-amber-500/80"></div>
-        
+
         {/* Edit/Save/Cancel Buttons */}
         <div className="absolute top-4 right-4 z-10">
           {isEditMode ? (
@@ -270,11 +270,11 @@ export default function ProfileCard({ user, onProfileUpdate }: ProfileCardProps)
           )}
         </div>
       </div>
-      
+
       <div className="relative px-8 pb-8">
         {/* Avatar */}
         <div className="absolute -top-12 left-8">
-          <div 
+          <div
             className="w-24 h-24 rounded-full overflow-hidden border-4 border-neutral-900 bg-neutral-800 flex items-center justify-center"
             onMouseEnter={() => setAvatarHover(true)}
             onMouseLeave={() => setAvatarHover(false)}
@@ -284,10 +284,10 @@ export default function ProfileCard({ user, onProfileUpdate }: ProfileCardProps)
                 <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={1.5} d="M16 7a4 4 0 11-8 0 4 4 0 018 0zM12 14a7 7 0 00-7 7h14a7 7 0 00-7-7z" />
               </svg>
             ) : (
-              <Image 
-                src={avatarUrl} 
-                alt={`${user.first_name} ${user.last_name}`} 
-                width={96} 
+              <Image
+                src={avatarUrl}
+                alt={`${user.first_name} ${user.last_name}`}
+                width={96}
                 height={96}
                 className="object-cover"
               />
@@ -302,17 +302,17 @@ export default function ProfileCard({ user, onProfileUpdate }: ProfileCardProps)
             )}
           </div>
         </div>
-        
+
         {/* Content area with proper spacing for avatar */}
         <div className="pt-16">
           {/* View Mode */}
           <div className={`${isEditMode ? 'hidden' : 'block'}`}>
             <ProfileViewMode user={user} />
-            
+
             {/* Delete Account Button - only visible in view mode */}
             <div className="mt-8 border-t border-neutral-800 pt-6">
               {!showDeleteConfirm ? (
-                <button 
+                <button
                   onClick={() => setShowDeleteConfirm(true)}
                   className="text-sm text-red-500 hover:text-red-400 flex items-center"
                   type="button"
@@ -358,7 +358,7 @@ export default function ProfileCard({ user, onProfileUpdate }: ProfileCardProps)
               )}
             </div>
           </div>
-          
+
           {/* Edit Mode */}
           <div className={`${isEditMode ? 'block' : 'hidden'}`}>
             <ProfileEditMode
@@ -370,7 +370,7 @@ export default function ProfileCard({ user, onProfileUpdate }: ProfileCardProps)
           </div>
         </div>
       </div>
-      
+
       {/* Decorative bottom border */}
       <div className="h-1 bg-gradient-to-r from-amber-400 via-amber-500 to-amber-600"></div>
     </div>
