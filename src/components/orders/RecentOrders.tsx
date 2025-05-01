@@ -1,6 +1,7 @@
 "use client";
 
 import Link from "next/link";
+import { formatCurrency } from "@/utils/format";
 
 // Define the Order type for reusability
 export interface Order {
@@ -17,15 +18,7 @@ interface RecentOrdersProps {
 }
 
 export default function RecentOrders({ orders, loading }: RecentOrdersProps) {
-  // Format currency
-  const formatCurrency = (amount: number) => {
-    return new Intl.NumberFormat('id-ID', {
-      style: 'currency',
-      currency: 'IDR',
-      minimumFractionDigits: 0,
-      maximumFractionDigits: 0
-    }).format(amount);
-  };
+  // Currency formatting is now imported from @/utils/format
 
   // Format date
   const formatDate = (dateString: string) => {

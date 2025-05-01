@@ -8,6 +8,7 @@ import { useAuthUser } from '@/hooks/useAuthUser';
 import { useCart } from '@/hooks/useCart';
 import type { Product } from '@/types/apiResponses';
 import { getImageUrl, handleImageError } from '@/utils/imageUtils';
+import { formatProductPrice } from '@/utils/format';
 // Import ProductImage directly from products/page.tsx
 import ProductImage from '@/components/ui/ProductImage';
 
@@ -123,7 +124,7 @@ const ProductCard: React.FC<ProductCardProps> = ({ product }) => {
           {product.name}
         </div>
         <div className="text-amber-600 dark:text-amber-400 text-lg font-bold mb-1">
-          {product.price.toLocaleString('id-ID', { style: 'currency', currency: product.currency || 'IDR' })}
+          {formatProductPrice(product.price, product.currency)}
         </div>
         <div className="flex items-center gap-1 text-xs text-neutral-500 dark:text-neutral-400 mb-1">
           <svg className="w-4 h-4 text-amber-400" fill="none" viewBox="0 0 24 24" stroke="currentColor">

@@ -10,6 +10,7 @@ import productService from "@/services/api/products";
 import { useCart } from '@/hooks/useCart';
 import { LoadingOverlay } from '@/components/ui';
 import { showSuccess, showError } from '@/utils/toast';
+import { formatCurrency } from '@/utils/format';
 import { getProductImageUrl, handleProductImageError } from "@/utils/imageUtils";
 import { Product } from "@/types/apiResponses";
 import { isProductInStock, hasInStockProperty } from "@/utils/products";
@@ -208,15 +209,7 @@ export default function WishlistPage() {
     }
   };
 
-  // Format currency
-  const formatCurrency = (amount: number) => {
-    return new Intl.NumberFormat('id-ID', {
-      style: 'currency',
-      currency: 'IDR',
-      minimumFractionDigits: 0,
-      maximumFractionDigits: 0
-    }).format(amount);
-  };
+  // Using centralized formatCurrency utility from @/utils/format
 
   // Calculate total price of selected items
   const calculateSelectedTotal = useCallback(() => {
