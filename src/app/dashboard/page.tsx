@@ -1,18 +1,17 @@
 "use client";
 
-import { useState, useEffect } from "react";
-import { useRouter } from "next/navigation";
-import { isAuthenticated, getCurrentUser, AuthUser } from "@/lib/auth";
+import { useRouter } from 'next/navigation';
+import { useState, useEffect } from 'react';
+import { Toaster, toast } from 'react-hot-toast';
+import Header from '@/components/layout/Header';
+import Footer from '@/components/layout/Footer';
+import ProfileCard from '@/components/profile/ProfileCard';
+import { RecentOrders } from '@/components/orders';
+import { isAuthenticated, getCurrentUser, AuthUser } from '@/lib/auth';
+import LoadingOverlay from '@/components/ui/LoadingOverlay';
 
-// Import components using centralized exports
-import {
-  Header,
-  Footer,
-  ProfileCard,
-  RecentOrders,
-  type Order
-} from "@/components";
-import OrderDetailsModal from "@/components/orders/OrderDetailsModal";
+// Import the OrderDetailsModal component
+import OrderDetailsModal from '@/components/orders/OrderDetailsModal';
 
 export default function DashboardPage() {
   const router = useRouter();
@@ -60,8 +59,8 @@ export default function DashboardPage() {
 
       <main className="flex-grow w-full max-w-6xl mx-auto px-6 py-12">
         {loading && !user ? (
-          <div className="flex justify-center items-center h-64">
-            <div className="animate-spin rounded-full h-12 w-12 border-t-2 border-b-2 border-amber-500"></div>
+          <div className="h-64">
+            <LoadingOverlay message="Loading dashboard..." />
           </div>
         ) : (
           <>

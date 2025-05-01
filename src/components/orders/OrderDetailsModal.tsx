@@ -7,6 +7,7 @@ import { formatCurrency, formatDate, formatDateTime } from "@/utils/format";
 import orderService from "@/services/api/orders";
 import { exportOrder } from "@/utils/export";
 import { Menu, Transition } from "@headlessui/react";
+import LoadingOverlay from "@/components/ui/LoadingOverlay";
 
 interface OrderDetailsModalProps {
   orderId: string | null;
@@ -112,9 +113,7 @@ export default function OrderDetailsModal({ orderId, onClose }: OrderDetailsModa
         {/* Modal Content */}
         <div className="p-6">
           {loading ? (
-            <div className="flex justify-center items-center h-64">
-              <div className="animate-spin rounded-full h-12 w-12 border-t-2 border-b-2 border-amber-500"></div>
-            </div>
+            <LoadingOverlay message="Loading order details..." />
           ) : error ? (
             <div className="text-center p-8">
               <p className="text-red-400 mb-4">{error}</p>

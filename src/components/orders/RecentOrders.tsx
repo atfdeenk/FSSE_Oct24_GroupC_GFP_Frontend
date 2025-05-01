@@ -6,6 +6,7 @@ import { formatCurrency, formatDate } from "@/utils/format";
 import orderService from "@/services/api/orders";
 import { Order } from "@/types/apiResponses";
 import PaginationControls from "@/components/ui/PaginationControls";
+import LoadingOverlay from "@/components/ui/LoadingOverlay";
 
 interface RecentOrdersProps {
   initialOrders?: Order[];
@@ -40,16 +41,16 @@ export default function RecentOrders({ initialOrders, loading: initialLoading, l
         setLoading(true);
         const ordersData = await orderService.getOrders();
         setAllOrders(ordersData);
-        
+
         // Calculate total pages
         const total = Math.ceil(ordersData.length / itemsPerPage);
         setTotalPages(total > 0 ? total : 1);
-        
+
         // Get current page items
         const startIndex = (currentPage - 1) * itemsPerPage;
         const endIndex = startIndex + itemsPerPage;
         setOrders(ordersData.slice(startIndex, endIndex));
-        
+
         setError(null);
       } catch (err) {
         console.error('Error fetching orders:', err);
@@ -61,7 +62,7 @@ export default function RecentOrders({ initialOrders, loading: initialLoading, l
 
     fetchOrders();
   }, [initialOrders, itemsPerPage, currentPage]);
-  
+
   // Handle pagination navigation
   const handlePrevPage = () => {
     if (currentPage > 1) {
@@ -119,27 +120,20 @@ export default function RecentOrders({ initialOrders, loading: initialLoading, l
         return 'bg-gray-500/20 text-gray-400';
     }
   };
-  
+
   // Count items in an order
   const countItems = (order: Order): number => {
     return order.items ? order.items.reduce((total, item) => total + item.quantity, 0) : 0;
   };
-  
-  // No longer need modal handlers as they're moved to the dashboard page
 
   if (loading) {
     return (
       <div className="bg-neutral-900/80 backdrop-blur-sm rounded-sm border border-white/10 p-8">
-        <div className="flex justify-between items-center mb-6">
-          <h2 className="text-xl font-bold text-white">Recent Orders</h2>
-        </div>
-        <div className="flex justify-center items-center py-20">
-          <div className="animate-spin rounded-full h-12 w-12 border-t-2 border-b-2 border-amber-500"></div>
-        </div>
+        <LoadingOverlay message="Loading orders..." />
       </div>
     );
   }
-  
+
   if (error) {
     return (
       <div className="bg-neutral-900/80 backdrop-blur-sm rounded-sm border border-white/10 p-8">
@@ -225,13 +219,13 @@ export default function RecentOrders({ initialOrders, loading: initialLoading, l
           </table>
         </div>
       )}
-      
+
       {/* Pagination */}
       {showPagination && totalPages > 1 && (
         <div className="mt-6">
-          <PaginationControls 
-            page={currentPage} 
-            totalPages={totalPages} 
+          <PaginationControls
+            page={currentPage}
+            totalPages={totalPages}
             totalItems={allOrders.length}
             loading={loading}
             onFirst={handleFirstPage}
