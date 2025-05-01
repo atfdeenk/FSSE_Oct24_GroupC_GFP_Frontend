@@ -1,6 +1,6 @@
 // src/lib/auth.ts
 import { authService } from '@/services/api/auth';
-import { User } from '@/types';
+import { UserProfile } from '@/types/apiResponses';
 import { setCookie, getCookie, deleteCookie } from '@/utils';
 import {
   TOKEN_KEY,
@@ -17,8 +17,8 @@ import {
   ERR_DECODING_TOKEN
 } from '@/constants';
 
-// Define the AuthUser type
-export interface AuthUser extends User {
+// Define the AuthUser type to extend UserProfile
+export interface AuthUser extends UserProfile {
   token?: string;
 }
 
@@ -104,7 +104,7 @@ export const logout = (): void => {
 /**
  * Store authentication data
  */
-export const storeAuthData = (userData: AuthUser | User, token: string): void => {
+export const storeAuthData = (userData: AuthUser | UserProfile, token: string): void => {
   if (typeof window === 'undefined') return;
   
   try {

@@ -1,6 +1,8 @@
 import type { Metadata } from "next";
 import { Geist, Geist_Mono } from "next/font/google";
 import "./globals.css";
+// Import our centralized toast system
+import { Toaster, toastOptions } from "@/utils/toast";
 
 const geistSans = Geist({
   variable: "--font-geist-sans",
@@ -17,7 +19,7 @@ export const metadata: Metadata = {
   description: "Building sustainable communities, one purchase at a time.",
 };
 
-import { ToastProvider } from "@/context/ToastContext";
+// Using centralized toast system from @/utils/toast
 
 export default function RootLayout({
   children,
@@ -29,11 +31,10 @@ export default function RootLayout({
       <body
         className={`${geistSans.variable} ${geistMono.variable} antialiased`}
       >
-        <ToastProvider>
-          {children}
-          {/* Portal container for modals */}
-          <div id="modal-root"></div>
-        </ToastProvider>
+        {children}
+        {/* Portal container for modals */}
+        <div id="modal-root"></div>
+        <Toaster position="top-right" toastOptions={toastOptions} />
       </body>
     </html>
   );

@@ -9,7 +9,7 @@ import wishlistService, { WishlistItem } from "@/services/api/wishlist";
 import productService from "@/services/api/products";
 import { useCart } from '@/hooks/useCart';
 import { LoadingOverlay } from '@/components/ui';
-import { useToast } from '@/context/ToastContext';
+import { showSuccess, showError } from '@/utils/toast';
 import { getProductImageUrl, handleProductImageError } from "@/utils/imageUtils";
 import { Product } from "@/types/apiResponses";
 import { isProductInStock, hasInStockProperty } from "@/utils/products";
@@ -37,7 +37,7 @@ export default function WishlistPage() {
   const [sortBy, setSortBy] = useState<'default' | 'priceAsc' | 'priceDesc' | 'nameAsc'>('default');
 
   const { addToCartWithCountCheck } = useCart();
-  const { showToast } = useToast();
+  // Using centralized toast system from @/utils/toast
 
   const fetchWishlist = useCallback(async () => {
     setLoading(true);
@@ -91,10 +91,7 @@ export default function WishlistPage() {
       }
     } catch (error) {
       setWishlistItems([]);
-      showToast({
-        message: 'Failed to load your wishlist. Please try again.',
-        type: 'error',
-      });
+      showError('Failed to load your wishlist. Please try again.');
     } finally {
       setLoading(false);
     }
@@ -126,18 +123,12 @@ export default function WishlistPage() {
       }
 
       // Show success message
-      showToast({
-        message: `${itemToRemove.name || 'Item'} removed from wishlist`,
-        type: 'success',
-      });
+      showSuccess(`${itemToRemove.name || 'Item'} removed from wishlist`);
 
       // Call API
       await wishlistService.removeFromWishlist(id);
     } catch (error) {
-      showToast({
-        message: 'Failed to remove item from wishlist',
-        type: 'error',
-      });
+      showError('Failed to remove item from wishlist');
 
       // Revert optimistic update on error
       fetchWishlist();

@@ -5,7 +5,6 @@ import HeartIcon from "@/components/ui/HeartIcon";
 import CartIcon from "@/components/ui/CartIcon";
 import { useState } from 'react';
 import { useAuthUser } from '@/hooks/useAuthUser';
-import { useToast } from '@/context/ToastContext';
 import { useCart } from '@/hooks/useCart';
 import type { Product } from '@/types/apiResponses';
 import { getImageUrl, handleImageError } from '@/utils/imageUtils';

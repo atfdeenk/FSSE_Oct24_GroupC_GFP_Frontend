@@ -32,34 +32,31 @@ export interface BaseUser {
 }
 
 // Extended user interface with all fields returned by /me endpoint
-export interface User extends Partial<BaseUser> {
-  id: number | string;
+export interface UserProfile {
+  id: number;
+  first_name: string;
+  last_name: string;
+  username: string;
   email: string;
-  username?: string;
-  first_name?: string;
-  last_name?: string;
+  phone: string;
+  address: string;
+  city: string;
+  state: string;
+  country: string;
+  zip_code: string;
   role: string;
-  phone?: string;
-  date_of_birth?: string;
-  address?: string;
-  city?: string;
-  state?: string;
-  country?: string;
-  zip_code?: string;
-  image_url?: string | null;
-  created_at?: string;
-  updated_at?: string;
+  image_url: string;
 }
 
 // The API returns a user object directly for the /me endpoint
-export type UserResponse = User;
+export type UserResponse = UserProfile;
 
 // The /users endpoint returns an array of BaseUser objects
 export type UsersResponse = BaseUser[];
 
 // Auth responses
 export interface AuthData {
-  user: User;
+  user: UserProfile;
   token: string;
   refresh_token?: string;
   token_type?: string;

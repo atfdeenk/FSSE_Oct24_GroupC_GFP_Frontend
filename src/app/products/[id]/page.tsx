@@ -6,8 +6,8 @@ import type { Product } from '@/types/apiResponses';
 import LoadingOverlay from '@/components/ui/LoadingOverlay';
 import productService from '@/services/api/products';
 import { useCart } from '@/hooks/useCart';
-import { useToastContext } from '@/context/ToastContext';
-import { ToastStack } from '@/components/ui/Toast';
+// Using centralized toast system
+import { Toaster } from '@/utils/toast';
 import { Header, Footer } from '@/components';
 import {
   Toast,
@@ -67,7 +67,6 @@ export default function ProductDetail() {
 
   const [addingToCart, setAddingToCart] = useState(false);
   const { addToCartWithCountCheck } = useCart();
-const { toasts, closeToast } = useToastContext();
 
   const handleAddToCart = async () => {
     if (!product) return;
@@ -112,8 +111,6 @@ const { toasts, closeToast } = useToastContext();
   return (
     <div className="min-h-screen bg-black text-white flex flex-col">
       <Header />
-      {/* Toast Notification */}
-      <ToastStack toasts={toasts.map(t => ({ ...t, onClose: () => closeToast(t.key) }))} onClose={closeToast} />
       {/* Breadcrumb */}
       <div className="bg-neutral-900/50 border-b border-white/5">
         <div className="max-w-6xl mx-auto px-6 py-4">

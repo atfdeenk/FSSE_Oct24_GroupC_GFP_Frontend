@@ -5,7 +5,7 @@ import { fetchCartWithDetails } from '@/services/cartLogic';
 import cartService from '@/services/api/cart';
 import { CartItemWithDetails } from '@/types/cart';
 import { isAuthenticated } from '@/lib/auth';
-import { useToast } from '@/context/ToastContext';
+import { showSuccess, showError } from '@/utils/toast';
 
 export function useCart() {
   const router = useRouter();
@@ -52,7 +52,7 @@ export function useCart() {
     );
   }
 
-  const { showToast, closeToast } = useToast();
+  // Using centralized toast system from @/utils/toast
 
   const addToCartWithCountCheck = useCallback(async (itemData: { product_id: number | string; quantity: number }) => {
     setLoading(true);
@@ -78,22 +78,13 @@ export function useCart() {
       const afterItems = Array.isArray(afterCart.data?.items) ? afterCart.data.items : [];
 
       if (!areCartItemsIdentical(beforeItems, afterItems)) {
-        showToast({
-          message: `Added ${itemData.quantity}x${productName ? ` ${productName}` : ''} to cart!`,
-          type: 'success',
-        });
+        showSuccess(`Added ${itemData.quantity}x${productName ? ` ${productName}` : ''} to cart!`);
         fetchCart(); // refresh cart state
       } else {
-        showToast({
-          message: response.error || `Failed to add${productName ? ` ${productName}` : ''} to cart (cart unchanged)`,
-          type: 'error',
-        });
+        showError(response.error || `Failed to add${productName ? ` ${productName}` : ''} to cart (cart unchanged)`);
       }
     } catch (err: any) {
-      showToast({
-        message: err?.message || 'Failed to add to cart',
-        type: 'error',
-      });
+      showError(err?.message || 'Failed to add to cart');
     } finally {
       setLoading(false);
     }
@@ -120,16 +111,10 @@ export function useCart() {
         );
         return mapped;
       });
-      showToast({
-        message: `Updated${productName ? ` ${productName}` : ' item'} to ${newQuantity} pcs`,
-        type: 'success',
-      });
+      showSuccess(`Updated${productName ? ` ${productName}` : ' item'} to ${newQuantity} pcs`);
     } catch (err) {
       setError(`Error updating quantity for item ${id}`);
-      showToast({
-        message: `Error updating quantity for item ${id}`,
-        type: 'error',
-      });
+      showError(`Error updating quantity for item ${id}`);
     } finally {
       setLoading(false);
     }
@@ -156,16 +141,10 @@ export function useCart() {
         newSelected.delete(id);
         return newSelected;
       });
-      showToast({
-        message: `Removed${productName ? ` ${productName}` : ' item'}${quantity ? ` (${quantity} pcs)` : ''} from cart`,
-        type: 'success',
-      });
+      showSuccess(`Removed${productName ? ` ${productName}` : ' item'}${quantity ? ` (${quantity} pcs)` : ''} from cart`);
     } catch (err) {
       setError(`Error removing item ${id} from cart`);
-      showToast({
-        message: `Error removing item ${id} from cart`,
-        type: 'error',
-      });
+      showError(`Error removing item ${id} from cart`);
     } finally {
       setLoading(false);
     }

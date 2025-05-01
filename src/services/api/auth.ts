@@ -1,7 +1,7 @@
 // src/services/api/auth.ts
 import axiosInstance from './axios';
 import { API_CONFIG } from './config';
-import { User, LoginResponse, RegisterResponse } from '@/types';
+import { UserProfile, LoginResponse, RegisterResponse } from '@/types/apiResponses';
 import { TOKEN_KEY, MSG_LOGIN_PROFILE_FAIL } from '@/constants';
 
 // Types for authentication
@@ -21,7 +21,7 @@ export interface RegisterData {
 export interface AuthResponse {
   success: boolean;
   data: {
-    user: User;
+    user: UserProfile;
     token: string;
   };
   message: string;
@@ -46,7 +46,7 @@ export const authService = {
         
         try {
           // Fetch user profile after successful login
-          const userResponse = await axiosInstance.get<User>(API_CONFIG.ENDPOINTS.auth.me);
+          const userResponse = await axiosInstance.get<UserProfile>(API_CONFIG.ENDPOINTS.auth.me);
           
           return {
             success: true,
@@ -111,10 +111,10 @@ export const authService = {
   },
   
   // Get current user profile
-  getProfile: async (): Promise<User | null> => {
+  getProfile: async (): Promise<UserProfile | null> => {
     try {
       // Real API call
-      const response = await axiosInstance.get<User>(API_CONFIG.ENDPOINTS.auth.me);
+      const response = await axiosInstance.get<UserProfile>(API_CONFIG.ENDPOINTS.auth.me);
       return response.data;
     } catch (error: any) {
       return null;
@@ -122,9 +122,9 @@ export const authService = {
   },
   
   // Get user by ID
-  getUserById: async (id: string | number): Promise<User | null> => {
+  getUserById: async (id: string | number): Promise<UserProfile | null> => {
     try {
-      const response = await axiosInstance.get<User>(
+      const response = await axiosInstance.get<UserProfile>(
         API_CONFIG.ENDPOINTS.auth.user(id)
       );
       return response.data;
@@ -134,9 +134,9 @@ export const authService = {
   },
   
   // Get all users (admin only)
-  getUsers: async (): Promise<User[]> => {
+  getUsers: async (): Promise<UserProfile[]> => {
     try {
-      const response = await axiosInstance.get<User[]>(
+      const response = await axiosInstance.get<UserProfile[]>(
         API_CONFIG.ENDPOINTS.auth.users
       );
       return response.data;

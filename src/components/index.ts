@@ -18,3 +18,9 @@ export * from './guards';
 
 // Modal components
 export * from './modals';
+
+// Profile components
+export * from './profile';
+
+// Order components
+export * from './orders';
