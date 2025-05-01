@@ -25,6 +25,10 @@ module.exports = module.exports = {
         protocol: 'https',
         hostname: 'images.unsplash.com',
       },
+      {
+        protocol: 'https',
+        hostname: 'ik.trn.asia',
+      },
       // Add more as needed
     ],
   },

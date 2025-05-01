@@ -87,7 +87,9 @@ const { toasts, closeToast } = useToastContext();
 
   if (loading) {
     return (
-      <LoadingOverlay message="Loading product details..." />
+      <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/40">
+        <LoadingOverlay message="Loading product details..." />
+      </div>
     );
   }
 
