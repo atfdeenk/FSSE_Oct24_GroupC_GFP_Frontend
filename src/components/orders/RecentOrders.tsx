@@ -1,24 +1,101 @@
 "use client";
 
+import { useState, useEffect } from "react";
 import Link from "next/link";
 import { formatCurrency } from "@/utils/format";
-
-// Define the Order type for reusability
-export interface Order {
-  id: string;
-  date: string;
-  status: "pending" | "processing" | "shipped" | "delivered" | "cancelled";
-  total: number;
-  items: number;
-}
+import orderService from "@/services/api/orders";
+import { Order } from "@/types/apiResponses";
+import PaginationControls from "@/components/ui/PaginationControls";
 
 interface RecentOrdersProps {
-  orders: Order[];
-  loading: boolean;
+  initialOrders?: Order[];
+  loading?: boolean;
+  limit?: number;
+  showPagination?: boolean;
 }
 
-export default function RecentOrders({ orders, loading }: RecentOrdersProps) {
-  // Currency formatting is now imported from @/utils/format
+export default function RecentOrders({ initialOrders, loading: initialLoading, limit = 5, showPagination = false }: RecentOrdersProps) {
+  const [orders, setOrders] = useState<Order[]>(initialOrders || []);
+  const [allOrders, setAllOrders] = useState<Order[]>([]);
+  const [loading, setLoading] = useState<boolean>(initialLoading || !initialOrders);
+  const [error, setError] = useState<string | null>(null);
+  const [currentPage, setCurrentPage] = useState<number>(1);
+  const [totalPages, setTotalPages] = useState<number>(1);
+  const itemsPerPage = limit;
+
+  // Fetch orders from API
+  useEffect(() => {
+    if (initialOrders) {
+      // If orders are provided as props, use them
+      setOrders(initialOrders);
+      setAllOrders(initialOrders);
+      setTotalPages(Math.ceil(initialOrders.length / itemsPerPage));
+      setLoading(false);
+      return;
+    }
+
+    const fetchOrders = async () => {
+      try {
+        setLoading(true);
+        const ordersData = await orderService.getOrders();
+        setAllOrders(ordersData);
+        
+        // Calculate total pages
+        const total = Math.ceil(ordersData.length / itemsPerPage);
+        setTotalPages(total > 0 ? total : 1);
+        
+        // Get current page items
+        const startIndex = (currentPage - 1) * itemsPerPage;
+        const endIndex = startIndex + itemsPerPage;
+        setOrders(ordersData.slice(startIndex, endIndex));
+        
+        setError(null);
+      } catch (err) {
+        console.error('Error fetching orders:', err);
+        setError('Failed to load orders. Please try again.');
+      } finally {
+        setLoading(false);
+      }
+    };
+
+    fetchOrders();
+  }, [initialOrders, itemsPerPage, currentPage]);
+  
+  // Handle pagination navigation
+  const handlePrevPage = () => {
+    if (currentPage > 1) {
+      const newPage = currentPage - 1;
+      setCurrentPage(newPage);
+      updateDisplayedOrders(newPage);
+    }
+  };
+
+  const handleNextPage = () => {
+    if (currentPage < totalPages) {
+      const newPage = currentPage + 1;
+      setCurrentPage(newPage);
+      updateDisplayedOrders(newPage);
+    }
+  };
+
+  const handleFirstPage = () => {
+    setCurrentPage(1);
+    updateDisplayedOrders(1);
+  };
+
+  const handleLastPage = () => {
+    setCurrentPage(totalPages);
+    updateDisplayedOrders(totalPages);
+  };
+
+  // Update displayed orders based on current page
+  const updateDisplayedOrders = (page: number) => {
+    if (allOrders.length > 0) {
+      const startIndex = (page - 1) * itemsPerPage;
+      const endIndex = startIndex + itemsPerPage;
+      setOrders(allOrders.slice(startIndex, endIndex));
+    }
+  };
 
   // Format date
   const formatDate = (dateString: string) => {
@@ -40,11 +117,18 @@ export default function RecentOrders({ orders, loading }: RecentOrdersProps) {
         return 'bg-purple-500/20 text-purple-400';
       case 'delivered':
         return 'bg-green-500/20 text-green-400';
+      case 'completed':
+        return 'bg-green-500/20 text-green-400';
       case 'cancelled':
         return 'bg-red-500/20 text-red-400';
       default:
         return 'bg-gray-500/20 text-gray-400';
     }
+  };
+  
+  // Count items in an order
+  const countItems = (order: Order): number => {
+    return order.items ? order.items.reduce((total, item) => total + item.quantity, 0) : 0;
   };
 
   if (loading) {
@@ -59,18 +143,22 @@ export default function RecentOrders({ orders, loading }: RecentOrdersProps) {
       </div>
     );
   }
+  
+  if (error) {
+    return (
+      <div className="bg-neutral-900/80 backdrop-blur-sm rounded-sm border border-white/10 p-8">
+        <div className="flex justify-between items-center mb-6">
+          <h2 className="text-xl font-bold text-white">Recent Orders</h2>
+        </div>
+        <div className="flex justify-center items-center py-20 text-red-400">
+          <p>{error}</p>
+        </div>
+      </div>
+    );
+  }
 
   return (
     <div className="bg-neutral-900/80 backdrop-blur-sm rounded-sm border border-white/10 p-8">
-      <div className="flex justify-between items-center mb-6">
-        <h2 className="text-xl font-bold text-white">Recent Orders</h2>
-        <Link
-          href="/orders"
-          className="text-amber-500 hover:text-amber-400 transition-colors text-sm"
-        >
-          View All Orders
-        </Link>
-      </div>
 
       {orders.length === 0 ? (
         <div className="p-8 text-center">
@@ -111,10 +199,10 @@ export default function RecentOrders({ orders, loading }: RecentOrdersProps) {
               {orders.map((order) => (
                 <tr key={order.id} className="hover:bg-white/5 transition-colors">
                   <td className="px-6 py-4 whitespace-nowrap text-sm text-white">
-                    {order.id}
+                    #{order.id}
                   </td>
                   <td className="px-6 py-4 whitespace-nowrap text-sm text-white/70">
-                    {formatDate(order.date)}
+                    {formatDate(order.created_at)}
                   </td>
                   <td className="px-6 py-4 whitespace-nowrap">
                     <span className={`px-2 py-1 rounded-full text-xs font-medium ${getStatusColor(order.status)}`}>
@@ -122,10 +210,10 @@ export default function RecentOrders({ orders, loading }: RecentOrdersProps) {
                     </span>
                   </td>
                   <td className="px-6 py-4 whitespace-nowrap text-sm text-amber-500 font-medium">
-                    {formatCurrency(order.total)}
+                    {formatCurrency(parseFloat(order.total_amount))}
                   </td>
                   <td className="px-6 py-4 whitespace-nowrap text-sm text-white/70">
-                    {order.items} {order.items === 1 ? 'item' : 'items'}
+                    {countItems(order)} {countItems(order) === 1 ? 'item' : 'items'}
                   </td>
                   <td className="px-6 py-4 whitespace-nowrap text-right text-sm">
                     <Link
@@ -139,6 +227,22 @@ export default function RecentOrders({ orders, loading }: RecentOrdersProps) {
               ))}
             </tbody>
           </table>
+        </div>
+      )}
+      
+      {/* Pagination */}
+      {showPagination && totalPages > 1 && (
+        <div className="mt-6">
+          <PaginationControls 
+            page={currentPage} 
+            totalPages={totalPages} 
+            totalItems={allOrders.length}
+            loading={loading}
+            onFirst={handleFirstPage}
+            onPrev={handlePrevPage}
+            onNext={handleNextPage}
+            onLast={handleLastPage}
+          />
         </div>
       )}
     </div>

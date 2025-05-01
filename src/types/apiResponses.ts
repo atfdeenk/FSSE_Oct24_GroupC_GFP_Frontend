@@ -137,34 +137,29 @@ export interface ProductsResponse {
 // Order types
 export interface OrderItem {
   product_id: number | string;
+  product_name: string;
   quantity: number;
   unit_price: number;
+  vendor_id: number | string;
+  vendor_name: string;
+  image_url: string;
   id?: number | string;
   order_id?: number | string;
   subtotal?: number;
-  product?: Product;
 }
 
-// Basic order interface returned by /orders endpoint
-export interface BasicOrder {
+// Order interface returned by /orders endpoint
+export interface Order {
   id: number | string;
-  status: 'pending' | 'processing' | 'shipped' | 'delivered' | 'cancelled';
+  status: 'pending' | 'processing' | 'shipped' | 'delivered' | 'cancelled' | 'completed';
   total_amount: string; // API returns as string, not number
   created_at: string;
-}
-
-// Full order interface returned by /orders/:id endpoint
-export interface Order extends Partial<BasicOrder> {
-  id: number | string;
-  status: 'pending' | 'processing' | 'shipped' | 'delivered' | 'cancelled';
-  items?: OrderItem[];
+  items: OrderItem[];
   user_id?: number | string;
   shipping_address?: string;
   shipping_method?: string;
-  total_amount?: string; // API returns as string, not number
   payment_method?: string;
   payment_status?: 'pending' | 'paid' | 'failed';
-  created_at?: string;
   updated_at?: string;
 }
 
@@ -172,8 +167,8 @@ export interface OrderResponse {
   order: Order;
 }
 
-// The /orders endpoint returns an array of BasicOrder objects
-export type OrdersResponse = BasicOrder[];
+// The /orders endpoint returns an array of Order objects
+export type OrdersResponse = Order[];
 
 // Cart types
 // Raw API response from GET /cart

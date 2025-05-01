@@ -17,7 +17,6 @@ export default function DashboardPage() {
   const router = useRouter();
   const [user, setUser] = useState<AuthUser | null>(null);
   const [loading, setLoading] = useState(true);
-  const [recentOrders, setRecentOrders] = useState<Order[]>([]);
 
   useEffect(() => {
     // Check if user is authenticated
@@ -33,45 +32,8 @@ export default function DashboardPage() {
     };
     fetchUser();
 
-    // Simulate API call to get recent orders
-    const fetchRecentOrders = async () => {
-      setLoading(true);
-      try {
-        // In a real app, we would fetch from an API
-        // For now, we'll use mock data
-        setTimeout(() => {
-          setRecentOrders([
-            {
-              id: "ORD-2023-1001",
-              date: "2023-11-28",
-              status: "delivered",
-              total: 245000,
-              items: 2
-            },
-            {
-              id: "ORD-2023-0987",
-              date: "2023-11-15",
-              status: "shipped",
-              total: 120000,
-              items: 1
-            },
-            {
-              id: "ORD-2023-0954",
-              date: "2023-10-30",
-              status: "delivered",
-              total: 350000,
-              items: 3
-            }
-          ]);
-          setLoading(false);
-        }, 800);
-      } catch (error) {
-        console.error("Error fetching orders:", error);
-        setLoading(false);
-      }
-    };
-
-    fetchRecentOrders();
+    // Orders are now fetched directly by the RecentOrders component
+    setLoading(false);
   }, [router]);
 
   // Handle profile update
@@ -94,8 +56,13 @@ export default function DashboardPage() {
             {/* Profile Card Component */}
             <ProfileCard user={user} onProfileUpdate={handleProfileUpdate} />
 
-            {/* Recent Orders Component */}
-            <RecentOrders orders={recentOrders} loading={loading} />
+            {/* Recent Orders Component with Pagination */}
+            <div className="mt-8">
+              <div className="flex justify-between items-center mb-4">
+                <h2 className="text-xl font-bold text-white">Recent Orders</h2>
+              </div>
+              <RecentOrders limit={5} showPagination={true} />
+            </div>
           </>
         )}
       </main>
