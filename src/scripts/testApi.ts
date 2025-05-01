@@ -26,9 +26,9 @@ import type {
   CartResponse,
   ReviewsResponse,
   Product,
-  Category,
-  User
+  Category
 } from '@/types';
+import type { AuthUser as User } from '@/lib/auth';
 
 const users = [
   {
