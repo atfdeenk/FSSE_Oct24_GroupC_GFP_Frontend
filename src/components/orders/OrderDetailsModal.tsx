@@ -1,20 +1,36 @@
 "use client";
 
-import { useState, useEffect } from "react";
+import { useState, useEffect, Fragment } from "react";
 import Image from "next/image";
 import { Order } from "@/types/apiResponses";
 import { formatCurrency, formatDate, formatDateTime } from "@/utils/format";
 import orderService from "@/services/api/orders";
+import { exportOrder } from "@/utils/export";
+import { Menu, Transition } from "@headlessui/react";
 
 interface OrderDetailsModalProps {
   orderId: string | null;
   onClose: () => void;
 }
 
+type ExportFormat = 'pdf' | 'excel' | 'csv';
+
 export default function OrderDetailsModal({ orderId, onClose }: OrderDetailsModalProps) {
   const [order, setOrder] = useState<Order | null>(null);
   const [loading, setLoading] = useState<boolean>(false);
   const [error, setError] = useState<string | null>(null);
+  
+  // Handle exporting the order in different formats
+  const handleExport = (format: ExportFormat) => {
+    if (!order) return;
+    
+    try {
+      exportOrder(order, format);
+    } catch (err) {
+      console.error('Error exporting order:', err);
+      // You could add a toast notification here for error feedback
+    }
+  };
 
   useEffect(() => {
     if (!orderId) return;
@@ -237,20 +253,89 @@ export default function OrderDetailsModal({ orderId, onClose }: OrderDetailsModa
         </div>
 
         {/* Modal Footer */}
-        <div className="flex justify-end p-6 border-t border-white/10">
-          <button 
-            onClick={onClose}
-            className="px-4 py-2 bg-neutral-700 text-white rounded-sm hover:bg-neutral-600 transition-colors"
-          >
-            Close
-          </button>
-          {order && order.status === 'pending' && (
+        <div className="flex justify-between p-6 border-t border-white/10">
+          <div>
+            {order && (order.status === 'delivered' || order.status === 'completed') && (
+              <Menu as="div" className="relative inline-block text-left z-50">
+                <div>
+                  <Menu.Button className="inline-flex items-center justify-center px-4 py-2 text-sm font-medium text-white bg-amber-600 rounded-sm hover:bg-amber-700 focus:outline-none focus-visible:ring-2 focus-visible:ring-white focus-visible:ring-opacity-75">
+                    Export Receipt
+                    <svg className="w-4 h-4 ml-2 -mr-1" fill="none" stroke="currentColor" viewBox="0 0 24 24" xmlns="http://www.w3.org/2000/svg">
+                      <path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M19 9l-7 7-7-7"></path>
+                    </svg>
+                  </Menu.Button>
+                </div>
+                <Transition
+                  as={Fragment}
+                  enter="transition ease-out duration-100"
+                  enterFrom="transform opacity-0 scale-95"
+                  enterTo="transform opacity-100 scale-100"
+                  leave="transition ease-in duration-75"
+                  leaveFrom="transform opacity-100 scale-100"
+                  leaveTo="transform opacity-0 scale-95"
+                >
+                  <Menu.Items className="absolute left-0 z-50 mt-2 w-56 origin-top-left rounded-md bg-white shadow-lg ring-1 ring-black ring-opacity-5 focus:outline-none bottom-full mb-2">
+                    <div className="py-1">
+                      <Menu.Item>
+                        {({ active }) => (
+                          <button
+                            className={`${active ? 'bg-amber-500 text-white' : 'text-gray-900'} group flex w-full items-center px-4 py-2 text-sm`}
+                            onClick={() => handleExport('pdf')}
+                          >
+                            <svg className="w-5 h-5 mr-3" fill="none" stroke="currentColor" viewBox="0 0 24 24" xmlns="http://www.w3.org/2000/svg">
+                              <path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M7 21h10a2 2 0 002-2V9.414a1 1 0 00-.293-.707l-5.414-5.414A1 1 0 0012.586 3H7a2 2 0 00-2 2v14a2 2 0 002 2z"></path>
+                            </svg>
+                            Export as PDF
+                          </button>
+                        )}
+                      </Menu.Item>
+                      <Menu.Item>
+                        {({ active }) => (
+                          <button
+                            className={`${active ? 'bg-amber-500 text-white' : 'text-gray-900'} group flex w-full items-center px-4 py-2 text-sm`}
+                            onClick={() => handleExport('excel')}
+                          >
+                            <svg className="w-5 h-5 mr-3" fill="none" stroke="currentColor" viewBox="0 0 24 24" xmlns="http://www.w3.org/2000/svg">
+                              <path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M9 17v-2m3 2v-4m3 4v-6m2 10H7a2 2 0 01-2-2V5a2 2 0 012-2h5.586a1 1 0 01.707.293l5.414 5.414a1 1 0 01.293.707V19a2 2 0 01-2 2z"></path>
+                            </svg>
+                            Export as Excel
+                          </button>
+                        )}
+                      </Menu.Item>
+                      <Menu.Item>
+                        {({ active }) => (
+                          <button
+                            className={`${active ? 'bg-amber-500 text-white' : 'text-gray-900'} group flex w-full items-center px-4 py-2 text-sm`}
+                            onClick={() => handleExport('csv')}
+                          >
+                            <svg className="w-5 h-5 mr-3" fill="none" stroke="currentColor" viewBox="0 0 24 24" xmlns="http://www.w3.org/2000/svg">
+                              <path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M4 16v1a3 3 0 003 3h10a3 3 0 003-3v-1m-4-8l-4-4m0 0L8 8m4-4v12"></path>
+                            </svg>
+                            Export as CSV
+                          </button>
+                        )}
+                      </Menu.Item>
+                    </div>
+                  </Menu.Items>
+                </Transition>
+              </Menu>
+            )}
+          </div>
+          <div>
             <button 
-              className="ml-3 px-4 py-2 bg-red-500 text-white rounded-sm hover:bg-red-600 transition-colors"
+              onClick={onClose}
+              className="px-4 py-2 bg-neutral-700 text-white rounded-sm hover:bg-neutral-600 transition-colors"
             >
-              Cancel Order
+              Close
             </button>
-          )}
+            {order && order.status === 'pending' && (
+              <button 
+                className="ml-3 px-4 py-2 bg-red-500 text-white rounded-sm hover:bg-red-600 transition-colors"
+              >
+                Cancel Order
+              </button>
+            )}
+          </div>
         </div>
       </div>
     </div>
