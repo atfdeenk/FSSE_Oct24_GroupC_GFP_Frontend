@@ -5,18 +5,20 @@ import { useRouter } from "next/navigation";
 import { isAuthenticated, getCurrentUser, AuthUser } from "@/lib/auth";
 
 // Import components using centralized exports
-import { 
-  Header, 
-  Footer, 
-  ProfileCard, 
+import {
+  Header,
+  Footer,
+  ProfileCard,
   RecentOrders,
-  type Order 
+  type Order
 } from "@/components";
+import OrderDetailsModal from "@/components/orders/OrderDetailsModal";
 
 export default function DashboardPage() {
   const router = useRouter();
   const [user, setUser] = useState<AuthUser | null>(null);
   const [loading, setLoading] = useState(true);
+  const [selectedOrderId, setSelectedOrderId] = useState<string | null>(null);
 
   useEffect(() => {
     // Check if user is authenticated
@@ -42,6 +44,16 @@ export default function DashboardPage() {
     // Toast notification is now handled in the ProfileCard component
   };
 
+  // Handle opening the order details modal
+  const handleOpenOrderDetails = (orderId: string | number) => {
+    setSelectedOrderId(String(orderId));
+  };
+
+  // Handle closing the order details modal
+  const handleCloseOrderDetails = () => {
+    setSelectedOrderId(null);
+  };
+
   return (
     <div className="min-h-screen flex flex-col bg-black">
       <Header />
@@ -61,13 +73,20 @@ export default function DashboardPage() {
               <div className="flex justify-between items-center mb-4">
                 <h2 className="text-xl font-bold text-white">Recent Orders</h2>
               </div>
-              <RecentOrders limit={5} showPagination={true} />
+              <RecentOrders limit={10} showPagination={true} onViewDetails={handleOpenOrderDetails} />
             </div>
           </>
         )}
       </main>
-
       <Footer />
+
+      {/* Order Details Modal - Outside of any container for proper z-index handling */}
+      {selectedOrderId && (
+        <OrderDetailsModal
+          orderId={selectedOrderId}
+          onClose={handleCloseOrderDetails}
+        />
+      )}
     </div>
   );
 }

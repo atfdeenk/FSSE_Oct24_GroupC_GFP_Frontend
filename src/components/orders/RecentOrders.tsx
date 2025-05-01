@@ -2,7 +2,7 @@
 
 import { useState, useEffect } from "react";
 import Link from "next/link";
-import { formatCurrency } from "@/utils/format";
+import { formatCurrency, formatDate } from "@/utils/format";
 import orderService from "@/services/api/orders";
 import { Order } from "@/types/apiResponses";
 import PaginationControls from "@/components/ui/PaginationControls";
@@ -12,9 +12,10 @@ interface RecentOrdersProps {
   loading?: boolean;
   limit?: number;
   showPagination?: boolean;
+  onViewDetails?: (orderId: string | number) => void;
 }
 
-export default function RecentOrders({ initialOrders, loading: initialLoading, limit = 5, showPagination = false }: RecentOrdersProps) {
+export default function RecentOrders({ initialOrders, loading: initialLoading, limit = 5, showPagination = false, onViewDetails }: RecentOrdersProps) {
   const [orders, setOrders] = useState<Order[]>(initialOrders || []);
   const [allOrders, setAllOrders] = useState<Order[]>([]);
   const [loading, setLoading] = useState<boolean>(initialLoading || !initialOrders);
@@ -97,14 +98,7 @@ export default function RecentOrders({ initialOrders, loading: initialLoading, l
     }
   };
 
-  // Format date
-  const formatDate = (dateString: string) => {
-    return new Date(dateString).toLocaleDateString('en-US', {
-      year: 'numeric',
-      month: 'long',
-      day: 'numeric'
-    });
-  };
+  // Using centralized formatDate function from utils/format.ts
 
   // Status badge color
   const getStatusColor = (status: Order['status']) => {
@@ -130,6 +124,8 @@ export default function RecentOrders({ initialOrders, loading: initialLoading, l
   const countItems = (order: Order): number => {
     return order.items ? order.items.reduce((total, item) => total + item.quantity, 0) : 0;
   };
+  
+  // No longer need modal handlers as they're moved to the dashboard page
 
   if (loading) {
     return (
@@ -175,22 +171,22 @@ export default function RecentOrders({ initialOrders, loading: initialLoading, l
           <table className="w-full">
             <thead className="bg-neutral-800/50">
               <tr>
-                <th className="px-6 py-3 text-left text-xs font-medium text-white/60 uppercase tracking-wider">
+                <th className="px-6 py-3 text-center text-xs font-medium text-white/60 uppercase tracking-wider w-1/6">
                   Order ID
                 </th>
-                <th className="px-6 py-3 text-left text-xs font-medium text-white/60 uppercase tracking-wider">
+                <th className="px-6 py-3 text-center text-xs font-medium text-white/60 uppercase tracking-wider w-1/5">
                   Date
                 </th>
-                <th className="px-6 py-3 text-left text-xs font-medium text-white/60 uppercase tracking-wider">
+                <th className="px-6 py-3 text-center text-xs font-medium text-white/60 uppercase tracking-wider w-1/6">
                   Status
                 </th>
-                <th className="px-6 py-3 text-left text-xs font-medium text-white/60 uppercase tracking-wider">
+                <th className="px-6 py-3 text-center text-xs font-medium text-white/60 uppercase tracking-wider w-1/6">
                   Total
                 </th>
-                <th className="px-6 py-3 text-left text-xs font-medium text-white/60 uppercase tracking-wider">
+                <th className="px-6 py-3 text-center text-xs font-medium text-white/60 uppercase tracking-wider w-1/6">
                   Items
                 </th>
-                <th className="px-6 py-3 text-right text-xs font-medium text-white/60 uppercase tracking-wider">
+                <th className="px-6 py-3 text-center text-xs font-medium text-white/60 uppercase tracking-wider w-1/6">
                   Actions
                 </th>
               </tr>
@@ -198,30 +194,30 @@ export default function RecentOrders({ initialOrders, loading: initialLoading, l
             <tbody className="divide-y divide-white/10">
               {orders.map((order) => (
                 <tr key={order.id} className="hover:bg-white/5 transition-colors">
-                  <td className="px-6 py-4 whitespace-nowrap text-sm text-white">
+                  <td className="px-6 py-4 whitespace-nowrap text-sm text-white text-center">
                     #{order.id}
                   </td>
-                  <td className="px-6 py-4 whitespace-nowrap text-sm text-white/70">
-                    {formatDate(order.created_at)}
+                  <td className="px-6 py-4 whitespace-nowrap text-sm text-white/70 text-center">
+                    {formatDate(order.created_at, 'long')}
                   </td>
-                  <td className="px-6 py-4 whitespace-nowrap">
-                    <span className={`px-2 py-1 rounded-full text-xs font-medium ${getStatusColor(order.status)}`}>
+                  <td className="px-6 py-4 whitespace-nowrap text-center">
+                    <span className={`inline-block px-2 py-1 rounded-full text-xs font-medium ${getStatusColor(order.status)}`}>
                       {order.status.charAt(0).toUpperCase() + order.status.slice(1)}
                     </span>
                   </td>
-                  <td className="px-6 py-4 whitespace-nowrap text-sm text-amber-500 font-medium">
+                  <td className="px-6 py-4 whitespace-nowrap text-sm text-amber-500 font-medium text-center">
                     {formatCurrency(parseFloat(order.total_amount))}
                   </td>
-                  <td className="px-6 py-4 whitespace-nowrap text-sm text-white/70">
+                  <td className="px-6 py-4 whitespace-nowrap text-sm text-white/70 text-center">
                     {countItems(order)} {countItems(order) === 1 ? 'item' : 'items'}
                   </td>
-                  <td className="px-6 py-4 whitespace-nowrap text-right text-sm">
-                    <Link
-                      href={`/orders/${order.id}`}
+                  <td className="px-6 py-4 whitespace-nowrap text-center text-sm">
+                    <button
+                      onClick={() => onViewDetails ? onViewDetails(order.id) : null}
                       className="text-amber-500 hover:text-amber-400 transition-colors"
                     >
                       View Details
-                    </Link>
+                    </button>
                   </td>
                 </tr>
               ))}
