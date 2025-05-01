@@ -2,6 +2,7 @@
 
 import { useState, useEffect, Fragment } from "react";
 import Image from "next/image";
+import Link from "next/link";
 import { Order } from "@/types/apiResponses";
 import { formatCurrency, formatDate, formatDateTime } from "@/utils/format";
 import orderService from "@/services/api/orders";
@@ -188,7 +189,12 @@ export default function OrderDetailsModal({ orderId, onClose }: OrderDetailsModa
                               )}
                             </div>
                             <div>
-                              <p className="text-sm font-medium text-white">{item.product_name}</p>
+                              <Link 
+                                href={`/products/${item.product_id}`} 
+                                className="text-sm font-medium text-white hover:text-amber-400 transition-colors"
+                              >
+                                {item.product_name}
+                              </Link>
                               <p className="text-xs text-white/60">SKU: {item.product_id}</p>
                             </div>
                           </div>
