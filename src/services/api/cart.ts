@@ -166,7 +166,7 @@ const cartService = {
       console.log('Update cart item response:', response);
       
       // Always show success toast for quantity updates regardless of response structure
-      showSuccess(`${productName} quantity updated to ${updateData.quantity}`);
+      showSuccess(`Updated ${updateData.quantity} ${productName} in cart`);
       
       // Trigger refresh after update
       const result = normalizeCartResponse(response.data, `Failed to update cart item ${itemId}`);
@@ -212,7 +212,7 @@ const cartService = {
       console.log('Remove cart item response:', response);
       
       // Always show success toast for item removal regardless of response structure
-      showSuccess(`${productName} removed from cart`);
+      showSuccess(`Removed ${productName} from cart`);
       
       // Trigger refresh after removal
       const result = normalizeCartResponse(response.data, `Failed to remove cart item ${itemId}`);
