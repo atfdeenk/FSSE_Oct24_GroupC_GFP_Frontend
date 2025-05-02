@@ -6,6 +6,7 @@ import type { Product } from '@/types/apiResponses';
 import LoadingOverlay from '@/components/ui/LoadingOverlay';
 import productService from '@/services/api/products';
 import { useCart } from '@/hooks/useCart';
+import { isAuthenticated } from '@/lib/auth';
 // Using centralized toast system
 import { Toaster } from '@/utils/toast';
 import { Header, Footer } from '@/components';
@@ -70,6 +71,16 @@ export default function ProductDetail() {
 
   const handleAddToCart = async () => {
     if (!product) return;
+    
+    // Check if user is logged in
+    if (!isAuthenticated()) {
+      // Show toast message instead of redirecting
+      import('@/utils/toast').then(({ showError }) => {
+        showError('Please log in to add items to your cart');
+      });
+      return;
+    }
+    
     setAddingToCart(true);
     try {
       await addToCartWithCountCheck({ product_id: product.id, quantity });

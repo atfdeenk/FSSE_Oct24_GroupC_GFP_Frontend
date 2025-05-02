@@ -53,7 +53,8 @@ const ProductCard: React.FC<ProductCardProps> = ({ product }) => {
     e.preventDefault();
     if (cartLoading) return;
     if (!isLoggedIn) {
-      window.location.href = '/login?redirect=cart';
+      // Show a toast message instead of redirecting
+      showError('Please log in to add items to your cart');
       return;
     }
     setCartLoading(true);
@@ -72,7 +73,8 @@ const ProductCard: React.FC<ProductCardProps> = ({ product }) => {
     if (wishlistLoading) return;
     
     if (!isLoggedIn) {
-      window.location.href = '/login?redirect=wishlist';
+      // Show a toast message instead of redirecting
+      showError('Please log in to add items to your wishlist');
       return;
     }
     

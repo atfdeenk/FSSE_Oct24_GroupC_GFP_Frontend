@@ -23,7 +23,9 @@ export function useCart() {
     setLoading(true);
     try {
       if (!isAuthenticated()) {
-        router.push('/login?redirect=cart');
+        // Don't redirect, just set empty cart
+        setCartItems([]);
+        setSelectedItems(new Set());
         return;
       }
       const cartResponse = await cartService.getCart();
@@ -83,6 +85,12 @@ export function useCart() {
   const addToCartWithCountCheck = useCallback(async (itemData: { product_id: number | string; quantity: number }) => {
     setLoading(true);
     try {
+      // Check if user is authenticated before proceeding
+      if (!isAuthenticated()) {
+        // Don't redirect, just return with an error
+        setError('User not authenticated');
+        return { success: false, error: 'User not authenticated' };
+      }
       // Get before-cart info
       const beforeCart = await cartService.getCart();
       const beforeItems = Array.isArray(beforeCart.data?.items) ? beforeCart.data.items : [];
