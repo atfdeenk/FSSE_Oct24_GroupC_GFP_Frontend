@@ -3,6 +3,7 @@ import axiosInstance from './axios';
 import { API_CONFIG } from './config';
 import { UserProfile, LoginResponse, RegisterResponse } from '@/types/apiResponses';
 import { TOKEN_KEY, MSG_LOGIN_PROFILE_FAIL } from '@/constants';
+import { refreshProfile } from '@/lib/dataRefresh';
 
 // Types for authentication
 export interface LoginCredentials {
@@ -170,6 +171,9 @@ export const authService = {
       );
       
       console.log('Auth service - updateUser - API response:', response.data);
+      
+      // Trigger profile refresh after successful update
+      refreshProfile({ source: 'update', id, shouldRefreshPage: true });
       
       return {
         success: true,

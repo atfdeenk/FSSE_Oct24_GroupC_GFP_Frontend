@@ -88,19 +88,23 @@ export default function ProfilePage() {
     
     setSaving(true);
     try {
-      // In a real app, you would call an API to update the profile
-      // For now, we'll simulate a successful update
-      await new Promise(resolve => setTimeout(resolve, 1000));
+      if (!user?.id) {
+        throw new Error("User ID not found");
+      }
       
-      // Update the user state with form data
-      setUser(prev => prev ? { ...prev, ...formData } : null);
-      setIsEditMode(false);
-      toast.success("Profile updated successfully!");
-    } catch (err) {
+      // Call the auth service to update the profile
+      const result = await authService.updateUser(user.id, formData);
+      
+      if (result.success) {
+        // The page will automatically refresh due to the shouldRefreshPage flag in refreshProfile
+        toast.success("Profile updated successfully! Page will refresh...");
+      } else {
+        throw new Error(result.message || "Failed to update profile");
+      }
+    } catch (err: any) {
       console.error('Profile update error:', err);
-      toast.error("Failed to update profile");
-    } finally {
-      setSaving(false);
+      toast.error(err.message || "Failed to update profile");
+      setSaving(false); // Only set saving to false on error, as page will refresh on success
     }
   };
 

@@ -8,6 +8,7 @@ import {
   AssignProductCategoryResponse,
   DeleteProductCategoryResponse
 } from '@/types';
+import { refreshProducts, refreshProductDetail, refreshCategories } from '@/lib/dataRefresh';
 
 // Types for product requests
 export interface ProductFilters {
@@ -99,6 +100,13 @@ const productService = {
         API_CONFIG.ENDPOINTS.products.list,
         productData
       );
+      
+      // Trigger refresh after successful creation
+      refreshProducts({ source: 'create' });
+      if (response.data?.id) {
+        refreshProductDetail(response.data.id, { source: 'create' });
+      }
+      
       return response.data;
     } catch (error) {
       console.error('Create product error:', error);
@@ -113,6 +121,11 @@ const productService = {
         API_CONFIG.ENDPOINTS.products.detail(id),
         productData
       );
+      
+      // Trigger refresh after successful update
+      refreshProducts({ source: 'update' });
+      refreshProductDetail(id, { source: 'update' });
+      
       return response.data;
     } catch (error) {
       console.error(`Update product ${id} error:`, error);
@@ -126,6 +139,10 @@ const productService = {
       const response = await axiosInstance.delete(
         API_CONFIG.ENDPOINTS.products.detail(id)
       );
+      
+      // Trigger refresh after successful deletion
+      refreshProducts({ source: 'delete', id });
+      
       return response.data;
     } catch (error) {
       console.error(`Delete product ${id} error:`, error);
@@ -181,6 +198,11 @@ const productService = {
         API_CONFIG.ENDPOINTS.products.categories(productId),
         { category_id: categoryId }
       );
+      
+      // Trigger refresh after successful category assignment
+      refreshProductDetail(productId, { source: 'update-category' });
+      refreshCategories({ source: 'product-assignment', id: categoryId });
+      
       return response.data;
     } catch (error) {
       console.error(`Add category ${categoryId} to product ${productId} error:`, error);
@@ -194,6 +216,11 @@ const productService = {
       const response = await axiosInstance.delete<DeleteProductCategoryResponse>(
         API_CONFIG.ENDPOINTS.products.removeCategory(productId, categoryId)
       );
+      
+      // Trigger refresh after successful category removal
+      refreshProductDetail(productId, { source: 'update-category' });
+      refreshCategories({ source: 'product-removal', id: categoryId });
+      
       return response.data;
     } catch (error) {
       console.error(`Remove category ${categoryId} from product ${productId} error:`, error);

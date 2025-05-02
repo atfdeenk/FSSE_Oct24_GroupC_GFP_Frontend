@@ -7,6 +7,7 @@ import {
   CartResponse,
   BaseResponse
 } from '@/types';
+import { refreshCart } from '@/lib/dataRefresh';
 
 // Types for cart requests
 export interface AddToCartData {
@@ -81,7 +82,14 @@ const cartService = {
         API_CONFIG.ENDPOINTS.cart.items,
         itemData
       );
-      return normalizeCartResponse(response.data, 'Failed to add to cart');
+      
+      // Trigger refresh after successful addition
+      const result = normalizeCartResponse(response.data, 'Failed to add to cart');
+      if (result.success) {
+        refreshCart({ source: 'add', id: itemData.product_id });
+      }
+      
+      return result;
     } catch (error: any) {
       return normalizeCartResponse(error.response?.data || {}, 'Failed to add to cart');
     }
@@ -94,7 +102,14 @@ const cartService = {
         API_CONFIG.ENDPOINTS.cart.item(itemId),
         updateData
       );
-      return normalizeCartResponse(response.data, `Failed to update cart item ${itemId}`);
+      
+      // Trigger refresh after successful update
+      const result = normalizeCartResponse(response.data, `Failed to update cart item ${itemId}`);
+      if (result.success) {
+        refreshCart({ source: 'update', id: itemId });
+      }
+      
+      return result;
     } catch (error: any) {
       console.error(`Update cart item ${itemId} error:`, error);
       return normalizeCartResponse(error.response?.data || {}, `Failed to update cart item ${itemId}`);
@@ -107,7 +122,14 @@ const cartService = {
       const response = await axiosInstance.delete<CartResponse>(
         API_CONFIG.ENDPOINTS.cart.item(itemId)
       );
-      return normalizeCartResponse(response.data, `Failed to remove cart item ${itemId}`);
+      
+      // Trigger refresh after successful removal
+      const result = normalizeCartResponse(response.data, `Failed to remove cart item ${itemId}`);
+      if (result.success) {
+        refreshCart({ source: 'remove', id: itemId });
+      }
+      
+      return result;
     } catch (error: any) {
       console.error(`Remove from cart item ${itemId} error:`, error);
       return normalizeCartResponse(error.response?.data || {}, `Failed to remove cart item ${itemId}`);
@@ -120,7 +142,14 @@ const cartService = {
       const response = await axiosInstance.delete<CartResponse>(
         API_CONFIG.ENDPOINTS.cart.items
       );
-      return normalizeCartResponse(response.data, 'Failed to clear cart');
+      
+      // Trigger refresh after successful cart clearing
+      const result = normalizeCartResponse(response.data, 'Failed to clear cart');
+      if (result.success) {
+        refreshCart({ source: 'clear' });
+      }
+      
+      return result;
     } catch (error: any) {
       console.error('Clear cart error:', error);
       return normalizeCartResponse(error.response?.data || {}, 'Failed to clear cart');
