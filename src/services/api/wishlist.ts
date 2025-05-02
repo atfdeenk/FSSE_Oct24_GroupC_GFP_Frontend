@@ -24,6 +24,7 @@ export interface WishlistResponse extends BaseResponse {
 
 export interface AddToWishlistData {
   product_id: number | string;
+  vendor_id: number | string;
 }
 
 // Wishlist service with Axios
@@ -60,26 +61,50 @@ const wishlistService = {
   // Add an item to the wishlist
   addToWishlist: async (itemData: AddToWishlistData): Promise<WishlistResponse> => {
     try {
-      const response = await axiosInstance.post<any>(API_CONFIG.ENDPOINTS.wishlist.add, itemData);
-      let items: WishlistItem[] = [];
-      if (Array.isArray(response.data)) {
-        items = response.data;
-      } else if (Array.isArray(response.data?.wishlist)) {
-        items = response.data.wishlist;
-      } else if (Array.isArray(response.data?.items)) {
-        items = response.data.items;
-      } else if (Array.isArray(response.data?.data?.items)) {
-        items = response.data.data.items;
-      }
+      // Log the request details for debugging
+      console.log('Adding to wishlist:', {
+        endpoint: API_CONFIG.ENDPOINTS.wishlist.add,
+        method: 'POST',
+        payload: {
+          product_id: Number(itemData.product_id),
+          vendor_id: Number(itemData.vendor_id)
+        }
+      });
+      
+      // Make the API call
+      const response = await axiosInstance.post<any>(
+        API_CONFIG.ENDPOINTS.wishlist.add,
+        {
+          product_id: Number(itemData.product_id),
+          vendor_id: Number(itemData.vendor_id)
+        },
+        {
+          timeout: 10000,
+          headers: {
+            'Content-Type': 'application/json'
+          }
+        }
+      );
+      
+      // Log the successful response
+      console.log('Wishlist add response:', response.data);
+      
+      // The API returns just a message, not the updated wishlist items
+      // We'll handle both success and 'already exists' cases as success
+      const isSuccess = response.status === 200 || response.status === 201;
+      const message = response.data?.message || 'Item added to wishlist successfully';
       
       // Trigger refresh after successful addition
       const result = {
-        success: true,
-        message: response.data?.message || 'Item added to wishlist successfully',
-        data: { items }
+        success: isSuccess,
+        message: message,
+        data: { items: [] } // Empty array since we don't get items back
       };
       
-      refreshWishlist({ source: 'add', id: itemData.product_id });
+      // Only trigger refresh if it was actually added (not 'already exists')
+      if (isSuccess && !message.includes('already exists')) {
+        refreshWishlist({ source: 'add', id: itemData.product_id });
+      }
       
       return result;
     } catch (error: any) {

@@ -3,7 +3,7 @@
 import React from "react";
 import HeartIcon from "@/components/ui/HeartIcon";
 import CartIcon from "@/components/ui/CartIcon";
-import { useState } from 'react';
+import { useState, useEffect, useCallback } from 'react';
 import { useAuthUser } from '@/hooks/useAuthUser';
 import { useCart } from '@/hooks/useCart';
 import type { Product } from '@/types/apiResponses';
@@ -11,6 +11,9 @@ import { getImageUrl, handleImageError } from '@/utils/imageUtils';
 import { formatProductPrice } from '@/utils/format';
 // Import ProductImage directly from products/page.tsx
 import ProductImage from '@/components/ui/ProductImage';
+import wishlistService from '@/services/api/wishlist';
+import { showSuccess, showError } from '@/utils/toast';
+import { REFRESH_EVENTS, onRefresh } from '@/lib/dataRefresh';
 
 interface ProductCardProps {
   product: Product;
@@ -18,8 +21,33 @@ interface ProductCardProps {
 
 const ProductCard: React.FC<ProductCardProps> = ({ product }) => {
   const [cartLoading, setCartLoading] = useState(false);
+  const [wishlistLoading, setWishlistLoading] = useState(false);
+  const [isInWishlist, setIsInWishlist] = useState(false);
   const { isLoggedIn } = useAuthUser();
   const { addToCartWithCountCheck } = useCart();
+
+  // Check if product is in wishlist
+  const checkWishlistStatus = useCallback(async () => {
+    if (!isLoggedIn) return;
+    try {
+      const inWishlist = await wishlistService.isInWishlist(product.id);
+      setIsInWishlist(inWishlist);
+    } catch (error) {
+      console.error('Error checking wishlist status:', error);
+    }
+  }, [isLoggedIn, product.id]);
+
+  // Initial check and setup refresh listener
+  useEffect(() => {
+    checkWishlistStatus();
+    
+    // Listen for wishlist refresh events
+    const cleanup = onRefresh(REFRESH_EVENTS.WISHLIST, () => {
+      checkWishlistStatus();
+    });
+    
+    return cleanup;
+  }, [checkWishlistStatus]);
 
   const handleAddToCart = async (e: React.MouseEvent<HTMLButtonElement>) => {
     e.preventDefault();
@@ -34,6 +62,50 @@ const ProductCard: React.FC<ProductCardProps> = ({ product }) => {
       window.dispatchEvent(new CustomEvent('cart-updated'));
     } finally {
       setCartLoading(false);
+    }
+  };
+  
+  const handleWishlistToggle = async (e: React.MouseEvent<HTMLButtonElement>) => {
+    e.preventDefault();
+    e.stopPropagation();
+    
+    if (wishlistLoading) return;
+    
+    if (!isLoggedIn) {
+      window.location.href = '/login?redirect=wishlist';
+      return;
+    }
+    
+    setWishlistLoading(true);
+    
+    try {
+      if (isInWishlist) {
+        // Get the wishlist first to find the wishlist item ID
+        const wishlist = await wishlistService.getWishlist();
+        const wishlistItem = wishlist.data?.items?.find(item => 
+          item.product_id.toString() === product.id.toString()
+        );
+        
+        if (wishlistItem) {
+          await wishlistService.removeFromWishlist(wishlistItem.id);
+          setIsInWishlist(false);
+          showSuccess(`${product.name} removed from wishlist`);
+        } else {
+          showError('Item not found in wishlist');
+        }
+      } else {
+        await wishlistService.addToWishlist({
+          product_id: product.id,
+          vendor_id: product.vendor_id
+        });
+        setIsInWishlist(true);
+        showSuccess(`${product.name} added to wishlist`);
+      }
+    } catch (error) {
+      console.error('Error toggling wishlist:', error);
+      showError(isInWishlist ? 'Failed to remove from wishlist' : 'Failed to add to wishlist');
+    } finally {
+      setWishlistLoading(false);
     }
   };
 
@@ -55,15 +127,23 @@ const ProductCard: React.FC<ProductCardProps> = ({ product }) => {
           className="transition-transform duration-300 group-hover:scale-105"
           onError={handleImageError}
         />
-        {/* Wishlist heart icon button */}
         {/* Wishlist heart icon button (top-right) */}
         <div className="absolute top-2 right-2 z-10">
           <button
             type="button"
-            aria-label="Add to wishlist"
-            className="rounded-full bg-white/90 dark:bg-neutral-900/80 p-1 shadow hover:bg-amber-100 dark:hover:bg-amber-400/10 transition-all duration-300 ease-out opacity-0 scale-90 translate-y-2 group-hover:opacity-100 group-hover:scale-100 group-hover:translate-y-0 group-focus-within:opacity-100 group-focus-within:scale-100 group-focus-within:translate-y-0 focus:opacity-100 focus:scale-100 focus:translate-y-0 focus-visible:opacity-100 focus-visible:scale-100 focus-visible:translate-y-0 pointer-events-auto"
+            onClick={handleWishlistToggle}
+            aria-label={isInWishlist ? "Remove from wishlist" : "Add to wishlist"}
+            className={`rounded-full ${isInWishlist ? 'bg-amber-400 dark:bg-amber-500' : 'bg-white/90 dark:bg-neutral-900/80'} p-1 shadow hover:bg-amber-100 dark:hover:bg-amber-400/10 transition-all duration-300 ease-out opacity-0 scale-90 translate-y-2 group-hover:opacity-100 group-hover:scale-100 group-hover:translate-y-0 group-focus-within:opacity-100 group-focus-within:scale-100 group-focus-within:translate-y-0 focus:opacity-100 focus:scale-100 focus:translate-y-0 focus-visible:opacity-100 focus-visible:scale-100 focus-visible:translate-y-0 pointer-events-auto`}
+            disabled={wishlistLoading}
           >
-            <HeartIcon className="w-6 h-6 text-amber-400 group-hover/wishlist:fill-amber-400 group-hover/wishlist:text-amber-500 transition-colors" />
+            {wishlistLoading ? (
+              <svg className="w-5 h-5 animate-spin text-white" fill="none" viewBox="0 0 24 24">
+                <circle className="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" strokeWidth="4"></circle>
+                <path className="opacity-75" fill="currentColor" d="M4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4zm2 5.291A7.962 7.962 0 014 12H0c0 3.042 1.135 5.824 3 7.938l3-2.647z"></path>
+              </svg>
+            ) : (
+              <HeartIcon className={`w-6 h-6 ${isInWishlist ? 'text-white fill-current' : 'text-amber-400 group-hover/wishlist:fill-amber-400 group-hover/wishlist:text-amber-500'} transition-colors`} />
+            )}
           </button>
         </div>
         {/* Cart icon button (bottom-right) */}
