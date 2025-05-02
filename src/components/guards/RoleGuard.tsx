@@ -25,7 +25,7 @@ const RoleGuard: React.FC<RoleGuardProps> = ({
 }) => {
   const router = useRouter();
   const { isLoggedIn } = useAuthUser();
-  const role = useUserRole();
+  const { role, loading: roleLoading } = useUserRole();
   const [isAuthorized, setIsAuthorized] = useState(false);
   const [loading, setLoading] = useState(true);
 
@@ -39,12 +39,12 @@ const RoleGuard: React.FC<RoleGuardProps> = ({
 
     // If allowedRoles specified, require login
     if (!isLoggedIn) {
-      router.push(loginPath);
+      router.push(`${loginPath}?redirect=${encodeURIComponent(window.location.pathname)}`);
       return;
     }
 
     // Wait for role to load
-    if (role === null) {
+    if (roleLoading || role === null) {
       return;
     }
 
@@ -54,9 +54,9 @@ const RoleGuard: React.FC<RoleGuardProps> = ({
       router.push(fallbackPath);
     }
     setLoading(false);
-  }, [isLoggedIn, role, allowedRoles, fallbackPath, loginPath, router]);
+  }, [isLoggedIn, role, roleLoading, allowedRoles, fallbackPath, loginPath, router]);
 
-  if (loading || (allowedRoles && allowedRoles.length > 0 && role === null)) return <LoadingOverlay message="Checking authorization..." />;
+  if (loading || roleLoading || (allowedRoles && allowedRoles.length > 0 && role === null)) return <LoadingOverlay message="Checking authorization..." />;
   return isAuthorized ? <>{children}</> : null;
 
 };

@@ -8,7 +8,18 @@ export default function AdminDashboardPage() {
   const [userRole, setUserRole] = useState<string | null>(null);
 
   useEffect(() => {
-    setUserRole(getUserRole());
+    // Handle the Promise properly
+    const fetchUserRole = async () => {
+      try {
+        const role = await getUserRole();
+        setUserRole(role);
+      } catch (error) {
+        console.error('Error fetching user role:', error);
+        setUserRole(null);
+      }
+    };
+    
+    fetchUserRole();
   }, []);
 
   return (
