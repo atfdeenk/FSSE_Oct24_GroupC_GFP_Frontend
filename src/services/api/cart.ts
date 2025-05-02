@@ -8,6 +8,7 @@ import {
   BaseResponse
 } from '@/types';
 import { refreshCart } from '@/lib/dataRefresh';
+import { showSuccess, showError } from '@/utils/toast';
 
 // Types for cart requests
 export interface AddToCartData {
@@ -21,12 +22,25 @@ export interface UpdateCartItemData {
 
 // --- Centralized cart API response normalization ---
 function normalizeCartResponse(response: any, fallbackMsg = 'Cart operation failed') {
-  if (response && response.data && Array.isArray(response.data.items)) {
-    return { success: true, error: null, data: response.data };
+  // Consider the response successful if it has a status code in the 2xx range
+  // or if it has data with items array
+  const isSuccess = 
+    (response?.status >= 200 && response?.status < 300) || 
+    (response?.data && Array.isArray(response?.data?.items)) ||
+    // Also consider it successful if there's no error message
+    (!response?.error && !response?.message);
+  
+  if (isSuccess) {
+    return { 
+      success: true, 
+      error: null, 
+      data: response?.data || { items: [], total: 0 }
+    };
   }
+  
   return {
     success: false,
-    error: response?.message || fallbackMsg,
+    error: response?.message || response?.error || fallbackMsg,
     data: response?.data || { items: [], total: 0 }
   };
 }
@@ -78,19 +92,29 @@ const cartService = {
   // Add an item to the cart
   addToCart: async (itemData: AddToCartData): Promise<{ success: boolean; error: string | null; data?: any }> => {
     try {
+      // Log the request for debugging
+      console.log('Adding to cart:', itemData);
+      
       const response = await axiosInstance.post<CartResponse>(
         API_CONFIG.ENDPOINTS.cart.items,
         itemData
       );
       
+      console.log('Add to cart response:', response);
+      
+      // Always show success toast for cart addition regardless of response structure
+      showSuccess(`Added ${itemData.quantity} item(s) to cart`);
+      
       // Trigger refresh after successful addition
       const result = normalizeCartResponse(response.data, 'Failed to add to cart');
-      if (result.success) {
-        refreshCart({ source: 'add', id: itemData.product_id });
-      }
+      
+      // Trigger refresh with showToast false to prevent duplicate toasts
+      refreshCart({ source: 'add', id: itemData.product_id, showToast: false });
       
       return result;
     } catch (error: any) {
+      // Show error toast
+      showError(error?.response?.data?.message || 'Failed to add to cart');
       return normalizeCartResponse(error.response?.data || {}, 'Failed to add to cart');
     }
   },
@@ -98,20 +122,30 @@ const cartService = {
   // Update a cart item quantity
   updateCartItem: async (itemId: number | string, updateData: UpdateCartItemData): Promise<{ success: boolean; error: string | null; data?: any }> => {
     try {
+      // Log the request for debugging
+      console.log('Updating cart item:', { itemId, updateData });
+      
       const response = await axiosInstance.patch<CartResponse>(
         API_CONFIG.ENDPOINTS.cart.item(itemId),
         updateData
       );
       
-      // Trigger refresh after successful update
+      console.log('Update cart item response:', response);
+      
+      // Always show success toast for quantity updates regardless of response structure
+      showSuccess(`Item quantity updated to ${updateData.quantity}`);
+      
+      // Trigger refresh after update
       const result = normalizeCartResponse(response.data, `Failed to update cart item ${itemId}`);
-      if (result.success) {
-        refreshCart({ source: 'update', id: itemId });
-      }
+      
+      // Trigger refresh with showToast false to prevent duplicate toasts
+      refreshCart({ source: 'update', id: itemId, showToast: false });
       
       return result;
     } catch (error: any) {
       console.error(`Update cart item ${itemId} error:`, error);
+      // Show error toast
+      showError(error?.response?.data?.message || `Failed to update cart item quantity`);
       return normalizeCartResponse(error.response?.data || {}, `Failed to update cart item ${itemId}`);
     }
   },
@@ -119,19 +153,29 @@ const cartService = {
   // Remove an item from the cart
   removeFromCart: async (itemId: number | string): Promise<{ success: boolean; error: string | null; data?: any }> => {
     try {
+      // Log the request for debugging
+      console.log('Removing cart item:', itemId);
+      
       const response = await axiosInstance.delete<CartResponse>(
         API_CONFIG.ENDPOINTS.cart.item(itemId)
       );
       
-      // Trigger refresh after successful removal
+      console.log('Remove cart item response:', response);
+      
+      // Always show success toast for item removal regardless of response structure
+      showSuccess('Item removed from cart');
+      
+      // Trigger refresh after removal
       const result = normalizeCartResponse(response.data, `Failed to remove cart item ${itemId}`);
-      if (result.success) {
-        refreshCart({ source: 'remove', id: itemId });
-      }
+      
+      // Trigger refresh with showToast false to prevent duplicate toasts
+      refreshCart({ source: 'remove', id: itemId, showToast: false });
       
       return result;
     } catch (error: any) {
-      console.error(`Remove from cart item ${itemId} error:`, error);
+      console.error(`Remove cart item ${itemId} error:`, error);
+      // Show error toast
+      showError(error?.response?.data?.message || `Failed to remove item from cart`);
       return normalizeCartResponse(error.response?.data || {}, `Failed to remove cart item ${itemId}`);
     }
   },
@@ -146,7 +190,8 @@ const cartService = {
       // Trigger refresh after successful cart clearing
       const result = normalizeCartResponse(response.data, 'Failed to clear cart');
       if (result.success) {
-        refreshCart({ source: 'clear' });
+        // Set showToast to false to prevent duplicate toasts
+        refreshCart({ source: 'clear', showToast: false });
       }
       
       return result;

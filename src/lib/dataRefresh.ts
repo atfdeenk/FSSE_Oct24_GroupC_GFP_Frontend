@@ -22,6 +22,8 @@ export interface RefreshEventDetail {
   source?: string;              // Source of the refresh (e.g., 'create', 'update', 'delete')
   metadata?: any;               // Any additional metadata
   shouldRefreshPage?: boolean;  // Whether to refresh the entire page after the operation
+  showToast?: boolean;          // Whether to show toast notifications
+  [key: string]: any;
 }
 
 /**
