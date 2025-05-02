@@ -25,7 +25,10 @@ const SellerGroup: React.FC<SellerGroupProps> = ({
 }) => {
   return (
     <div className="mb-6 last:mb-0">
-      <div className="bg-gradient-to-r from-amber-900/60 to-neutral-800/60 backdrop-blur-sm p-4 border-b border-amber-700/30 flex items-center gap-3">
+      <a 
+        href={`/store/${items[0]?.vendor_id}`} 
+        className="bg-gradient-to-r from-amber-900/60 to-neutral-800/60 backdrop-blur-sm p-4 border-b border-amber-700/30 flex items-center gap-3 hover:from-amber-800/60 hover:to-neutral-700/60 transition-colors cursor-pointer group"
+      >
         {items[0]?.seller_image ? (
           <div className="w-10 h-10 rounded-full overflow-hidden bg-amber-600/20 flex items-center justify-center">
             <img 
@@ -59,7 +62,7 @@ const SellerGroup: React.FC<SellerGroupProps> = ({
             <span className="text-white/50 text-xs">{items.length} {items.length === 1 ? 'item' : 'items'}</span>
           </div>
         </div>
-      </div>
+      </a>
       <div>
         {items.map(item => (
           <CartItem
