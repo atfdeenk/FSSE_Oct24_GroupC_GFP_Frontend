@@ -1,19 +1,20 @@
 "use client";
 
-import { useState, useEffect } from "react";
+import { useState, useEffect, useMemo } from "react";
 import { useRouter } from "next/navigation";
 import { useCart } from '@/hooks/useCart';
 import Link from "next/link";
 import { Header, Footer, SelectionControls } from "@/components";
 import PromoCodeInput from "@/components/PromoCodeInput";
-import CartItem from "@/components/CartItem";
 import OrderSummary from "@/components/OrderSummary";
 import LoadingOverlay from '@/components/ui/LoadingOverlay';
 import EmptyState from "@/components/EmptyState";
+import SellerGroup from "@/components/SellerGroup";
 import { PROMO_CODES } from "@/constants/promoCodes";
 import { isAuthenticated } from "@/lib/auth";
 import { calculateSubtotal, calculateDiscount, calculateTotal } from '@/utils/cartUtils';
 import { formatCurrency } from '@/utils/format';
+import { CartItemWithDetails } from '@/types/cart';
 
 export default function CartPage() {
   const router = useRouter();
@@ -61,6 +62,29 @@ export default function CartPage() {
     }
   };
 
+  // Group cart items by seller
+  const itemsBySeller = useMemo(() => {
+    const grouped: Record<string, CartItemWithDetails[]> = {};
+    
+    cartItems.forEach(item => {
+      // Use vendor_id or seller as the key, fallback to 'Unknown Seller'
+      const sellerKey = item.seller || 
+                       (typeof item.vendor_id === 'string' ? item.vendor_id : `Seller #${item.vendor_id}`) || 
+                       'Unknown Seller';
+      
+      if (!grouped[sellerKey]) {
+        grouped[sellerKey] = [];
+      }
+      
+      grouped[sellerKey].push(item);
+    });
+    
+    return grouped;
+  }, [cartItems]);
+
+  // Get all seller names for display
+  const sellerNames = useMemo(() => Object.keys(itemsBySeller), [itemsBySeller]);
+  
   // Calculate subtotal, discount, total using centralized utils
   const selectedCartItems = cartItems.filter(item => selectedItems.has(item.id));
   const subtotal = calculateSubtotal(selectedCartItems);
@@ -112,15 +136,17 @@ export default function CartPage() {
                     </div>
                   </div>
                   <ul className="divide-y divide-white/10">
-                    {cartItems.map((item) => (
-                      <CartItem
-                        key={item.id}
-                        item={item}
-                        selected={selectedItems.has(item.id)}
+                    {/* Cart Items Grouped by Seller */}
+                    {sellerNames.map(sellerName => (
+                      <SellerGroup
+                        key={sellerName}
+                        seller={sellerName}
+                        items={itemsBySeller[sellerName]}
+                        selectedItems={selectedItems}
                         loading={loading}
-                        onSelect={toggleSelectItem}
+                        onToggleSelect={toggleSelectItem}
                         onUpdateQuantity={updateQuantity}
-                        onRemove={removeItem}
+                        onRemoveItem={removeItem}
                       />
                     ))}
                   </ul>
