@@ -77,13 +77,18 @@ axiosInstance.interceptors.response.use(
         }
       }
       
-      // Log all errors
+      // Log all errors with more detailed information
       console.error('API Error:', {
         status,
         url: error.config?.url,
         method: error.config?.method,
-        data: error.response?.data
+        data: error.response?.data,
+        message: error.message,
+        stack: error.stack?.split('\n').slice(0, 3).join('\n') // Include first 3 lines of stack trace
       });
+      
+      // Also log the full error object for debugging
+      console.debug('Full error object:', error);
     }
     
     return Promise.reject(error);
