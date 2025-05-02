@@ -95,6 +95,23 @@ const cartService = {
       // Log the request for debugging
       console.log('Adding to cart:', itemData);
       
+      // Get product name for more informative toast - for adding to cart, we can safely use the products API
+      // since the product must exist to be added to the cart
+      let productName = 'Item';
+      try {
+        // Use a safer approach with proper error handling
+        const productsAPI = await import('@/services/api/products');
+        if (productsAPI && productsAPI.default && typeof productsAPI.default.getProduct === 'function') {
+          const productDetails = await productsAPI.default.getProduct(itemData.product_id);
+          if (productDetails && productDetails.name) {
+            productName = productDetails.name;
+          }
+        }
+      } catch (e) {
+        console.error('Error fetching product details for toast:', e);
+        // Continue with default product name
+      }
+      
       const response = await axiosInstance.post<CartResponse>(
         API_CONFIG.ENDPOINTS.cart.items,
         itemData
@@ -103,7 +120,7 @@ const cartService = {
       console.log('Add to cart response:', response);
       
       // Always show success toast for cart addition regardless of response structure
-      showSuccess(`Added ${itemData.quantity} item(s) to cart`);
+      showSuccess(`Added ${itemData.quantity} ${productName} to cart`);
       
       // Trigger refresh after successful addition
       const result = normalizeCartResponse(response.data, 'Failed to add to cart');
@@ -125,6 +142,22 @@ const cartService = {
       // Log the request for debugging
       console.log('Updating cart item:', { itemId, updateData });
       
+      // First get the current cart to find the item name before updating it
+      let productName = 'Item';
+      try {
+        const cartResponse = await axiosInstance.get<CartResponse>(API_CONFIG.ENDPOINTS.cart.items);
+        if (cartResponse?.data?.data?.items) {
+          const item = cartResponse.data.data.items.find((item: any) => item.id == itemId || item.product_id == itemId);
+          if (item) {
+            // CartItem doesn't have a name property, so we need to get it from the product
+            productName = item.product?.name || 'Item';
+          }
+        }
+      } catch (e) {
+        console.error('Error fetching cart for product name:', e);
+      }
+      
+      // Now update the item
       const response = await axiosInstance.patch<CartResponse>(
         API_CONFIG.ENDPOINTS.cart.item(itemId),
         updateData
@@ -133,7 +166,7 @@ const cartService = {
       console.log('Update cart item response:', response);
       
       // Always show success toast for quantity updates regardless of response structure
-      showSuccess(`Item quantity updated to ${updateData.quantity}`);
+      showSuccess(`${productName} quantity updated to ${updateData.quantity}`);
       
       // Trigger refresh after update
       const result = normalizeCartResponse(response.data, `Failed to update cart item ${itemId}`);
@@ -156,6 +189,22 @@ const cartService = {
       // Log the request for debugging
       console.log('Removing cart item:', itemId);
       
+      // First get the current cart to find the item name before removing it
+      let productName = 'Item';
+      try {
+        const cartResponse = await axiosInstance.get<CartResponse>(API_CONFIG.ENDPOINTS.cart.items);
+        if (cartResponse?.data?.data?.items) {
+          const item = cartResponse.data.data.items.find((item: any) => item.id == itemId || item.product_id == itemId);
+          if (item) {
+            // CartItem doesn't have a name property, so we need to get it from the product
+            productName = item.product?.name || 'Item';
+          }
+        }
+      } catch (e) {
+        console.error('Error fetching cart for product name:', e);
+      }
+      
+      // Now remove the item
       const response = await axiosInstance.delete<CartResponse>(
         API_CONFIG.ENDPOINTS.cart.item(itemId)
       );
@@ -163,7 +212,7 @@ const cartService = {
       console.log('Remove cart item response:', response);
       
       // Always show success toast for item removal regardless of response structure
-      showSuccess('Item removed from cart');
+      showSuccess(`${productName} removed from cart`);
       
       // Trigger refresh after removal
       const result = normalizeCartResponse(response.data, `Failed to remove cart item ${itemId}`);
