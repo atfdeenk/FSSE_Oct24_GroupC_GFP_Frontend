@@ -4,10 +4,8 @@ import { UserProfile } from '@/types/apiResponses';
 import { setCookie, getCookie, deleteCookie } from '@/utils';
 import {
   TOKEN_KEY,
-  USER_KEY,
   TOKEN_EXPIRED_EVENT,
   MSG_SESSION_EXPIRED,
-  ERR_PARSING_USER_DATA,
   ERR_FETCHING_USER_PROFILE,
   ERR_GETTING_CURRENT_USER,
   ERR_LOGGING_OUT,
@@ -35,33 +33,21 @@ export const isAuthenticated = (): boolean => {
 
 /**
  * Get the current authenticated user
+ * Always fetches from API to ensure data is up-to-date
  */
 export const getCurrentUser = async (): Promise<AuthUser | null> => {
   if (typeof window === 'undefined') return null;
   
   try {
-    // First try to get user data from localStorage
-    const userData = localStorage.getItem(USER_KEY);
-    const token = localStorage.getItem(TOKEN_KEY);
+    const token = localStorage.getItem(TOKEN_KEY) || getCookie(TOKEN_KEY);
     
-    if (userData && token) {
-      try {
-        // Return cached user data
-        return JSON.parse(userData) as AuthUser;
-      } catch (parseError) {
-        console.error(ERR_PARSING_USER_DATA, parseError);
-      }
-    }
-    
-    // If no valid user data in localStorage but we have a token, fetch from API
+    // If we have a token, fetch user data from API
     if (token) {
       try {
         const user = await authService.getProfile();
         if (user) {
-          // Store the fresh user data
-          const authUser: AuthUser = { ...user, token };
-          storeAuthData(authUser, token);
-          return authUser;
+          // Return user with token but don't store in localStorage
+          return { ...user, token };
         }
       } catch (apiError) {
         console.error(ERR_FETCHING_USER_PROFILE, apiError);
@@ -86,7 +72,6 @@ export const logout = (): void => {
   try {
     // Clear auth data from localStorage and cookies
     localStorage.removeItem(TOKEN_KEY);
-    localStorage.removeItem(USER_KEY);
     deleteCookie(TOKEN_KEY);
     
     // Call the auth service logout method
@@ -103,17 +88,17 @@ export const logout = (): void => {
 
 /**
  * Store authentication data
+ * Only stores the token, not the user profile
  */
 export const storeAuthData = (userData: AuthUser | UserProfile, token: string): void => {
   if (typeof window === 'undefined') return;
   
   try {
-    // Create a proper AuthUser object
+    // Create a proper AuthUser object for the event, but don't store in localStorage
     const authUser: AuthUser = { ...userData, token };
     
-    // Store token and user data in localStorage and cookies
+    // Store only the token in localStorage and cookies
     localStorage.setItem(TOKEN_KEY, token);
-    localStorage.setItem(USER_KEY, JSON.stringify(authUser));
     
     // Also store token in cookies for middleware access
     setCookie(TOKEN_KEY, token, 7); // 7 days expiry
@@ -185,14 +170,18 @@ export const isTokenExpired = (token: string): boolean => {
 };
 
 /**
- * Get the user role from the current user or token
+ * Get the user role from the token
  */
-export const getUserRole = (): string | null => {
-  // First try to get role from current user
-  const user = typeof window !== 'undefined' ? JSON.parse(localStorage.getItem(USER_KEY) || '{}') : null;
-  if (user?.role) return user.role;
+export const getUserRole = async (): Promise<string | null> => {
+  // Always try to get the current user from the API first
+  try {
+    const currentUser = await getCurrentUser();
+    if (currentUser?.role) return currentUser.role;
+  } catch (error) {
+    console.error('Error getting user role from API', error);
+  }
   
-  // If not available, try to decode from token
+  // Fallback: try to decode from token
   const token = getToken();
   if (!token) return null;
   
@@ -209,8 +198,8 @@ export const getUserRole = (): string | null => {
 /**
  * Check if the current user has a specific role
  */
-export const hasRole = (role: string | string[]): boolean => {
-  const userRole = getUserRole();
+export const hasRole = async (role: string | string[]): Promise<boolean> => {
+  const userRole = await getUserRole();
   if (!userRole) return false;
   
   if (Array.isArray(role)) {

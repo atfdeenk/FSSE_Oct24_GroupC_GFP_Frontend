@@ -1,7 +1,7 @@
 // src/services/api/axios.ts
 import axios, { AxiosInstance, AxiosRequestConfig, AxiosResponse, AxiosError } from 'axios';
 import { API_CONFIG } from './config';
-import { TOKEN_KEY, USER_KEY, TOKEN_EXPIRED_EVENT, MSG_SESSION_EXPIRED } from '@/constants';
+import { TOKEN_KEY, TOKEN_EXPIRED_EVENT, MSG_SESSION_EXPIRED } from '@/constants';
 
 // Event for token expiration to trigger logout across the app
 // TOKEN_EXPIRED_EVENT is now imported from centralized constants
@@ -62,7 +62,6 @@ axiosInstance.interceptors.response.use(
         // Clear authentication data
         if (typeof window !== 'undefined') {
           localStorage.removeItem(TOKEN_KEY);
-          localStorage.removeItem(USER_KEY);
           
           // Dispatch token expired event to notify the app
           const event = new CustomEvent(TOKEN_EXPIRED_EVENT, {

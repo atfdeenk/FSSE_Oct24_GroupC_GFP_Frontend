@@ -148,15 +148,14 @@ export const authService = {
   // Logout user
   logout: () => {
     if (typeof window !== 'undefined') {
-      localStorage.removeItem('token');
-      localStorage.removeItem('user');
+      localStorage.removeItem(TOKEN_KEY);
     }
   },
   
   // Check if user is authenticated
   isAuthenticated: () => {
     if (typeof window === 'undefined') return false;
-    return !!localStorage.getItem('token');
+    return !!localStorage.getItem(TOKEN_KEY);
   },
 
   // Update user profile
