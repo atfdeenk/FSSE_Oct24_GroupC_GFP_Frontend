@@ -18,13 +18,29 @@ export interface OrderFilters {
   limit?: number;
 }
 
+export interface ShippingAddress {
+  full_name: string;
+  address: string;
+  city: string;
+  postal_code: string;
+  phone: string;
+  email: string;
+}
+
+export interface OrderItem {
+  product_id: number | string;
+  quantity: number;
+  price: number;
+}
+
 export interface CreateOrderData {
-  items: Array<{
-    product_id: number | string;
-    quantity: number;
-  }>;
-  shipping_address: string;
-  payment_method: string;
+  items: OrderItem[];
+  shipping_address: ShippingAddress;
+  payment_method: 'balance' | 'cod';
+  notes?: string;
+  subtotal: number;
+  discount: number;
+  total: number;
 }
 
 export interface UpdateOrderStatusData {
@@ -164,4 +180,5 @@ const orderService = {
   }
 };
 
+export { orderService as ordersService };
 export default orderService;

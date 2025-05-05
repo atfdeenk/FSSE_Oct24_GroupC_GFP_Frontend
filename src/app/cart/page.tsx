@@ -275,6 +275,7 @@ export default function CartPage() {
                   <button
                     className={`w-full py-3 rounded-sm font-bold transform hover:translate-y-[-2px] transition-all duration-300 shadow-lg ${selectedItems.size > 0 ? 'bg-amber-500 text-black hover:bg-amber-400 hover:shadow-amber-500/20' : 'bg-neutral-700 text-white/50 cursor-not-allowed'}`}
                     disabled={selectedItems.size === 0}
+                    onClick={() => router.push('/checkout')}
                   >
                     {selectedItems.size > 0 ? (
                       <span className="flex items-center justify-center gap-2">
