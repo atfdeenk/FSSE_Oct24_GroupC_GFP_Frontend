@@ -254,7 +254,24 @@ export function useCart() {
     setSelectedItems(new Set());
   }, []);
 
-
+  // Clear the entire cart
+  const clearCart = useCallback(async () => {
+    setLoading(true);
+    try {
+      const response = await cartService.clearCart();
+      if (response.success) {
+        setCartItems([]);
+        setSelectedItems(new Set());
+        // Toast is handled by the cart service
+      } else {
+        setError('Failed to clear cart');
+      }
+    } catch (err) {
+      setError('Failed to clear cart');
+    } finally {
+      setLoading(false);
+    }
+  }, []);
 
   return {
     cartItems,
@@ -264,12 +281,12 @@ export function useCart() {
     loading,
     error,
     fetchCart,
+    addToCartWithCountCheck,
     updateQuantity,
     removeItem,
-    addToCartWithCountCheck,
     toggleSelectItem,
     selectAllItems,
     clearAllSelections,
-
+    clearCart,
   };
 }

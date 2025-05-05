@@ -232,20 +232,32 @@ const cartService = {
   // Clear the entire cart
   clearCart: async (): Promise<{ success: boolean; error: string | null; data?: any }> => {
     try {
-      const response = await axiosInstance.delete<CartResponse>(
-        API_CONFIG.ENDPOINTS.cart.items
-      );
+      // First get all cart items
+      const cartResponse = await cartService.getCart();
+      const cartItems = cartResponse?.data?.items || [];
       
-      // Trigger refresh after successful cart clearing
-      const result = normalizeCartResponse(response.data, 'Failed to clear cart');
-      if (result.success) {
-        // Set showToast to false to prevent duplicate toasts
-        refreshCart({ source: 'clear', showToast: false });
+      if (cartItems.length === 0) {
+        // Cart is already empty
+        return { success: true, error: null, data: { items: [] } };
       }
       
-      return result;
+      // Remove each item one by one
+      const removePromises = cartItems.map((item: any) => 
+        axiosInstance.delete<CartResponse>(API_CONFIG.ENDPOINTS.cart.item(item.id))
+      );
+      
+      await Promise.all(removePromises);
+      
+      // Show success toast
+      showSuccess('Cart cleared successfully');
+      
+      // Trigger refresh after successful cart clearing
+      refreshCart({ source: 'clear', showToast: false });
+      
+      return { success: true, error: null, data: { items: [] } };
     } catch (error: any) {
       console.error('Clear cart error:', error);
+      showError('Failed to clear cart');
       return normalizeCartResponse(error.response?.data || {}, 'Failed to clear cart');
     }
   },
