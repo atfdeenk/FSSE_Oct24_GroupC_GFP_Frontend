@@ -9,6 +9,7 @@ import ConfirmationModal from "@/components/ui/ConfirmationModal";
 import PromoCodeInput from "@/components/PromoCodeInput";
 import OrderSummary from "@/components/OrderSummary";
 import LoadingOverlay from '@/components/ui/LoadingOverlay';
+import BalanceDisplay from '@/components/ui/BalanceDisplay';
 import EmptyState from "@/components/EmptyState";
 import SellerGroup from "@/components/SellerGroup";
 import { PROMO_CODES } from "@/constants/promoCodes";
@@ -285,6 +286,11 @@ export default function CartPage() {
                       </span>
                     ) : 'Select Items to Checkout'}
                   </button>
+                  {/* Balance Display */}
+                  <div className="mt-6">
+                    <BalanceDisplay orderTotal={total} showSufficiency={true} />
+                  </div>
+                  
                   <div className="mt-6 p-4 bg-black/30 rounded-sm border border-white/5">
                     <h3 className="text-white text-sm font-medium mb-2 flex items-center gap-2">
                       <svg className="w-4 h-4 text-green-400" fill="none" viewBox="0 0 24 24" stroke="currentColor">
