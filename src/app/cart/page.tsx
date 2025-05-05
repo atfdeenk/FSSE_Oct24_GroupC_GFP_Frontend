@@ -34,6 +34,7 @@ export default function CartPage() {
   const [promoCode, setPromoCode] = useState("");
   const [promoDiscount, setPromoDiscount] = useState(0);
   const [promoError, setPromoError] = useState("");
+  const [showSelectionBar, setShowSelectionBar] = useState(false);
 
   useEffect(() => {
     // Check if user is authenticated
@@ -45,6 +46,16 @@ export default function CartPage() {
     fetchCart();
   }, [fetchCart]);
 
+  // Show selection bar when items are selected
+  useEffect(() => {
+    if (selectedItems.size > 0) {
+      setShowSelectionBar(true);
+    } else {
+      // Add a small delay before hiding to allow for animations
+      const timer = setTimeout(() => setShowSelectionBar(false), 300);
+      return () => clearTimeout(timer);
+    }
+  }, [selectedItems.size]);
 
   // Check if all items are selected
   const areAllItemsSelected = cartItems.length > 0 && selectedItems.size === cartItems.length;
@@ -95,23 +106,67 @@ export default function CartPage() {
   return (
     <div className="min-h-screen flex flex-col bg-black">
       <Header />
-      <main className="flex-grow py-12 px-6">
+      <main className="flex-grow py-8 px-4 md:py-12 md:px-6">
         <div className="max-w-6xl mx-auto">
-          <h1 className="text-3xl font-bold text-white mb-2">Your Cart</h1>
-          <p className="text-white/60 mb-8">{cartItems.length} {cartItems.length === 1 ? 'item' : 'items'} in your cart</p>
+          <div className="flex flex-col md:flex-row md:items-end justify-between mb-6 md:mb-8 gap-4">
+            <div>
+              <h1 className="text-3xl font-bold text-white mb-2">Your Cart</h1>
+              <p className="text-white/60">
+                {cartItems.length} {cartItems.length === 1 ? 'item' : 'items'} in your cart
+                {selectedItems.size > 0 && (
+                  <span className="ml-2 text-amber-400">
+                    ({selectedItems.size} selected for checkout)
+                  </span>
+                )}
+              </p>
+            </div>
+            
+            <Link 
+              href="/products" 
+              className="text-white/70 hover:text-white flex items-center gap-2 group transition-colors text-sm bg-white/5 hover:bg-white/10 px-4 py-2 rounded-full self-start"
+            >
+              <svg className="w-4 h-4 group-hover:-translate-x-1 transition-transform" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M10 19l-7-7m0 0l7-7m-7 7h18" />
+              </svg>
+              Continue Shopping
+            </Link>
+          </div>
 
           {loading ? (
             <LoadingOverlay message="Loading your cart..." />
           ) : cartItems.length === 0 ? (
-            <EmptyState message="Your cart is empty">
-              <svg className="w-20 h-20 text-white/30 mx-auto mb-6" fill="none" viewBox="0 0 24 24" stroke="currentColor">
-                <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={1.5} d="M3 3h2l.4 2M7 13h10l4-8H5.4M7 13L5.4 5M7 13l-2.293 2.293c-.63.63-.184 1.707.707 1.707H17m0 0a2 2 0 100 4 2 2 0 000-4zm-8 2a2 2 0 11-4 0 2 2 0 014 0z" />
-              </svg>
-              <p className="text-white/70 mb-8 max-w-md mx-auto">Looks like you haven't added any items to your cart yet. Discover our local artisan products and add your favorites!</p>
-              <Link href="/products" className="bg-amber-500 text-black px-8 py-3 rounded-sm font-medium hover:bg-amber-400 transition-colors inline-block shadow-lg hover:shadow-amber-500/20">
-                Explore Products
-              </Link>
-            </EmptyState>
+            <div className="bg-neutral-900/40 backdrop-blur-sm rounded-lg border border-white/5 shadow-xl p-8 md:p-12 text-center animate-fade-in">
+              <div className="relative w-32 h-32 mx-auto mb-6">
+                <div className="absolute inset-0 bg-gradient-to-br from-amber-500/20 to-amber-800/20 rounded-full animate-pulse"></div>
+                <svg className="w-full h-full text-white/30 relative z-10" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                  <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={1} d="M3 3h2l.4 2M7 13h10l4-8H5.4M7 13L5.4 5M7 13l-2.293 2.293c-.63.63-.184 1.707.707 1.707H17m0 0a2 2 0 100 4 2 2 0 000-4zm-8 2a2 2 0 11-4 0 2 2 0 014 0z" />
+                </svg>
+              </div>
+              <h2 className="text-2xl font-bold text-white mb-3">Your cart is empty</h2>
+              <p className="text-white/60 max-w-md mx-auto mb-8">Your cart is currently empty. Browse our products and add items to your cart.</p>
+              
+              <div className="flex flex-col sm:flex-row gap-4 justify-center">
+                <Link 
+                  href="/products" 
+                  className="inline-flex items-center justify-center gap-2 bg-amber-500 text-black px-6 py-3 rounded-md font-bold hover:bg-amber-400 transition-all shadow-lg hover:shadow-amber-500/20 hover:translate-y-[-2px]"
+                >
+                  <svg className="w-5 h-5" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                    <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M16 11V7a4 4 0 00-8 0v4M5 9h14l1 12H4L5 9z" />
+                  </svg>
+                  Browse Products
+                </Link>
+                
+                <Link 
+                  href="/wishlist" 
+                  className="inline-flex items-center justify-center gap-2 bg-white/5 text-white px-6 py-3 rounded-md font-medium hover:bg-white/10 transition-all border border-white/10"
+                >
+                  <svg className="w-5 h-5 text-red-400" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                    <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={1.5} d="M4.318 6.318a4.5 4.5 0 000 6.364L12 20.364l7.682-7.682a4.5 4.5 0 00-6.364-6.364L12 7.636l-1.318-1.318a4.5 4.5 0 00-6.364 0z" />
+                  </svg>
+                  View Wishlist
+                </Link>
+              </div>
+            </div>
           ) : (
             <div className="grid grid-cols-1 lg:grid-cols-3 gap-8">
               {/* Cart Items */}
@@ -150,22 +205,21 @@ export default function CartPage() {
                       />
                     ))}
                   </ul>
-                  {cartItems.length > 0 && (
-                    <div className="p-4 border-t border-white/10 bg-black/20 flex justify-between items-center">
-                      <Link href="/products" className="text-amber-500 hover:text-amber-400 text-sm flex items-center gap-2">
-                        <svg className="w-4 h-4" fill="none" viewBox="0 0 24 24" stroke="currentColor">
-                          <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M10 19l-7-7m0 0l7-7m-7 7h18" />
-                        </svg>
-                        Continue Shopping
-                      </Link>
-                      <div className="flex items-center gap-4">
-                        <span className="text-white/60 text-sm">
-                          <span className="font-medium text-white">{selectedItems.size}</span> of {cartItems.length} selected
-                          {selectedItems.size > 0 && (
-                            <span className="ml-2">Subtotal: <span className="text-amber-500 font-medium">{formatCurrency(subtotal)}</span></span>
-                          )}
-                        </span>
+                  {cartItems.length > 0 && selectedItems.size > 0 && (
+                    <div className="sticky bottom-0 left-0 right-0 p-4 bg-gradient-to-t from-black to-black/90 border-t border-white/10 flex justify-between items-center mt-6 backdrop-blur-sm rounded-b-lg shadow-lg animate-slide-up">
+                      <div className="text-white/80 text-sm">
+                        <span className="font-medium text-amber-400">{selectedItems.size}</span> items selected
+                        <span className="ml-2 hidden sm:inline-block">({formatCurrency(subtotal)})</span>
                       </div>
+                      <button
+                        className="bg-amber-500 text-black px-4 py-2 rounded-md font-medium hover:bg-amber-400 transition-all shadow-lg hover:shadow-amber-500/20 hover:translate-y-[-2px] flex items-center gap-2"
+                        disabled={selectedItems.size === 0}
+                      >
+                        <svg className="w-4 h-4" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                          <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M9 5l7 7-7 7" />
+                        </svg>
+                        Proceed to Checkout
+                      </button>
                     </div>
                   )}
                 </div>
