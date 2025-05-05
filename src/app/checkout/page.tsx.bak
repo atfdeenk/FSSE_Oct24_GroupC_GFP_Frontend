@@ -111,9 +111,7 @@ export default function CheckoutPage() {
         return;
       }
       
-      // Get current selected items from context for logging only
-      const currentSelectedCount = selectedItems.size;
-      console.log('Syncing selected items. Cart items:', cartItems.length, 'Selected items:', currentSelectedCount);
+      console.log('Syncing selected items. Cart items:', cartItems.length, 'Selected items:', selectedItems.size);
       
       // Check both localStorage keys for selected items
       if (typeof window !== 'undefined') {
@@ -131,6 +129,9 @@ export default function CheckoutPage() {
             if (Array.isArray(parsedItems) && parsedItems.length > 0) {
               console.log('Found stored selected items:', parsedItems);
               
+              // Update the selected items in the cart context immediately
+              setSelectedItems(new Set(parsedItems));
+              
               // Filter cart items that match the IDs (handle both string and number types)
               const filtered = cartItems.filter(item => {
                 return parsedItems.some(id => 
@@ -146,64 +147,49 @@ export default function CheckoutPage() {
                 console.log('Setting selected cart items from localStorage:', filtered.map(i => i.id));
                 setSelectedCartItems(filtered);
                 
-                // Update the selected items in the cart context
-                // Only update localStorage if we're initializing to avoid infinite loops
-                if (!hasInitialized) {
-                  setSelectedItems(new Set(filtered.map(item => item.id)));
-                }
+                // Ensure localStorage is updated with the correct IDs
+                localStorage.setItem('cartSelectedItems', JSON.stringify(filtered.map(item => item.id)));
               } else if (cartItems.length > 0) {
                 // If no items match but we have cart items, select all cart items
                 console.log('No matching items found, using all cart items');
                 const allIds = cartItems.map(item => item.id);
                 setSelectedCartItems(cartItems);
-                
-                // Only update selected items and localStorage if we're initializing
-                if (!hasInitialized) {
-                  setSelectedItems(new Set(allIds));
-                  localStorage.setItem('cartSelectedItems', JSON.stringify(allIds));
-                }
+                setSelectedItems(new Set(allIds));
+                localStorage.setItem('cartSelectedItems', JSON.stringify(allIds));
               }
-            } else if (cartItems.length > 0 && !hasInitialized) {
+            } else if (cartItems.length > 0) {
               // If no valid items in localStorage but we have cart items, select all
-              // Only do this during initialization
               console.log('No valid items in localStorage, using all cart items');
               const allIds = cartItems.map(item => item.id);
               setSelectedCartItems(cartItems);
               setSelectedItems(new Set(allIds));
               localStorage.setItem('cartSelectedItems', JSON.stringify(allIds));
             }
-          } else if (currentSelectedCount > 0) {
+          } else if (selectedItems.size > 0) {
             // If no localStorage entry but we have selected items in context
             console.log('No localStorage entry, using selectedItems from context');
             const filtered = cartItems.filter(item => {
               return Array.from(selectedItems).some(id => 
                 item.id === id || 
                 String(item.id) === String(id) || 
-                Number(id) === item.id || 
-                id === item.id
+                Number(item.id) === Number(id)
               );
             });
             
             if (filtered.length > 0) {
               console.log('Setting selected cart items from context:', filtered.map(i => i.id));
               setSelectedCartItems(filtered);
-              
-              // Only update localStorage during initialization
-              if (!hasInitialized) {
-                localStorage.setItem('cartSelectedItems', JSON.stringify(filtered.map(item => item.id)));
-              }
-            } else if (cartItems.length > 0 && !hasInitialized) {
+              localStorage.setItem('cartSelectedItems', JSON.stringify(filtered.map(item => item.id)));
+            } else if (cartItems.length > 0) {
               // If no selected items in context but we have cart items, select all
-              // Only do this during initialization
               console.log('No selected items in context, using all cart items');
               const allIds = cartItems.map(item => item.id);
               setSelectedCartItems(cartItems);
               setSelectedItems(new Set(allIds));
               localStorage.setItem('cartSelectedItems', JSON.stringify(allIds));
             }
-          } else if (cartItems.length > 0 && !hasInitialized) {
+          } else if (cartItems.length > 0) {
             // If no selected items anywhere but we have cart items, select all
-            // Only do this during initialization
             console.log('No selected items anywhere, using all cart items');
             const allIds = cartItems.map(item => item.id);
             setSelectedCartItems(cartItems);
@@ -212,8 +198,8 @@ export default function CheckoutPage() {
           }
         } catch (error) {
           console.error('Error parsing selected items from localStorage:', error);
-          // Fallback to all cart items if we have any, but only during initialization
-          if (cartItems.length > 0 && !hasInitialized) {
+          // Fallback to all cart items if we have any
+          if (cartItems.length > 0) {
             const allIds = cartItems.map(item => item.id);
             setSelectedCartItems(cartItems);
             setSelectedItems(new Set(allIds));
@@ -222,16 +208,14 @@ export default function CheckoutPage() {
         }
       }
       
-      if (!hasInitialized) {
-        setHasInitialized(true);
-      }
+      setHasInitialized(true);
     };
     
-    // Run the sync function whenever cart items or cart loading changes
+    // Run the sync function whenever cart items or selected items change
     syncSelectedItems();
-  }, [cartItems, cartLoading, hasInitialized]);
+  }, [cartItems, cartLoading, selectedItems, setSelectedItems]);
 
-  // Redirect if not authenticated or if no items in cart
+  // Redirect if not authenticated
   useEffect(() => {
     if (!isAuthenticated()) {
       router.push('/login?redirect=checkout');
@@ -244,25 +228,11 @@ export default function CheckoutPage() {
       router.push('/cart');
     }
   }, [hasInitialized, selectedCartItems, cartItems, router]);
-  
-  // Synchronize selected items between context and cart items
-  useEffect(() => {
-    if (!hasInitialized || cartLoading) {
+      router.push('/login?redirect=checkout');
       return;
     }
-
-    // If we have selectedCartItems but the context selectedItems doesn't match
-    if (selectedCartItems.length > 0 && selectedCartItems.length !== selectedItems.size) {
-      console.log('Synchronizing selected items with cart items');
-      // Update the selected items in context to match the selected cart items
-      const selectedCartIds = selectedCartItems.map(item => item.id);
-      setSelectedItems(new Set(selectedCartIds));
-      
-      // Update localStorage with the correct IDs
-      localStorage.setItem('cartSelectedItems', JSON.stringify(selectedCartIds));
-    }
-  }, [selectedCartItems, selectedItems, hasInitialized, cartLoading, setSelectedItems]);
-
+  }, [router]);
+  
   // Add a separate effect with a delay to check for selected items
   useEffect(() => {
     // Only run this check after we've tried to initialize the selected items
@@ -273,27 +243,20 @@ export default function CheckoutPage() {
     // Don't check immediately to allow time for items to load from localStorage
     const timer = setTimeout(() => {
       // Only check once cart is loaded and not on first render
-      // Only redirect if we have cart items but none are selected
       if (!cartLoading && selectedCartItems.length === 0 && cartItems.length > 0) {
-        // Check localStorage one more time before redirecting
-        const storedItems = localStorage.getItem('cartSelectedItems');
-        if (!storedItems || JSON.parse(storedItems).length === 0) {
-          console.log('No items selected, redirecting to cart');
-          toast.error('Please select items to checkout first');
-          router.push('/cart');
-        }
+        console.log('No items selected, redirecting to cart');
+        toast.error('Please select items to checkout first');
+        router.push('/cart');
       }
-    }, 3000); // Increased timeout to ensure everything has loaded
+    }, 2000); // Give enough time for localStorage and cart to sync
     
     return () => clearTimeout(timer);
   }, [cartLoading, selectedCartItems.length, cartItems.length, router, hasInitialized]);
   
-  // Keep selected items in localStorage when component unmounts
-  // but remove the old format key to avoid confusion
+  // Clear stored selected items when component unmounts
   useEffect(() => {
     return () => {
       if (typeof window !== 'undefined') {
-        // Only remove the old format key, keep the new one (cartSelectedItems)
         localStorage.removeItem('checkoutSelectedItems');
       }
     };
@@ -856,10 +819,9 @@ export default function CheckoutPage() {
                   {process.env.NODE_ENV === 'development' && (
                     <div className="mb-4 p-3 bg-black/30 border border-white/10 rounded-lg">
                       <div className="text-white/70 text-xs mb-1">Debug Info:</div>
-                      <div className="text-white/60 text-xs">Selected Cart Items: {selectedCartItems.length}</div>
+                      <div className="text-white/60 text-xs">Selected Items: {selectedCartItems.length}</div>
                       <div className="text-white/60 text-xs">Cart Items: {cartItems.length}</div>
-                      <div className="text-white/60 text-xs">Selected IDs in Context: {Array.from(selectedItems).join(', ')}</div>
-                      <div className="text-white/60 text-xs">Selected IDs in Cart: {selectedCartItems.map(item => item.id).join(', ')}</div>
+                      <div className="text-white/60 text-xs">Selected IDs: {Array.from(selectedItems).join(', ')}</div>
                     </div>
                   )}
                   
@@ -877,28 +839,28 @@ export default function CheckoutPage() {
                       {selectedCartItems.map((item) => (
                         <div key={item.id} className="flex items-start border-b border-white/10 pb-4 mb-4 last:border-0 last:pb-0 last:mb-0">
                           {/* Product Image */}
-                          <div className="w-16 h-16 rounded-md overflow-hidden bg-white/5 mr-3 flex-shrink-0">
-                            <img 
-                              src={item.product?.image_url || item.image_url || '/images/product-placeholder.png'} 
-                              alt={item.product?.name || item.name || `Product #${item.product_id}`} 
-                              className="w-full h-full object-cover"
-                              onError={(e) => {
-                                (e.target as HTMLImageElement).src = '/images/product-placeholder.png';
-                              }}
-                            />
-                          </div>
+                          {item.product?.image_url && (
+                            <div className="w-16 h-16 rounded-md overflow-hidden bg-white/5 mr-3 flex-shrink-0">
+                              <img 
+                                src={item.product.image_url} 
+                                alt={item.product.name} 
+                                className="w-full h-full object-cover"
+                                onError={(e) => {
+                                  (e.target as HTMLImageElement).src = '/images/product-placeholder.png';
+                                }}
+                              />
+                            </div>
+                          )}
                           
                           {/* Product Details */}
                           <div className="flex-grow">
-                            <div className="text-white font-medium">
-                              {item.product?.name || item.name || `Product #${item.product_id}`}
-                            </div>
+                            <div className="text-white font-medium">{item.product?.name || 'Product'}</div>
                             <div className="flex items-center text-white/60 text-sm mt-1">
                               <svg className="w-3 h-3 mr-1 text-green-500" fill="none" viewBox="0 0 24 24" stroke="currentColor">
                                 <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M17.657 16.657L13.414 20.9a1.998 1.998 0 01-2.827 0l-4.244-4.243a8 8 0 1111.314 0z" />
                                 <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M15 11a3 3 0 11-6 0 3 3 0 016 0z" />
                               </svg>
-                              {item.product?.location || item.seller || 'Local Artisan'}
+                              {item.product?.location || 'Local Artisan'}
                             </div>
                             
                             {item.product?.categories && item.product.categories.length > 0 && (
@@ -938,10 +900,10 @@ export default function CheckoutPage() {
                           {/* Price and Quantity */}
                           <div className="text-right ml-4">
                             <div className="text-white font-medium">
-                              {formatCurrency((item.product?.price || item.unit_price || item.price || 0) * item.quantity)}
+                              {formatCurrency((item.product?.price || 0) * item.quantity)}
                             </div>
                             <div className="text-white/60 text-sm mt-1">
-                              {item.quantity} × {formatCurrency(item.product?.price || item.unit_price || item.price || 0)}
+                              {item.quantity} × {formatCurrency(item.product?.price || 0)}
                             </div>
                           </div>
                         </div>

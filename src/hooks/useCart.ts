@@ -1,5 +1,5 @@
 "use client";
-import { useState, useEffect, useCallback } from 'react';
+import { useState, useEffect, useCallback, useRef } from 'react';
 import { useRouter } from 'next/navigation';
 import { fetchCartWithDetails } from '@/services/cartLogic';
 import cartService from '@/services/api/cart';
@@ -19,7 +19,10 @@ export function useCart() {
   const [error, setError] = useState<string | null>(null);
 
 
-  const fetchCart = useCallback(async () => {
+  // Keep track of initial load to know when to auto-select all items
+  const isInitialLoadRef = useRef(true);
+  
+  const fetchCart = useCallback(async (options = { preserveSelections: true }) => {
     setLoading(true);
     try {
       if (!isAuthenticated()) {
@@ -28,10 +31,40 @@ export function useCart() {
         setSelectedItems(new Set());
         return;
       }
+      
+      // Get current selections before any state updates
+      const currentSelections = new Set(Array.from(selectedItems));
+      
       const cartResponse = await cartService.getCart();
       const itemsWithDetails = await fetchCartWithDetails();
+      
+      // Update cart items
       setCartItems(itemsWithDetails);
-      setSelectedItems(new Set(itemsWithDetails.map(item => item.id)));
+      
+      // Selection logic based on options and initial load state
+      if (!options.preserveSelections || isInitialLoadRef.current) {
+        // Auto-select all items on initial load or when not preserving selections
+        isInitialLoadRef.current = false;
+        setSelectedItems(new Set(itemsWithDetails.map(item => item.id)));
+      } else {
+        // Keep only the selections that still exist in the cart
+        const validSelections = new Set(
+          Array.from(currentSelections).filter(id => 
+            itemsWithDetails.some(item => 
+              item.id === id || 
+              String(item.id) === String(id) || 
+              Number(item.id) === Number(id)
+            )
+          )
+        );
+        
+        // If we have no valid selections but have items, select them all
+        if (validSelections.size === 0 && itemsWithDetails.length > 0) {
+          setSelectedItems(new Set(itemsWithDetails.map(item => item.id)));
+        } else {
+          setSelectedItems(validSelections);
+        }
+      }
     } catch (err) {
       setError('Failed to fetch cart');
       setCartItems([]);
@@ -39,7 +72,7 @@ export function useCart() {
     } finally {
       setLoading(false);
     }
-  }, [router]);
+  }, [router]); // Removed selectedItems dependency to prevent infinite loops
   
   // Function to handle refresh events from the API
   const handleApiRefresh = useCallback((detail: RefreshEventDetail = {}) => {
@@ -49,19 +82,45 @@ export function useCart() {
     // If showToast is false or not specified, we're refreshing from API and should suppress toasts
     isRefreshingFromApi = detail.showToast === true ? false : true;
     
+    // Check if we should preserve selections
+    const preserveSelections = detail.preserveSelections !== false;
+    
+    // If we're not preserving selections, clear them before fetching
+    // This is handled separately from fetchCart to avoid dependency cycles
+    if (!preserveSelections) {
+      setSelectedItems(new Set());
+      // Force a new initial load to select all items again if needed
+      isInitialLoadRef.current = true;
+    }
+    
     fetchCart().finally(() => {
       // Reset the flag after a short delay to ensure toasts don't overlap
       setTimeout(() => {
         isRefreshingFromApi = false;
       }, 300);
     });
-  }, [fetchCart]);
+  }, [fetchCart]); // Removed selectedItems dependency to prevent infinite loops
 
   useEffect(() => {
-    // Initial cart fetch
+    if (typeof window !== 'undefined') {
+      try {
+        const savedSelections = localStorage.getItem('cartSelectedItems');
+        if (savedSelections) {
+          const parsedSelections = JSON.parse(savedSelections);
+          if (Array.isArray(parsedSelections) && parsedSelections.length > 0) {
+            setSelectedItems(new Set(parsedSelections));
+          }
+        }
+      } catch (error) {
+        console.error('Error loading cart selections from localStorage:', error);
+      }
+    }
+  }, []);
+
+  useEffect(() => {
     fetchCart();
     
-    // Listen for cart refresh events
+    // Set up event listener for cart refresh events using the utility
     const cleanup = onRefresh(REFRESH_EVENTS.CART, handleApiRefresh);
     
     return cleanup;
@@ -237,21 +296,48 @@ export function useCart() {
   const toggleSelectItem = useCallback((id: string | number) => {
     setSelectedItems(prev => {
       const newSet = new Set(prev);
-      if (newSet.has(id)) {
+      
+      // Check if the item is already selected (accounting for string/number conversion)
+      const isSelected = Array.from(prev).some(itemId => 
+        itemId === id || String(itemId) === String(id) || Number(itemId) === Number(id)
+      );
+      
+      if (isSelected) {
+        // Remove all variations of the ID (string and number)
         newSet.delete(id);
+        newSet.delete(String(id));
+        newSet.delete(Number(id));
       } else {
+        // Always store as the original type to maintain consistency
         newSet.add(id);
       }
+      
+      // Store the updated selection in localStorage for persistence
+      if (typeof window !== 'undefined') {
+        localStorage.setItem('cartSelectedItems', JSON.stringify(Array.from(newSet)));
+      }
+      
       return newSet;
     });
   }, []);
 
   const selectAllItems = useCallback(() => {
-    setSelectedItems(new Set(cartItems.map(item => item.id)));
+    const allIds = cartItems.map(item => item.id);
+    setSelectedItems(new Set(allIds));
+    
+    // Store the updated selection in localStorage for persistence
+    if (typeof window !== 'undefined') {
+      localStorage.setItem('cartSelectedItems', JSON.stringify(allIds));
+    }
   }, [cartItems]);
 
   const clearAllSelections = useCallback(() => {
     setSelectedItems(new Set());
+    
+    // Clear the selection in localStorage
+    if (typeof window !== 'undefined') {
+      localStorage.setItem('cartSelectedItems', JSON.stringify([]));
+    }
   }, []);
 
   // Clear the entire cart

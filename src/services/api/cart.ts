@@ -126,7 +126,8 @@ const cartService = {
       const result = normalizeCartResponse(response.data, 'Failed to add to cart');
       
       // Trigger refresh with showToast false to prevent duplicate toasts
-      refreshCart({ source: 'add', id: itemData.product_id, showToast: false });
+      // Also preserve selections to prevent deselection issues
+      refreshCart({ source: 'add', id: itemData.product_id, showToast: false, preserveSelections: true });
       
       return result;
     } catch (error: any) {
@@ -172,7 +173,8 @@ const cartService = {
       const result = normalizeCartResponse(response.data, `Failed to update cart item ${itemId}`);
       
       // Trigger refresh with showToast false to prevent duplicate toasts
-      refreshCart({ source: 'update', id: itemId, showToast: false });
+      // Also preserve selections to prevent deselection issues
+      refreshCart({ source: 'update', id: itemId, showToast: false, preserveSelections: true });
       
       return result;
     } catch (error: any) {
@@ -218,7 +220,8 @@ const cartService = {
       const result = normalizeCartResponse(response.data, `Failed to remove cart item ${itemId}`);
       
       // Trigger refresh with showToast false to prevent duplicate toasts
-      refreshCart({ source: 'remove', id: itemId, showToast: false });
+      // Also preserve selections to prevent deselection issues
+      refreshCart({ source: 'remove', id: itemId, showToast: false, preserveSelections: true });
       
       return result;
     } catch (error: any) {
@@ -252,7 +255,8 @@ const cartService = {
       showSuccess('Cart cleared successfully');
       
       // Trigger refresh after successful cart clearing
-      refreshCart({ source: 'clear', showToast: false });
+      // In this case, we don't want to preserve selections since we're clearing the cart
+      refreshCart({ source: 'clear', showToast: false, preserveSelections: false });
       
       return { success: true, error: null, data: { items: [] } };
     } catch (error: any) {

@@ -17,6 +17,7 @@ import { isAuthenticated } from "@/lib/auth";
 import { calculateSubtotal, calculateDiscount, calculateTotal } from '@/utils/cartUtils';
 import { formatCurrency } from '@/utils/format';
 import { CartItemWithDetails } from '@/types/cart';
+import toast from 'react-hot-toast';
 
 export default function CartPage() {
   const router = useRouter();
@@ -275,7 +276,26 @@ export default function CartPage() {
                   <button
                     className={`w-full py-3 rounded-sm font-bold transform hover:translate-y-[-2px] transition-all duration-300 shadow-lg ${selectedItems.size > 0 ? 'bg-amber-500 text-black hover:bg-amber-400 hover:shadow-amber-500/20' : 'bg-neutral-700 text-white/50 cursor-not-allowed'}`}
                     disabled={selectedItems.size === 0}
-                    onClick={() => router.push('/checkout')}
+                    onClick={() => {
+                      if (selectedItems.size > 0) {
+                        // Store selected items in both localStorage keys to ensure compatibility
+                        const selectedIds = Array.from(selectedItems);
+                        console.log('Storing selected items for checkout:', selectedIds);
+                        localStorage.setItem('checkoutSelectedItems', JSON.stringify(selectedIds));
+                        localStorage.setItem('cartSelectedItems', JSON.stringify(selectedIds));
+                        
+                        // Force a synchronization of the cart state
+                        setSelectedItems(new Set(selectedIds));
+                        
+                        // Add a small delay to ensure localStorage is updated before navigation
+                        setTimeout(() => {
+                          // Navigate to checkout
+                          router.push('/checkout');
+                        }, 200);
+                      } else {
+                        toast.error('Please select items to checkout');
+                      }
+                    }}
                   >
                     {selectedItems.size > 0 ? (
                       <span className="flex items-center justify-center gap-2">

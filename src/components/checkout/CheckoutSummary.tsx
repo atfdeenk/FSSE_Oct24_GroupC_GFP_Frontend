@@ -21,71 +21,92 @@ const CheckoutSummary: React.FC<CheckoutSummaryProps> = ({
   promoCode
 }) => {
   return (
-    <div className="bg-neutral-900/80 backdrop-blur-sm rounded-md border border-white/10 p-6">
-      <h2 className="text-xl font-bold text-white mb-4">Order Summary</h2>
-      
-      <div className="space-y-4 max-h-[400px] overflow-y-auto pr-2 mb-6">
-        {items.map((item) => (
-          <div key={item.id} className="flex items-center gap-4 border-b border-white/10 pb-4">
-            <div className="relative w-16 h-16 bg-neutral-800 rounded-md overflow-hidden flex-shrink-0">
-              {item.product?.image_url ? (
-                <Image
-                  src={item.product.image_url}
-                  alt={item.product.name || 'Product image'}
-                  fill
-                  sizes="64px"
-                  className="object-cover"
-                  onError={(e) => {
-                    // Fallback to placeholder on error
-                    (e.target as HTMLImageElement).src = '/images/placeholder.png';
-                  }}
-                />
-              ) : (
-                <div className="w-full h-full flex items-center justify-center text-white/30">
-                  <svg className="w-8 h-8" fill="none" viewBox="0 0 24 24" stroke="currentColor">
-                    <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={1.5} d="M4 16l4.586-4.586a2 2 0 012.828 0L16 16m-2-2l1.586-1.586a2 2 0 012.828 0L20 14m-6-6h.01M6 20h12a2 2 0 002-2V6a2 2 0 00-2-2H6a2 2 0 00-2 2v12a2 2 0 002 2z" />
-                  </svg>
-                </div>
-              )}
-              <div className="absolute top-0 right-0 bg-amber-500 text-black text-xs font-medium px-1 rounded-bl-md">
-                {item.quantity}
-              </div>
-            </div>
-            
-            <div className="flex-grow min-w-0">
-              <h3 className="text-white font-medium truncate">
-                {item.product?.name || 'Product'}
-              </h3>
-              <p className="text-white/60 text-sm">
-                {formatCurrency(item.product?.price || 0)} each
-              </p>
-            </div>
-            
-            <div className="text-right">
-              <p className="text-amber-500 font-medium">
-                {formatCurrency((item.product?.price || 0) * item.quantity)}
-              </p>
-            </div>
-          </div>
-        ))}
+    <div className="bg-neutral-900/80 backdrop-blur-sm rounded-lg shadow-sm border border-white/10 overflow-hidden">
+      {/* Header */}
+      <div className="bg-green-900/30 px-6 py-4 border-b border-white/10 flex items-center">
+        <div className="bg-green-500 text-white rounded-full w-8 h-8 flex items-center justify-center mr-3">
+          <svg className="w-4 h-4" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+            <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M16 11V7a4 4 0 00-8 0v4M5 9h14l1 12H4L5 9z" />
+          </svg>
+        </div>
+        <h2 className="text-lg font-semibold text-white">Order Summary</h2>
       </div>
       
-      <div className="space-y-3 border-t border-white/10 pt-4">
-        <div className="flex justify-between text-white/70">
-          <span>Subtotal</span>
-          <span>{formatCurrency(subtotal)}</span>
+      {/* Products List */}
+      <div className="p-6 space-y-6">
+        {/* Products */}
+        <div className="space-y-4 max-h-[350px] overflow-y-auto pr-2">
+          <h3 className="font-medium text-white/80 mb-3">Products ({items.length})</h3>
+          
+          <div className="space-y-4 divide-y divide-white/10">
+            {items.map((item) => (
+              <div key={item.id} className="flex items-center gap-4 pt-4 first:pt-0">
+                <div className="flex-grow min-w-0 flex flex-col">
+                  <p className="text-white font-medium">
+                    {item.quantity}
+                  </p>
+                  <h4 className="text-white font-medium truncate">
+                    {item.product?.name || 'Product'}
+                  </h4>
+                  <p className="text-white/60 text-sm">
+                    {formatCurrency(item.product?.price || 0)} × {item.quantity}
+                  </p>
+                </div>
+                
+                <div className="text-right">
+                  <p className="text-green-400 font-medium">
+                    {formatCurrency((item.product?.price || 0) * item.quantity)}
+                  </p>
+                </div>
+              </div>
+            ))}
+          </div>
         </div>
         
-        {discount > 0 && (
-          <div className="flex justify-between text-green-400">
-            <span>Discount {promoCode && `(${promoCode})`}</span>
-            <span>-{formatCurrency(discount)}</span>
+        {/* Price Breakdown */}
+        <div className="space-y-3 border-t border-white/10 pt-4">
+          <div className="flex justify-between text-white/70">
+            <span>Subtotal</span>
+            <span className="text-white">{formatCurrency(subtotal)}</span>
           </div>
-        )}
+          
+          {discount > 0 && (
+            <div className="flex justify-between text-white/70">
+              <span className="flex items-center">
+                <svg className="w-4 h-4 mr-1 text-green-400" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                  <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M7 7h.01M7 3h5c.512 0 1.024.195 1.414.586l7 7a2 2 0 010 2.828l-7 7a2 2 0 01-2.828 0l-7-7A1.994 1.994 0 013 12V7a4 4 0 014-4z" />
+                </svg>
+                Discount {promoCode && <span className="ml-1 bg-green-900/50 text-green-400 text-xs px-2 py-0.5 rounded">{promoCode}</span>}
+              </span>
+              <span className="text-green-400">-{formatCurrency(discount)}</span>
+            </div>
+          )}
+          
+          <div className="flex justify-between text-white/70">
+            <span>Shipping</span>
+            <span className="text-white">Free</span>
+          </div>
+          
+          <div className="flex justify-between text-white font-bold pt-3 border-t border-white/10 mt-2">
+            <span>Total</span>
+            <span className="text-green-400 text-lg">{formatCurrency(total)}</span>
+          </div>
+        </div>
         
-        <div className="flex justify-between text-white font-bold pt-2 border-t border-white/10">
-          <span>Total</span>
-          <span className="text-amber-500">{formatCurrency(total)}</span>
+        {/* Security Info */}
+        <div className="mt-4 p-4 bg-black/30 rounded-lg border border-white/10">
+          <div className="flex items-center text-white/70 text-sm">
+            <svg className="w-5 h-5 mr-2 text-green-500" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+              <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M9 12l2 2 4-4m5.618-4.016A11.955 11.955 0 0112 2.944a11.955 11.955 0 01-8.618 3.04A12.02 12.02 0 003 9c0 5.591 3.824 10.29 9 11.622 5.176-1.332 9-6.03 9-11.622 0-1.042-.133-2.052-.382-3.016z" />
+            </svg>
+            <span>Your order is protected and secure</span>
+          </div>
+          <div className="flex items-center text-white/70 text-sm mt-2">
+            <svg className="w-5 h-5 mr-2 text-green-500" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+              <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M12 8v4l3 3m6-3a9 9 0 11-18 0 9 9 0 0118 0z" />
+            </svg>
+            <span>Estimated delivery: 2-4 business days</span>
+          </div>
         </div>
       </div>
     </div>
