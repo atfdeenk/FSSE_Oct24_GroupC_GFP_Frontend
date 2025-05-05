@@ -79,9 +79,39 @@ export default function CheckoutPage() {
     }
   }, [user]);
   
+  // State for eco-friendly packaging options
   const [ecoPackaging, setEcoPackaging] = useState<Record<string | number, boolean>>({});
+  
+  // State for product notes
+  const [productNotes, setProductNotes] = useState<Record<string | number, string>>({});
   const [carbonOffset, setCarbonOffset] = useState(false);
   const [paymentMethod, setPaymentMethod] = useState<'balance' | 'cod'>('balance');
+  
+  // Helper function to group cart items by seller
+  const groupItemsBySeller = (items: CartItemWithDetails[]) => {
+    return items.reduce<Record<string, CartItemWithDetails[]>>((groups, item) => {
+      // Get seller name from available properties with fallbacks
+      // The Product type doesn't have a seller property, so we need to check location
+      const sellerName = (
+        // Try to get from cart item first
+        (item as any).seller || 
+        // Then try product location
+        item.product?.location || 
+        // Fallback to a default
+        'Local Artisan'
+      );
+      
+      // Create the group if it doesn't exist
+      if (!groups[sellerName]) {
+        groups[sellerName] = [];
+      }
+      
+      // Add the item to the group
+      groups[sellerName].push(item);
+      
+      return groups;
+    }, {});
+  };
 
   // State to track our filtered cart items
   const [selectedCartItems, setSelectedCartItems] = useState<CartItemWithDetails[]>([]);
@@ -409,13 +439,15 @@ export default function CheckoutPage() {
         }
       });
       
-      // Create order items from selected cart items with eco-packaging info
+      // Create order items from selected cart items with eco-packaging info and notes
       const orderItems = selectedCartItems.map(item => ({
         product_id: item.product_id,
         quantity: item.quantity,
         price: item.product?.price || 0,
         // Include eco-packaging info for each item
-        eco_packaging: updatedEcoPackaging[item.id] || false
+        eco_packaging: updatedEcoPackaging[item.id] || false,
+        // Include product notes if any
+        note: productNotes[item.id] || ''
       }));
       
       // Calculate accurate totals including eco-packaging and carbon offset
@@ -873,76 +905,113 @@ export default function CheckoutPage() {
                       <p className="text-sm mt-1">Please return to your cart and select items.</p>
                     </div>
                   ) : (
-                    <div className="space-y-4">
-                      {selectedCartItems.map((item) => (
-                        <div key={item.id} className="flex items-start border-b border-white/10 pb-4 mb-4 last:border-0 last:pb-0 last:mb-0">
-                          {/* Product Image */}
-                          <div className="w-16 h-16 rounded-md overflow-hidden bg-white/5 mr-3 flex-shrink-0">
-                            <img 
-                              src={item.product?.image_url || item.image_url || '/images/product-placeholder.png'} 
-                              alt={item.product?.name || item.name || `Product #${item.product_id}`} 
-                              className="w-full h-full object-cover"
-                              onError={(e) => {
-                                (e.target as HTMLImageElement).src = '/images/product-placeholder.png';
-                              }}
-                            />
-                          </div>
-                          
-                          {/* Product Details */}
-                          <div className="flex-grow">
-                            <div className="text-white font-medium">
-                              {item.product?.name || item.name || `Product #${item.product_id}`}
-                            </div>
-                            <div className="flex items-center text-white/60 text-sm mt-1">
-                              <svg className="w-3 h-3 mr-1 text-green-500" fill="none" viewBox="0 0 24 24" stroke="currentColor">
-                                <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M17.657 16.657L13.414 20.9a1.998 1.998 0 01-2.827 0l-4.244-4.243a8 8 0 1111.314 0z" />
-                                <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M15 11a3 3 0 11-6 0 3 3 0 016 0z" />
+                    <div className="space-y-6">
+                      {/* Group items by seller */}
+                      {Object.entries(groupItemsBySeller(selectedCartItems)).map(([seller, items]) => (
+                        <div key={seller} className="border border-white/10 rounded-lg overflow-hidden">
+                          {/* Seller Header */}
+                          <div className="bg-black/30 px-4 py-3 border-b border-white/10">
+                            <div className="flex items-center">
+                              <svg className="w-4 h-4 mr-2 text-green-500" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                                <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M16 7a4 4 0 11-8 0 4 4 0 018 0zM12 14a7 7 0 00-7 7h14a7 7 0 00-7-7z" />
                               </svg>
-                              {item.product?.location || item.seller || 'Local Artisan'}
-                            </div>
-                            
-                            {item.product?.categories && item.product.categories.length > 0 && (
-                              <div className="mt-1 text-xs bg-green-900/30 text-green-400 px-2 py-0.5 rounded-full inline-block">
-                                {item.product.categories[0].name}
-                              </div>
-                            )}
-                            
-                            {/* Eco-friendly Option */}
-                            <div 
-                              className="flex items-center mt-2 cursor-pointer hover:bg-white/5 p-1.5 rounded-md transition-colors"
-                              onClick={() => {
-                                setEcoPackaging(prev => ({
-                                  ...prev,
-                                  [item.id]: !prev[item.id]
-                                }));
-                              }}
-                            >
-                              <input 
-                                type="checkbox" 
-                                id={`eco-${item.id}`} 
-                                className="h-4 w-4 text-green-500 border-white/30 rounded bg-black cursor-pointer"
-                                checked={!!ecoPackaging[item.id]}
-                                onChange={() => {
-                                  setEcoPackaging(prev => ({
-                                    ...prev,
-                                    [item.id]: !prev[item.id]
-                                  }));
-                                }}
-                              />
-                              <label htmlFor={`eco-${item.id}`} className="ml-2 text-sm text-white/70 cursor-pointer">
-                                Add eco-friendly packaging (+{formatCurrency(2000)})
-                              </label>
+                              <span className="text-white font-medium">{seller}</span>
                             </div>
                           </div>
                           
-                          {/* Price and Quantity */}
-                          <div className="text-right ml-4">
-                            <div className="text-white font-medium">
-                              {formatCurrency((item.product?.price || item.unit_price || item.price || 0) * item.quantity)}
-                            </div>
-                            <div className="text-white/60 text-sm mt-1">
-                              {item.quantity} × {formatCurrency(item.product?.price || item.unit_price || item.price || 0)}
-                            </div>
+                          {/* Seller Items */}
+                          <div className="p-4 space-y-4">
+                            {items.map((item) => (
+                              <div key={item.id} className="flex flex-col">
+                                <div className="flex items-start pb-3 mb-2 border-b border-white/5">
+                                  {/* Product Image */}
+                                  <div className="w-16 h-16 rounded-md overflow-hidden bg-white/5 mr-3 flex-shrink-0">
+                                    <img 
+                                      src={item.product?.image_url || item.image_url || '/images/product-placeholder.png'} 
+                                      alt={item.product?.name || item.name || `Product #${item.product_id}`} 
+                                      className="w-full h-full object-cover"
+                                      onError={(e) => {
+                                        (e.target as HTMLImageElement).src = '/images/product-placeholder.png';
+                                      }}
+                                    />
+                                  </div>
+                                  
+                                  {/* Product Details */}
+                                  <div className="flex-grow">
+                                    <div className="text-white font-medium">
+                                      {item.product?.name || item.name || `Product #${item.product_id}`}
+                                    </div>
+                                    <div className="flex items-center text-white/60 text-sm mt-1">
+                                      <svg className="w-3 h-3 mr-1 text-green-500" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                                        <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M17.657 16.657L13.414 20.9a1.998 1.998 0 01-2.827 0l-4.244-4.243a8 8 0 1111.314 0z" />
+                                        <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M15 11a3 3 0 11-6 0 3 3 0 016 0z" />
+                                      </svg>
+                                      {item.product?.location || 'Local Artisan'}
+                                    </div>
+                                    
+                                    {item.product?.categories && item.product.categories.length > 0 && (
+                                      <div className="mt-1 text-xs bg-green-900/30 text-green-400 px-2 py-0.5 rounded-full inline-block">
+                                        {item.product.categories[0].name}
+                                      </div>
+                                    )}
+                                    
+                                    {/* Eco-friendly Option */}
+                                    <div 
+                                      className="flex items-center mt-2 cursor-pointer hover:bg-white/5 p-1.5 rounded-md transition-colors"
+                                      onClick={() => {
+                                        setEcoPackaging(prev => ({
+                                          ...prev,
+                                          [item.id]: !prev[item.id]
+                                        }));
+                                      }}
+                                    >
+                                      <input 
+                                        type="checkbox" 
+                                        id={`eco-${item.id}`} 
+                                        className="h-4 w-4 text-green-500 border-white/30 rounded bg-black cursor-pointer"
+                                        checked={!!ecoPackaging[item.id]}
+                                        onChange={() => {
+                                          setEcoPackaging(prev => ({
+                                            ...prev,
+                                            [item.id]: !prev[item.id]
+                                          }));
+                                        }}
+                                      />
+                                      <label htmlFor={`eco-${item.id}`} className="ml-2 text-sm text-white/70 cursor-pointer">
+                                        Add eco-friendly packaging (+{formatCurrency(2000)})
+                                      </label>
+                                    </div>
+                                  </div>
+                                  
+                                  {/* Price and Quantity */}
+                                  <div className="text-right ml-4">
+                                    <div className="text-white font-medium">
+                                      {formatCurrency((item.product?.price || item.unit_price || item.price || 0) * item.quantity)}
+                                    </div>
+                                    <div className="text-white/60 text-sm mt-1">
+                                      {item.quantity} × {formatCurrency(item.product?.price || item.unit_price || item.price || 0)}
+                                    </div>
+                                  </div>
+                                </div>
+                                
+                                {/* Product Note */}
+                                <div className="mt-1 w-full">
+                                  <textarea
+                                    placeholder={`Note for ${item.product?.name || item.name || 'this product'} (optional)`}
+                                    className="w-full bg-black/30 border border-white/10 rounded-md px-3 py-2 text-sm text-white/80 placeholder-white/40 focus:outline-none focus:ring-1 focus:ring-green-500/50 focus:border-green-500/50"
+                                    rows={2}
+                                    onChange={(e) => {
+                                      // Update product notes in state
+                                      setProductNotes(prev => ({
+                                        ...prev,
+                                        [item.id]: e.target.value
+                                      }));
+                                    }}
+                                    value={productNotes[item.id] || ''}
+                                  />
+                                </div>
+                              </div>
+                            ))}
                           </div>
                         </div>
                       ))}
