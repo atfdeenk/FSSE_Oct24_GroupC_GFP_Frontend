@@ -5,6 +5,7 @@ import { useRouter } from "next/navigation";
 import { useCart } from '@/hooks/useCart';
 import Link from "next/link";
 import { Header, Footer, SelectionControls } from "@/components";
+import ConfirmationModal from "@/components/ui/ConfirmationModal";
 import PromoCodeInput from "@/components/PromoCodeInput";
 import OrderSummary from "@/components/OrderSummary";
 import LoadingOverlay from '@/components/ui/LoadingOverlay';
@@ -36,6 +37,7 @@ export default function CartPage() {
   const [promoDiscount, setPromoDiscount] = useState(0);
   const [promoError, setPromoError] = useState("");
   const [showSelectionBar, setShowSelectionBar] = useState(false);
+  const [showClearCartModal, setShowClearCartModal] = useState(false);
 
   useEffect(() => {
     // Check if user is authenticated
@@ -125,11 +127,7 @@ export default function CartPage() {
             <div className="flex flex-wrap gap-3">
               {cartItems.length > 0 && (
                 <button
-                  onClick={() => {
-                    if (window.confirm('Are you sure you want to clear your entire cart?')) {
-                      clearCart();
-                    }
-                  }}
+                  onClick={() => setShowClearCartModal(true)}
                   className="text-red-400 hover:text-white hover:bg-red-500/20 flex items-center gap-2 transition-colors text-sm border border-red-500/30 px-4 py-2 rounded-full self-start"
                   disabled={loading}
                 >
@@ -303,6 +301,18 @@ export default function CartPage() {
         </div>
       </main>
       <Footer />
+
+      {/* Confirmation Modal for clearing cart */}
+      <ConfirmationModal
+        isOpen={showClearCartModal}
+        onClose={() => setShowClearCartModal(false)}
+        onConfirm={clearCart}
+        title="Clear Your Cart"
+        message="Are you sure you want to remove all items from your cart? This action cannot be undone."
+        confirmText="Clear Cart"
+        cancelText="Keep Items"
+        type="danger"
+      />
     </div>
   );
 }
