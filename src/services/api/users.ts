@@ -35,6 +35,15 @@ export interface UserResponse {
 }
 
 /**
+ * Interface for API response containing user balance
+ */
+export interface BalanceResponse {
+  success?: boolean;
+  balance: number;
+  error?: string;
+}
+
+/**
  * Users service for user-related API calls
  */
 const usersService = {
@@ -114,6 +123,28 @@ const usersService = {
       return {
         success: false,
         error: error?.response?.data?.message || error?.message || `Failed to find user with vendor ID ${vendorId}`
+      };
+    }
+  },
+
+  /**
+   * Get the current user's balance
+   */
+  async getUserBalance(): Promise<BalanceResponse> {
+    try {
+      const response = await axiosInstance.get(API_CONFIG.ENDPOINTS.auth.balance);
+      
+      // The API returns { balance: number }
+      return {
+        success: true,
+        balance: response.data.balance,
+      };
+    } catch (error: any) {
+      console.error('Failed to fetch user balance:', error);
+      return {
+        success: false,
+        balance: 0,
+        error: error?.response?.data?.message || error?.message || 'Failed to fetch user balance'
       };
     }
   }

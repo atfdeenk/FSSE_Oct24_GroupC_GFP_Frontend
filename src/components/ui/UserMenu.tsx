@@ -1,6 +1,7 @@
 import React, { RefObject } from "react";
 import Link from "next/link";
 import ChevronDownIcon from "@/components/ui/ChevronDownIcon";
+import UserBalance from "@/components/ui/UserBalance";
 
 interface UserMenuProps {
   user: {
@@ -42,6 +43,9 @@ const UserMenu: React.FC<UserMenuProps> = ({ user, show, onToggle, onLogout, use
         <div className="p-3 border-b border-white/10">
           <p className="text-white font-medium">{user?.first_name} {user?.last_name}</p>
           <p className="text-white/60 text-sm truncate">{user?.email}</p>
+          <div className="mt-3">
+            <UserBalance className="md:hidden" />
+          </div>
         </div>
         <ul>
           <li>

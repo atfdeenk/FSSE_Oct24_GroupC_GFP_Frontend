@@ -29,7 +29,8 @@ export const API_CONFIG = {
       register: '/register',
       me: '/me',
       users: '/users',
-      user: (id: string | number) => `/users/${id}`
+      user: (id: string | number) => `/users/${id}`,
+      balance: '/users/me/balance'
     },
     
     // Categories endpoints

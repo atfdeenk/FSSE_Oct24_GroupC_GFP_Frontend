@@ -17,6 +17,7 @@ import { useAuthUser } from "@/hooks/useAuthUser";
 import { useTokenExpiryHandler } from "@/hooks/useTokenExpiryHandler";
 import { useClickOutside } from "@/hooks/useClickOutside";
 import { useLogout } from "@/hooks/useLogout";
+import UserBalance from "@/components/ui/UserBalance";
 
 export default function Header() {
   const pathname = usePathname();
@@ -92,6 +93,10 @@ export default function Header() {
         </div>
 
         <div className="flex items-center space-x-6">
+          {isLoggedIn && (
+            <UserBalance className="hidden md:flex mr-2" />
+          )}
+          
           <CartWidget count={cartCount} isLoggedIn={isLoggedIn} />
 
           <WishlistWidget count={wishlistCount} isLoggedIn={isLoggedIn} />
