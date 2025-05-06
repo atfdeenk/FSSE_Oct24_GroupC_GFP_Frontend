@@ -111,8 +111,8 @@ export default function CartPage() {
   return (
     <div className="min-h-screen flex flex-col bg-black">
       <Header />
-      <main className="flex-grow py-8 px-4 md:py-12 md:px-6">
-        <div className="max-w-6xl mx-auto">
+      <main className="flex-grow py-8 md:py-12">
+        <div className="max-w-6xl mx-auto px-6">
           <div className="flex flex-col md:flex-row md:items-end justify-between mb-6 md:mb-8 gap-4">
             <div>
               <h1 className="text-3xl font-bold text-white mb-2">Your Cart</h1>

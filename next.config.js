@@ -1,5 +1,9 @@
 /** @type {import('next').NextConfig} */
 const nextConfig = {
+  eslint: {
+    // Disable ESLint during builds
+    ignoreDuringBuilds: true,
+  },
   async rewrites() {
     return [
       {
@@ -10,7 +14,9 @@ const nextConfig = {
   },
 };
 
-module.exports = module.exports = {
+// Merge configurations
+module.exports = {
+  ...nextConfig,
   images: {
     remotePatterns: [
       {

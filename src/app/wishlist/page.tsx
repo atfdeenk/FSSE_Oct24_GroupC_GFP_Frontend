@@ -315,8 +315,8 @@ export default function WishlistPage() {
     <div className="min-h-screen flex flex-col bg-black">
       <Header />
 
-      <main className="flex-grow py-12 px-6">
-        <div className="max-w-6xl mx-auto">
+      <main className="flex-grow py-12">
+        <div className="max-w-6xl mx-auto px-6">
           <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between mb-6">
             <div>
               <h1 className="text-3xl font-bold text-white mb-2">Your Wishlist</h1>
