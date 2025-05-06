@@ -26,14 +26,28 @@ const OrderItems: React.FC<OrderItemsProps> = ({
         {items?.map((item: any, index: number) => (
           <div key={index} className="flex items-center justify-between border-b border-white/10 pb-4 last:border-0 last:pb-0">
             <div className="flex items-center gap-4">
-              <div className="w-10 h-10 bg-neutral-800 rounded-md flex items-center justify-center text-white/30 flex-shrink-0">
-                <span className="text-sm font-medium">{item.quantity}x</span>
-              </div>
+              {(item.product?.image || item.image) ? (
+                <div className="w-16 h-16 bg-neutral-800 rounded-md flex items-center justify-center overflow-hidden flex-shrink-0">
+                  <img 
+                    src={item.product?.image || item.image} 
+                    alt={item.product?.name || item.name || `Product #${item.product_id}`} 
+                    className="w-full h-full object-cover"
+                    onError={(e) => {
+                      (e.target as HTMLImageElement).src = 'https://via.placeholder.com/80?text=Product';
+                    }}
+                  />
+                </div>
+              ) : (
+                <div className="w-16 h-16 bg-neutral-800 rounded-md flex items-center justify-center text-white/30 flex-shrink-0">
+                  <span className="text-sm font-medium">{item.quantity}x</span>
+                </div>
+              )}
               <div>
-                <h3 className="text-white font-medium">{item.product?.name || `Product #${item.product_id}`}</h3>
+                <h3 className="text-white font-medium">{item.product?.name || item.name || `Product #${item.product_id}`}</h3>
                 <p className="text-white/60 text-sm">{formatCurrency(item.price || item.product?.price || 0)} each</p>
+                <p className="text-white/60 text-xs">Quantity: {item.quantity}</p>
                 
-                {/* Review button */}
+                {/* Review button - only show if not already reviewed */}
                 {!reviewedProducts.has(item.product_id) && (
                   <button 
                     onClick={() => handleReviewProduct(item)}

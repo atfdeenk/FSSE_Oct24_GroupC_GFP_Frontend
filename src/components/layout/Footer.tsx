@@ -5,7 +5,7 @@ export default function Footer() {
     <footer className="w-full bg-black text-white relative overflow-hidden">
       {/* Background elements */}
       <div className="absolute top-0 left-0 w-full h-20 bg-gradient-to-b from-neutral-900 to-transparent opacity-50"></div>
-      
+
       {/* Main footer content */}
       <div className="max-w-6xl mx-auto px-6 py-16 relative z-10">
         <div className="grid grid-cols-1 md:grid-cols-4 gap-12">
@@ -31,7 +31,7 @@ export default function Footer() {
               </a>
             </div>
           </div>
-          
+
           {/* Quick links */}
           <div>
             <h3 className="text-amber-500 font-bold uppercase tracking-wider text-sm mb-4">Quick Links</h3>
@@ -43,7 +43,7 @@ export default function Footer() {
               <li><a href="#" className="text-white/70 hover:text-amber-400 transition-colors">Blog</a></li>
             </ul>
           </div>
-          
+
           {/* Help */}
           <div>
             <h3 className="text-amber-500 font-bold uppercase tracking-wider text-sm mb-4">Help</h3>
@@ -55,20 +55,20 @@ export default function Footer() {
               <li><a href="#" className="text-white/70 hover:text-amber-400 transition-colors">FAQ</a></li>
             </ul>
           </div>
-          
+
           {/* Newsletter */}
           <div>
             <h3 className="text-amber-500 font-bold uppercase tracking-wider text-sm mb-4">Newsletter</h3>
             <p className="text-white/70 mb-4">Subscribe to our newsletter for updates on new products and special promotions.</p>
-            <form className="flex">
-              <input 
-                type="email" 
-                placeholder="Your email" 
-                className="bg-white/5 border border-white/10 rounded-sm px-4 py-2 text-white placeholder:text-white/30 focus:outline-none focus:border-amber-500/50 flex-grow"
+            <form className="flex flex-wrap gap-2">
+              <input
+                type="email"
+                placeholder="Your email"
+                className="bg-white/5 border border-white/10 rounded-sm px-4 py-2 text-white placeholder:text-white/30 focus:outline-none focus:border-amber-500/50 flex-1 min-w-0"
                 required
               />
-              <button 
-                type="submit" 
+              <button
+                type="submit"
                 className="bg-amber-500 text-black px-4 py-2 rounded-sm ml-2 font-bold hover:bg-amber-400 transition-colors"
               >
                 Subscribe
@@ -76,7 +76,7 @@ export default function Footer() {
             </form>
           </div>
         </div>
-        
+
         {/* Bottom bar */}
         <div className="border-t border-white/10 mt-12 pt-6 flex flex-col md:flex-row justify-between items-center">
           <p className="text-white/50 text-sm mb-4 md:mb-0">&copy; {new Date().getFullYear()} bumibrew. All rights reserved.</p>

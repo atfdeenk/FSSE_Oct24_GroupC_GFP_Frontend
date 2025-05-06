@@ -4,6 +4,7 @@ import { useState, useEffect } from 'react';
 import { useRouter, useSearchParams } from 'next/navigation';
 import Link from 'next/link';
 import { ordersService } from '@/services/api/orders';
+import feedbackService from '@/services/api/feedback';
 import { isAuthenticated } from '@/lib/auth';
 import { formatCurrency, formatDate } from '@/utils/format';
 import LoadingOverlay from '@/components/ui/LoadingOverlay';
@@ -73,12 +74,20 @@ function CheckoutSuccessContent() {
       return;
     }
     
+    // Check for localStorage data
+    if (typeof window !== 'undefined') {
+      const storedData = localStorage.getItem('checkout_additional_data');
+      if (!storedData) {
+        setError('Order data not found. Please try again.');
+        setLoading(false);
+        return;
+      }
+    }
+    
     // Fetch order details
     const fetchOrder = async () => {
       try {
-        console.log('Fetching order with ID:', orderId);
         const response = await ordersService.getOrder(orderId);
-        console.log('Order API response:', response);
         
         if (!response) {
           throw new Error('Failed to fetch order details');
@@ -144,7 +153,8 @@ function CheckoutSuccessContent() {
           id: responseAny.id || responseAny.order_id || (responseAny.data && responseAny.data.id) || orderId,
           status: responseAny.status || (responseAny.data && responseAny.data.status) || 'processing',
           created_at: responseAny.created_at || (responseAny.data && responseAny.data.created_at) || new Date().toISOString(),
-          items: orderItems,
+          // Use items from localStorage if available, otherwise use API items
+          items: (additionalData as any)?.items || orderItems,
           subtotal: (additionalData as any)?.subtotal || subtotal,
           total: (additionalData as any)?.total_amount || orderTotal,
           discount: (additionalData as any)?.discount || responseAny.discount || (responseAny.data && responseAny.data.discount) || 0,
@@ -165,8 +175,31 @@ function CheckoutSuccessContent() {
     fetchOrder();
   }, [orderId, router]);
   
-  const handleReviewProduct = (product: any) => {
-    setSelectedProductForReview(product);
+  const handleReviewSubmit = async (productId: number, rating: number, comment: string) => {
+    try {      
+      // Call the API to submit the review
+      const response = await feedbackService.createFeedback({
+        product_id: productId,
+        rating,
+        comment
+      });
+      
+      // Add the product ID to the set of reviewed products
+      setReviewedProducts(prev => new Set([...prev, productId]));
+      
+      // Close the review form
+      setSelectedProductForReview(null);
+      
+      // Show success message
+      toast.success('Review submitted successfully!');
+    } catch (error) {
+      console.error('Error submitting review:', error);
+      toast.error('Failed to submit review. Please try again.');
+    }
+  };
+
+  const handleReviewProduct = (item: any) => {
+    setSelectedProductForReview(item);
   };
   
   const handleReviewSubmitted = (productId: string | number) => {

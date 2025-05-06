@@ -423,7 +423,24 @@ export function useCheckout(): UseCheckoutReturn {
         payment_method: formData.paymentMethod,
         total_amount: total,
         subtotal: subtotal,
-        discount: promoDiscount
+        discount: promoDiscount,
+        // Include detailed product information for reviews
+        items: selectedCartItems.map(item => ({
+          id: item.id,
+          product_id: item.product_id,
+          quantity: item.quantity,
+          price: item.product?.price || item.unit_price || item.price || 0,
+          product: {
+            id: item.product?.id || item.product_id,
+            name: item.product?.name || `Product #${item.product_id}`,
+            price: item.product?.price || item.unit_price || item.price || 0,
+            // Use type assertion to handle properties not in the type definition
+            image: (item.product as any)?.image || (item as any).image_url || '',
+            description: (item.product as any)?.description || '',
+            vendor_id: item.product?.vendor_id || item.vendor_id || 0,
+            vendor_name: (item.product as any)?.vendor_name || (item as any).seller || 'Local Producer'
+          }
+        }))
       };
       
       localStorage.setItem('checkout_additional_data', JSON.stringify(checkoutAdditionalData));
