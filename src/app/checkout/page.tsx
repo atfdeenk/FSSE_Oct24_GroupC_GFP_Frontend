@@ -429,6 +429,27 @@ export default function CheckoutPage() {
         return;
       }
       
+      // Check if payment method is balance and if balance is sufficient
+      if (formData.paymentMethod === 'balance') {
+        // Get current balance
+        const balanceResponse = await usersService.getUserBalance();
+        const currentBalance = balanceResponse.success ? balanceResponse.balance : 0;
+        
+        // Calculate total with all additional costs
+        const finalSubtotal = calculateSubtotal(selectedCartItems);
+        const finalEcoPackagingCost = Object.values(ecoPackaging).filter(Boolean).length * 2000;
+        const finalCarbonOffsetCost = carbonOffset ? 800 : 0;
+        const finalDiscount = calculateDiscount(finalSubtotal, promoDiscount);
+        const finalTotal = calculateTotal(finalSubtotal + finalEcoPackagingCost + finalCarbonOffsetCost, finalDiscount);
+        
+        // Check if balance is sufficient
+        if (currentBalance < finalTotal) {
+          toast.error('Insufficient balance for this purchase. Please use Cash on Delivery or add funds to your balance.');
+          setIsSubmitting(false);
+          return;
+        }
+      }
+      
       console.log('Processing checkout with selected items:', selectedCartItems);
       
       // Initialize eco-packaging for any items that don't have it yet
@@ -538,20 +559,30 @@ export default function CheckoutPage() {
       
       console.log('Order created successfully with ID:', orderId);
       
-      // If payment method is balance, simulate balance payment
+      // If payment method is balance, process the actual balance payment
       if (formData.paymentMethod === 'balance') {
         try {
-          // Since we don't have a processPayment method in the usersService,
-          // we'll simulate a successful payment and just log it
+          // Calculate the final total with all costs
+          const finalSubtotal = calculateSubtotal(selectedCartItems);
+          const finalEcoPackagingCost = Object.values(ecoPackaging).filter(Boolean).length * 2000;
+          const finalCarbonOffsetCost = carbonOffset ? 800 : 0;
+          const finalDiscount = calculateDiscount(finalSubtotal, promoDiscount);
+          const finalTotal = calculateTotal(finalSubtotal + finalEcoPackagingCost + finalCarbonOffsetCost, finalDiscount);
+          
           console.log('Processing balance payment for order:', orderId, 'with amount:', finalTotal);
           
-          // In a real implementation, we would call an API endpoint to process the payment
-          // For now, we'll just simulate a successful payment
+          // Deduct the amount from the user's balance (negative amount for payment)
+          const paymentResult = await usersService.updateBalance(-finalTotal);
           
-          // Refresh balance after payment
-          refreshBalance();
+          if (!paymentResult.success) {
+            throw new Error(paymentResult.error || 'Failed to process payment');
+          }
           
           console.log('Balance payment processed successfully for order:', orderId);
+          console.log('New balance after payment:', paymentResult.balance);
+          
+          // Refresh balance display
+          refreshBalance();
         } catch (paymentError) {
           console.error('Payment processing error:', paymentError);
           throw new Error('Payment processing failed. Please try again.');

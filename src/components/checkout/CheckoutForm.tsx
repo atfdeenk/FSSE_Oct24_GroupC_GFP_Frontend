@@ -228,8 +228,17 @@ const CheckoutForm: React.FC<CheckoutFormProps> = ({
         </div>
         
         <div className="p-6 space-y-4">
-          <div className={`border rounded-lg p-4 ${formData.paymentMethod === 'balance' ? 'border-green-500 bg-green-900/20' : 'border-white/10 bg-black/30'}`}>
-            <div className="flex items-center">
+          <div className="flex items-center space-x-3 mb-4">
+            <div 
+              className={`flex-1 p-4 border rounded-lg cursor-pointer transition-colors ${formData.paymentMethod === 'balance' ? 'bg-green-900/30 border-green-500/30' : 'bg-white/5 border-white/10 hover:bg-white/10'} ${balance < orderTotal ? 'opacity-50 cursor-not-allowed' : ''}`}
+              onClick={() => {
+                if (balance >= orderTotal) {
+                  setFormData(prev => ({ ...prev, paymentMethod: 'balance' }));
+                } else {
+                  toast.error('Insufficient balance for this order. Please add funds or use Cash on Delivery.');
+                }
+              }}
+            >
               <input
                 type="radio"
                 id="balance"
@@ -259,8 +268,11 @@ const CheckoutForm: React.FC<CheckoutFormProps> = ({
             </div>
           </div>
           
-          <div className={`border rounded-lg p-4 ${formData.paymentMethod === 'cod' ? 'border-green-500 bg-green-900/20' : 'border-white/10 bg-black/30'}`}>
-            <div className="flex items-center">
+          <div className="flex items-center space-x-3 mb-4">
+            <div 
+              className={`flex-1 p-4 border rounded-lg cursor-pointer transition-colors ${formData.paymentMethod === 'cod' ? 'bg-green-900/30 border-green-500/30' : 'bg-white/5 border-white/10 hover:bg-white/10'}`}
+              onClick={() => setFormData(prev => ({ ...prev, paymentMethod: 'cod' }))}
+            >
               <input
                 type="radio"
                 id="cod"
