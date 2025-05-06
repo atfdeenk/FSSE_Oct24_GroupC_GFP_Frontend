@@ -1,7 +1,7 @@
 "use client";
 
 import { useState, useEffect, useCallback } from 'react';
-import usersService from '@/services/api/users';
+import balanceService from '@/services/api/balance';
 import { isAuthenticated } from '@/lib/auth';
 import { showError } from '@/utils/toast';
 // Define event types and handlers locally until events module is properly set up
@@ -46,7 +46,7 @@ export function useBalance() {
 
     setLoading(true);
     try {
-      const response = await usersService.getUserBalance();
+      const response = await balanceService.getUserBalance();
       
       if (response.success) {
         setBalance(response.balance);
