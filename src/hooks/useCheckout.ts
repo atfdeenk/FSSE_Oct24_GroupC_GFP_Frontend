@@ -410,6 +410,24 @@ export function useCheckout(): UseCheckoutReturn {
         refreshBalance();
       }
       
+      // Store additional order data in localStorage for the success page
+      const checkoutAdditionalData = {
+        shipping_address: {
+          full_name: formData.fullName,
+          address: formData.address,
+          city: formData.city,
+          postal_code: formData.postalCode,
+          phone: formData.phone,
+          email: formData.email
+        },
+        payment_method: formData.paymentMethod,
+        total_amount: total,
+        subtotal: subtotal,
+        discount: promoDiscount
+      };
+      
+      localStorage.setItem('checkout_additional_data', JSON.stringify(checkoutAdditionalData));
+      
       // Show success message
       toast.success('Order placed successfully!');
       

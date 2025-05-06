@@ -45,11 +45,10 @@ const OrderSummary: React.FC<OrderSummaryProps> = ({
           <h3 className="text-white/70 text-sm mb-1">Total Amount</h3>
           <p className="text-amber-500 font-medium">
             {formatCurrency(
+              order.total || 
               rawOrderData?.total_amount || 
               rawOrderData?.data?.total_amount ||
-              (order.total > 0 ? order.total : 
-                calculateOrderTotal(order.items) - (order.discount || 0)
-              )
+              calculateOrderTotal(order.items) - (order.discount || 0)
             )}
           </p>
         </div>

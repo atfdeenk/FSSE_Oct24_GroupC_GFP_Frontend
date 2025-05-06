@@ -68,7 +68,10 @@ const OrderItems: React.FC<OrderItemsProps> = ({
           <span>Subtotal</span>
           <span>
             {formatCurrency(
-              // First try to get the subtotal directly from rawOrderData
+              // Try to get the subtotal from localStorage data first
+              (typeof window !== 'undefined' && localStorage.getItem('checkout_additional_data')) ? 
+                JSON.parse(localStorage.getItem('checkout_additional_data') || '{}').subtotal || 0 :
+              // Then from rawOrderData
               rawOrderData?.subtotal || 
               rawOrderData?.data?.subtotal ||
               // Then calculate it from items if not available
@@ -88,7 +91,10 @@ const OrderItems: React.FC<OrderItemsProps> = ({
           <span>Total</span>
           <span className="text-amber-500">
             {formatCurrency(
-              // First try to get the total directly from rawOrderData
+              // Try to get the total from localStorage data first
+              (typeof window !== 'undefined' && localStorage.getItem('checkout_additional_data')) ? 
+                JSON.parse(localStorage.getItem('checkout_additional_data') || '{}').total_amount || 0 :
+              // Then from rawOrderData
               rawOrderData?.total_amount || 
               rawOrderData?.data?.total_amount ||
               // Then calculate it from items if not available

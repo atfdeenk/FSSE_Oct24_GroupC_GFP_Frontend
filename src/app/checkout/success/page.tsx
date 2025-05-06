@@ -135,7 +135,6 @@ function CheckoutSuccessContent() {
           orderTotal = responseAny.total_amount || responseAny.total || calculateOrderTotal(orderItems);
         }
         
-        // Calculate subtotal from order items if not available in the response
         const subtotal = responseAny.subtotal || 
                          (responseAny.data && responseAny.data.subtotal) || 
                          calculateOrderTotal(orderItems);
@@ -146,9 +145,9 @@ function CheckoutSuccessContent() {
           status: responseAny.status || (responseAny.data && responseAny.data.status) || 'processing',
           created_at: responseAny.created_at || (responseAny.data && responseAny.data.created_at) || new Date().toISOString(),
           items: orderItems,
-          subtotal: subtotal,
-          total: orderTotal,
-          discount: responseAny.discount || (responseAny.data && responseAny.data.discount) || 0,
+          subtotal: (additionalData as any)?.subtotal || subtotal,
+          total: (additionalData as any)?.total_amount || orderTotal,
+          discount: (additionalData as any)?.discount || responseAny.discount || (responseAny.data && responseAny.data.discount) || 0,
           shipping_address: additionalData && (additionalData as any).shipping_address || {},
           payment_method: additionalData && (additionalData as any).payment_method || 'balance'
         };
