@@ -432,7 +432,7 @@ export function useCheckout(): UseCheckoutReturn {
           price: item.product?.price || item.unit_price || item.price || 0,
           product: {
             id: item.product?.id || item.product_id,
-            name: item.product?.name || `Product #${item.product_id}`,
+            name: item.product?.name || item.name || `Product #${item.product_id}`,
             price: item.product?.price || item.unit_price || item.price || 0,
             // Use type assertion to handle properties not in the type definition
             image: (item.product as any)?.image || (item as any).image_url || '',

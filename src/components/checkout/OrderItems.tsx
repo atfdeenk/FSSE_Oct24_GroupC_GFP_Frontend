@@ -43,7 +43,7 @@ const OrderItems: React.FC<OrderItemsProps> = ({
                 </div>
               )}
               <div>
-                <h3 className="text-white font-medium">{item.product?.name || item.name || `Product #${item.product_id}`}</h3>
+                <h3 className="text-white font-medium">{item.product?.name || item.name || (typeof item === 'object' && 'name' in item ? item.name : `Product #${item.product_id}`)}</h3>
                 <p className="text-white/60 text-sm">{formatCurrency(item.price || item.product?.price || 0)} each</p>
                 <p className="text-white/60 text-xs">Quantity: {item.quantity}</p>
                 

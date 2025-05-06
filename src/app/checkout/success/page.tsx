@@ -103,7 +103,6 @@ function CheckoutSuccessContent() {
             const storedData = localStorage.getItem('checkout_additional_data');
             if (storedData) {
               additionalData = JSON.parse(storedData);
-              console.log('Found additional order data:', additionalData);
             }
           } catch (e) {
             console.error('Error parsing additional order data:', e);
