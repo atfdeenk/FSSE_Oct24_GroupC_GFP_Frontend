@@ -443,7 +443,7 @@ export default function CheckoutPage() {
       const orderItems = selectedCartItems.map(item => ({
         product_id: item.product_id,
         quantity: item.quantity,
-        price: item.product?.price || 0,
+        unit_price: item.product?.price || item.unit_price || item.price || 0,
         // Include eco-packaging info for each item
         eco_packaging: updatedEcoPackaging[item.id] || false,
         // Include product notes if any
@@ -464,42 +464,79 @@ export default function CheckoutPage() {
         formData.notes ? `Customer notes: ${formData.notes}` : ''
       ].filter(Boolean).join(' ');
       
-      // Create the order payload
+      // Get the vendor ID from the first item (assuming all items are from the same vendor)
+      // In a multi-vendor scenario, we would need to create separate orders for each vendor
+      const vendor_id = selectedCartItems[0]?.product?.vendor_id || 
+                       selectedCartItems[0]?.vendor_id || 
+                       (selectedCartItems[0] as any)?.seller_id || 19; // Fallback to 19 if no vendor ID found
+      
+      // Simplify the order items to exactly match the required API format
+      const simplifiedOrderItems = selectedCartItems.map(item => ({
+        product_id: item.product_id,
+        quantity: item.quantity,
+        unit_price: item.product?.price || item.unit_price || item.price || 0
+      }));
+      
+      // Create the order payload according to the API requirements
       const orderPayload = {
-        shipping_address: {
-          full_name: formData.fullName,
-          address: formData.address,
-          city: formData.city,
-          postal_code: formData.postalCode,
-          phone: formData.phone,
-          email: formData.email
-        },
-        payment_method: formData.paymentMethod,
-        notes: orderNotes,
-        items: orderItems,
-        subtotal: finalSubtotal,
-        discount: finalDiscount,
-        total: finalTotal
+        vendor_id,
+        items: simplifiedOrderItems
       };
+      
+      // Store additional order data for the success page
+      if (typeof window !== 'undefined') {
+        localStorage.setItem('checkout_additional_data', JSON.stringify({
+          shipping_address: {
+            full_name: formData.fullName,
+            address: formData.address,
+            city: formData.city,
+            postal_code: formData.postalCode,
+            phone: formData.phone,
+            email: formData.email
+          },
+          payment_method: formData.paymentMethod,
+          notes: orderNotes,
+          eco_packaging: updatedEcoPackaging,
+          product_notes: productNotes
+        }));
+      }
       
       console.log('Creating order with data:', orderPayload);
       
       // Create the order
       const orderResponse = await ordersService.createOrder(orderPayload);
       
+      console.log('Order API response:', orderResponse);
+      
       // Check if order was created successfully
-      if (!orderResponse || !('data' in orderResponse) || !orderResponse.data) {
-        throw new Error('Failed to create order');
+      // The API returns { msg: "Order created", order_id: number, items: [...] }
+      if (!orderResponse) {
+        throw new Error('Failed to create order - no response');
       }
       
-      // Safely access the order ID
-      const orderData = orderResponse.data as { id?: string | number };
-      if (!orderData.id) {
+      // Handle different response formats
+      let orderId: string | number;
+      
+      if ('order_id' in orderResponse && orderResponse.order_id) {
+        // New API format
+        orderId = orderResponse.order_id as string | number;
+      } else if ('data' in orderResponse && orderResponse.data && typeof orderResponse.data === 'object') {
+        // Old format with data property
+        const data = orderResponse.data as any;
+        orderId = data.id || data.order_id || 0;
+      } else if ('id' in orderResponse && orderResponse.id) {
+        // Direct ID in response
+        orderId = orderResponse.id as string | number;
+      } else {
+        console.error('Unexpected order response format:', orderResponse);
+        throw new Error('Failed to create order - could not find order ID in response');
+      }
+      
+      if (!orderId) {
         throw new Error('Order created but no ID returned');
       }
       
-      // Store the order ID for later use
-      const orderId = orderData.id;
+      console.log('Order created successfully with ID:', orderId);
       
       // If payment method is balance, simulate balance payment
       if (formData.paymentMethod === 'balance') {

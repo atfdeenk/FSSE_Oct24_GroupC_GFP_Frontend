@@ -30,17 +30,17 @@ export interface ShippingAddress {
 export interface OrderItem {
   product_id: number | string;
   quantity: number;
-  price: number;
+  unit_price: number;
+  note?: string;
+  eco_packaging?: boolean;
 }
 
 export interface CreateOrderData {
+  vendor_id?: number | string;
   items: OrderItem[];
-  shipping_address: ShippingAddress;
-  payment_method: 'balance' | 'cod';
+  shipping_address?: ShippingAddress;
+  payment_method?: 'balance' | 'cod';
   notes?: string;
-  subtotal: number;
-  discount: number;
-  total: number;
 }
 
 export interface UpdateOrderStatusData {

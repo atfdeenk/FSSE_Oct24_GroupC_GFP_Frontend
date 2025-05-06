@@ -54,10 +54,21 @@ export interface CreateOrderRequest {
 }
 
 export interface OrderResponse {
-  success: boolean;
+  success?: boolean;
   data?: Order;
   message?: string;
   error?: string;
+  // New API response format
+  msg?: string;
+  order_id?: number | string;
+  items?: Array<{
+    image_url?: string;
+    product_id: number | string;
+    product_name?: string;
+    quantity: number;
+    unit_price: number;
+    vendor_id?: number | string;
+  }>;
 }
 
 export interface OrdersResponse {
