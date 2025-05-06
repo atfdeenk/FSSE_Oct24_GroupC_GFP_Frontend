@@ -21,7 +21,15 @@ export default function DashboardRedirectPage() {
         // Get current user
         const currentUser = await getCurrentUser();
         
+        // Debug: Log user info
+        console.log('Dashboard Router - User Info:', {
+          hasUser: !!currentUser,
+          role: currentUser?.role,
+          name: currentUser ? `${currentUser.first_name} ${currentUser.last_name}` : 'N/A'
+        });
+        
         if (!currentUser) {
+          console.log('Dashboard Router - No user found, redirecting to login');
           router.push('/login?redirect=/dashboard');
           return;
         }
@@ -29,13 +37,18 @@ export default function DashboardRedirectPage() {
         // Redirect based on user role
         switch (currentUser.role) {
           case 'admin':
-            router.push('/dashboard/admin');
+            // Temporarily redirect admins to seller dashboard until admin dashboard is implemented
+            // TODO: Create a dedicated admin dashboard and update this redirect
+            router.push('/dashboard/seller');
             break;
           case 'seller':
             router.push('/dashboard/seller');
             break;
           case 'customer':
+            router.push('/dashboard/customer');
+            break;
           default:
+            // If role is undefined or not recognized, default to customer
             router.push('/dashboard/customer');
             break;
         }

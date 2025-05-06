@@ -5,11 +5,14 @@ import { useRouter } from 'next/navigation';
 import { isAuthenticated, getCurrentUser } from '@/lib/auth';
 import { toast } from 'react-hot-toast';
 import LoadingOverlay from '@/components/ui/LoadingOverlay';
-import SellerDashboardTabs from '@/components/dashboard/seller/SellerDashboardTabs';
-import ProductManagement from '@/components/dashboard/seller/ProductManagement';
-import CategoryManagement from '@/components/dashboard/seller/CategoryManagement';
-import VoucherManagement from '@/components/dashboard/seller/VoucherManagement';
-import DashboardOverview from '@/components/dashboard/seller/DashboardOverview';
+// Import seller dashboard components from barrel file
+import {
+  SellerDashboardTabs,
+  ProductManagement,
+  CategoryManagement,
+  VoucherManagement,
+  DashboardOverview
+} from '@/components/dashboard/seller';
 
 export default function SellerDashboardPage() {
   const router = useRouter();
@@ -30,16 +33,25 @@ export default function SellerDashboardPage() {
       try {
         const currentUser = await getCurrentUser();
 
+        // Debug: Log user info in seller dashboard
+        console.log('Seller Dashboard - User Info:', {
+          hasUser: !!currentUser,
+          role: currentUser?.role,
+          name: currentUser ? `${currentUser.first_name} ${currentUser.last_name}` : 'N/A'
+        });
+
         // Check if currentUser exists and is a seller or admin
         if (!currentUser) {
+          console.log('Seller Dashboard - No user found, redirecting to login');
           toast.error('Unable to retrieve user information');
           router.push('/login?redirect=/dashboard/seller');
           return;
         }
         
-        if (currentUser.role !== 'seller' && currentUser.role !== 'admin') {
+        if (currentUser.role !== 'seller' && currentUser.role !== 'vendor' && currentUser.role !== 'admin') {
+          console.log('Seller Dashboard - User is not seller, vendor, or admin, redirecting to main dashboard');
           toast.error('You need seller privileges to access this page');
-          router.push('/');
+          router.push('/dashboard'); // Redirect to main dashboard router
           return;
         }
 

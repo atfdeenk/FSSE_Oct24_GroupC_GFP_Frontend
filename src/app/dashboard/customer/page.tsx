@@ -26,15 +26,36 @@ export default function DashboardPage() {
       return;
     }
 
-    // Get current user
+    // Get current user and verify role
     const fetchUser = async () => {
-      const currentUser = await getCurrentUser();
-      setUser(currentUser);
+      try {
+        const currentUser = await getCurrentUser();
+        
+        // Check if user exists
+        if (!currentUser) {
+          toast.error('Unable to retrieve user information');
+          router.push('/login?redirect=/dashboard/customer');
+          return;
+        }
+        
+        // Verify that the user is a customer
+        // Note: We allow admins to view the customer dashboard for monitoring purposes
+        if (currentUser.role !== 'customer' && currentUser.role !== 'admin') {
+          toast.error('Access denied. Redirecting to appropriate dashboard.');
+          router.push('/dashboard'); // Redirect to main dashboard router
+          return;
+        }
+        
+        setUser(currentUser);
+        // Orders are now fetched directly by the RecentOrders component
+        setLoading(false);
+      } catch (error) {
+        console.error('Error fetching user data:', error);
+        toast.error('Error loading dashboard');
+        router.push('/login?redirect=/dashboard/customer');
+      }
     };
     fetchUser();
-
-    // Orders are now fetched directly by the RecentOrders component
-    setLoading(false);
   }, [router]);
 
   // Handle profile update
