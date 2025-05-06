@@ -10,6 +10,7 @@ import CheckoutOptions from '@/components/checkout/CheckoutOptions';
 import CheckoutItemList from '@/components/checkout/CheckoutItemList';
 import PaymentSection from '@/components/checkout/PaymentSection';
 import { useCheckout } from '@/hooks/useCheckout';
+import { PROMO_CODES } from '@/constants/promoCodes';
 
 export default function CheckoutPage() {
   const router = useRouter();
@@ -199,27 +200,12 @@ export default function CheckoutPage() {
                   groupedItems={checkout.groupItemsBySeller(checkout.selectedCartItems)}
                   ecoPackaging={checkout.ecoPackaging}
                   carbonOffset={checkout.carbonOffset}
-                  onEcoPackagingChange={(sellerId: string | number, checked: boolean) => {
-                    checkout.setEcoPackaging({
-                      ...checkout.ecoPackaging,
-                      [sellerId]: checked
-                    });
+                  onEcoPackagingChange={(sellerId, checked) => {
+                    const newEcoPackaging = { ...checkout.ecoPackaging };
+                    newEcoPackaging[sellerId] = checked;
+                    checkout.setEcoPackaging(newEcoPackaging);
                   }}
-                  onCarbonOffsetChange={checkout.setCarbonOffset}
-                  promoCode={checkout.promoCode}
-                  onPromoCodeChange={checkout.setPromoCode}
-                  onApplyPromoCode={() => {
-                    // Apply promo code logic
-                    if (checkout.promoCode.toLowerCase() === 'eco2023') {
-                      checkout.setPromoDiscount(10000);
-                      toast.success('Promo code applied: 10,000 IDR discount');
-                    } else if (checkout.promoCode.toLowerCase() === 'local20') {
-                      checkout.setPromoDiscount(20000);
-                      toast.success('Promo code applied: 20,000 IDR discount');
-                    } else {
-                      toast.error('Invalid promo code');
-                    }
-                  }}
+                  onCarbonOffsetChange={(checked) => checkout.setCarbonOffset(checked)}
                   ecoPackagingCost={5000}
                   carbonOffsetCost={3800}
                 />
@@ -264,6 +250,32 @@ export default function CheckoutPage() {
               carbonOffsetCost={3800}
               ecoPackagingCount={Object.values(checkout.ecoPackaging).filter(Boolean).length}
               carbonOffsetEnabled={checkout.carbonOffset}
+              // Pass promo code props
+              promoCode={checkout.promoCode}
+              promoError={checkout.promoError || ""}
+              promoDiscount={checkout.promoDiscount}
+              onPromoCodeChange={checkout.setPromoCode}
+              setPromoDiscount={checkout.setPromoDiscount}
+              onApplyPromoCode={() => {
+                // Reset any previous error
+                checkout.setPromoError("");
+                
+                // Use the same promo code validation as cart page
+                const found = PROMO_CODES.find(
+                  (p) => p.code.toUpperCase() === checkout.promoCode.toUpperCase()
+                );
+                
+                if (found) {
+                  // Apply percentage discount to subtotal
+                  const discountAmount = Math.round(checkout.subtotal * (found.discount / 100));
+                  checkout.setPromoDiscount(discountAmount);
+                  toast.success(`Promo code applied: ${found.discount}% discount`);
+                } else {
+                  checkout.setPromoError('Invalid promo code');
+                  checkout.setPromoDiscount(0);
+                  toast.error('Invalid promo code');
+                }
+              }}
               onPaymentMethodChange={(method: string) => {
                 // Cast the string to the expected type
                 if (method === 'balance' || method === 'cod') {

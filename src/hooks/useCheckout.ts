@@ -25,6 +25,7 @@ export interface UseCheckoutReturn {
   isSubmitting: boolean;
   promoCode: string;
   promoDiscount: number;
+  promoError: string;
   showNewAddressForm: boolean;
   showSavedAddresses: boolean;
   newAddress: Address;
@@ -41,6 +42,7 @@ export interface UseCheckoutReturn {
   total: number;
   setPromoCode: (code: string) => void;
   setPromoDiscount: (amount: number) => void;
+  setPromoError: (error: string) => void;
   setShowNewAddressForm: (show: boolean) => void;
   setShowSavedAddresses: (show: boolean) => void;
   setNewAddress: (address: Address) => void;
@@ -63,8 +65,58 @@ export function useCheckout(): UseCheckoutReturn {
   const [isSubmitting, setIsSubmitting] = useState(false);
   const [promoCode, setPromoCode] = useState('');
   const [promoDiscount, setPromoDiscount] = useState(0);
+  const [promoError, setPromoError] = useState('');
   const [showNewAddressForm, setShowNewAddressForm] = useState(false);
   const [showSavedAddresses, setShowSavedAddresses] = useState(false);
+  
+  // Load promo code from localStorage (synced with cart page)
+  useEffect(() => {
+    if (typeof window !== 'undefined') {
+      const savedPromoCode = localStorage.getItem('promoCode');
+      const savedPromoDiscount = localStorage.getItem('promoDiscount');
+      
+      if (savedPromoCode) {
+        setPromoCode(savedPromoCode);
+      }
+      
+      if (savedPromoDiscount) {
+        setPromoDiscount(Number(savedPromoDiscount));
+      }
+      
+      // Listen for custom event to reset promo discount
+      const handleSetPromoDiscount = (event: CustomEvent) => {
+        if (event.detail && typeof event.detail.amount === 'number') {
+          setPromoDiscount(event.detail.amount);
+        }
+      };
+      
+      window.addEventListener('setPromoDiscount', handleSetPromoDiscount as EventListener);
+      
+      return () => {
+        window.removeEventListener('setPromoDiscount', handleSetPromoDiscount as EventListener);
+      };
+    }
+  }, []);
+  
+  // Custom setPromoCode function that also updates localStorage
+  const handlePromoCodeChange = (code: string) => {
+    setPromoCode(code);
+    if (code) {
+      localStorage.setItem('promoCode', code);
+    } else {
+      localStorage.removeItem('promoCode');
+    }
+  };
+  
+  // Custom setPromoDiscount function that also updates localStorage
+  const handlePromoDiscountChange = (amount: number) => {
+    setPromoDiscount(amount);
+    if (amount > 0) {
+      localStorage.setItem('promoDiscount', amount.toString());
+    } else {
+      localStorage.removeItem('promoDiscount');
+    }
+  };
   
   // Create a default address from user profile
   const defaultAddress = {
@@ -194,13 +246,16 @@ export function useCheckout(): UseCheckoutReturn {
   
   // Calculate eco-packaging cost based on selected seller options
   const ecoPackagingCount = Object.values(ecoPackaging).filter(Boolean).length;
-  const ecoPackagingCost = ecoPackagingCount * 5000; // 5000 IDR per seller
+  const ecoPackagingCost = 5000 * ecoPackagingCount; // 5000 IDR per seller
   
   // Calculate carbon offset cost
   const carbonOffsetCost = carbonOffset ? 3800 : 0; // 3800 IDR for carbon offset
   
-  const discount = calculateDiscount(subtotal, promoDiscount);
-  const total = calculateTotal(subtotal + ecoPackagingCost + carbonOffsetCost, discount);
+  // Use promoDiscount directly as it's already the calculated amount, not a percentage
+  const discount = promoDiscount;
+  
+  // Calculate total
+  const total = calculateTotal(subtotal, discount) + ecoPackagingCost + carbonOffsetCost;
   
   // Handle changes to the new address form
   const handleAddressChange = (e: React.ChangeEvent<HTMLInputElement | HTMLTextAreaElement>) => {
@@ -372,6 +427,7 @@ export function useCheckout(): UseCheckoutReturn {
     isSubmitting,
     promoCode,
     promoDiscount,
+    promoError,
     showNewAddressForm,
     showSavedAddresses,
     newAddress,
@@ -386,8 +442,9 @@ export function useCheckout(): UseCheckoutReturn {
     carbonOffsetCost,
     discount,
     total,
-    setPromoCode,
-    setPromoDiscount,
+    setPromoCode: handlePromoCodeChange,
+    setPromoDiscount: handlePromoDiscountChange,
+    setPromoError,
     setShowNewAddressForm,
     setShowSavedAddresses,
     setNewAddress,

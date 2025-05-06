@@ -49,6 +49,18 @@ export default function CartPage() {
     }
 
     fetchCart();
+    
+    // Load promo code from localStorage if it exists
+    const savedPromoCode = localStorage.getItem('promoCode');
+    const savedPromoDiscount = localStorage.getItem('promoDiscount');
+    
+    if (savedPromoCode) {
+      setPromoCode(savedPromoCode);
+    }
+    
+    if (savedPromoDiscount) {
+      setPromoDiscount(Number(savedPromoDiscount));
+    }
   }, [fetchCart]);
 
   // Show selection bar when items are selected
@@ -71,10 +83,21 @@ export default function CartPage() {
       (p) => p.code.toUpperCase() === promoCode.toUpperCase()
     );
     if (found) {
-      setPromoDiscount(found.discount);
+      // Apply percentage discount to subtotal
+      const discountAmount = Math.round(subtotal * (found.discount / 100));
+      setPromoDiscount(discountAmount);
+      
+      // Save to localStorage for checkout page
+      localStorage.setItem('promoCode', promoCode);
+      localStorage.setItem('promoDiscount', discountAmount.toString());
+      
+      toast.success(`Promo code applied: ${found.discount}% discount`);
     } else {
       setPromoError("Invalid promo code");
       setPromoDiscount(0);
+      // Clear from localStorage
+      localStorage.removeItem('promoCode');
+      localStorage.removeItem('promoDiscount');
     }
   };
 
@@ -104,7 +127,8 @@ export default function CartPage() {
   // Calculate subtotal, discount, total using centralized utils
   const selectedCartItems = cartItems.filter(item => selectedItems.has(item.id));
   const subtotal = calculateSubtotal(selectedCartItems);
-  const discount = calculateDiscount(subtotal, promoDiscount);
+  // Use the promoDiscount directly as it's already the calculated amount, not a percentage
+  const discount = promoDiscount;
   const total = calculateTotal(subtotal, discount);
   const totalCartValue = calculateSubtotal(cartItems);
 
@@ -271,6 +295,9 @@ export default function CartPage() {
                       setPromoCode("");
                       setPromoDiscount(0);
                       setPromoError("");
+                      // Clear from localStorage
+                      localStorage.removeItem('promoCode');
+                      localStorage.removeItem('promoDiscount');
                     } : undefined}
                   />
                   <button

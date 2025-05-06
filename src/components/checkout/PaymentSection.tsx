@@ -1,5 +1,6 @@
 import React from 'react';
 import { formatCurrency } from '@/utils/format';
+import PromoCodeInput from '@/components/PromoCodeInput';
 
 interface PaymentSectionProps {
   subtotal: number;
@@ -13,6 +14,12 @@ interface PaymentSectionProps {
   carbonOffsetCost?: number;
   ecoPackagingCount?: number;
   carbonOffsetEnabled?: boolean;
+  promoCode: string;
+  promoError: string;
+  promoDiscount: number;
+  onPromoCodeChange: (code: string) => void;
+  onApplyPromoCode: () => void;
+  setPromoDiscount: (amount: number) => void;
 }
 
 const PaymentSection: React.FC<PaymentSectionProps> = ({
@@ -26,7 +33,13 @@ const PaymentSection: React.FC<PaymentSectionProps> = ({
   ecoPackagingCost = 5000,
   carbonOffsetCost = 3800,
   ecoPackagingCount = 0,
-  carbonOffsetEnabled = false
+  carbonOffsetEnabled = false,
+  promoCode,
+  promoError,
+  promoDiscount,
+  onPromoCodeChange,
+  onApplyPromoCode,
+  setPromoDiscount
 }) => {
   // Shipping cost is fixed for now
   const shippingCost = 0;
@@ -150,6 +163,29 @@ const PaymentSection: React.FC<PaymentSectionProps> = ({
                 <span className="text-green-400 font-medium">{formatCurrency(totalCarbonOffsetCost)}</span>
               </div>
             )}
+            
+            {/* Promo Code Input */}
+            <div className="mb-4">
+              <PromoCodeInput
+                value={promoCode}
+                onChange={onPromoCodeChange}
+                onApply={onApplyPromoCode}
+                error={promoError}
+                successMessage={promoDiscount > 0 ? `Promo code applied: ${(promoDiscount).toLocaleString('id-ID')} IDR discount` : undefined}
+                disabled={isSubmitting}
+                onRemove={promoDiscount > 0 ? () => {
+                  // Clear promo code
+                  onPromoCodeChange("");
+                  // Reset the discount to 0
+                  setPromoDiscount(0);
+                  // Clear localStorage
+                  if (typeof window !== 'undefined') {
+                    localStorage.removeItem('promoCode');
+                    localStorage.removeItem('promoDiscount');
+                  }
+                } : undefined}
+              />
+            </div>
             
             <div className="flex justify-between items-center">
               <span className="text-white/70 flex items-center gap-1.5">
