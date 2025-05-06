@@ -28,6 +28,14 @@ export default function CheckoutPage() {
     checkAuth();
   }, [router]);
   
+  // Track checkout steps for progress indicator
+  const steps = [
+    { id: 'shipping', label: 'Shipping', icon: 'truck' },
+    { id: 'payment', label: 'Payment', icon: 'credit-card' },
+    { id: 'confirmation', label: 'Confirmation', icon: 'check-circle' }
+  ];
+  const currentStep = 'shipping';
+  
   // Show empty cart message if no items are selected
   if (checkout.selectedCartItems.length === 0) {
     return (
@@ -54,12 +62,88 @@ export default function CheckoutPage() {
   // Main checkout page layout with components
   return (
     <CheckoutContainer isSubmitting={checkout.isSubmitting} title="Checkout">
+      {/* Checkout Progress Indicator */}
+      <div className="mb-8 overflow-hidden">
+        <div className="flex justify-between relative z-10">
+          {steps.map((step, index) => {
+            const isActive = step.id === currentStep;
+            const isPast = steps.findIndex(s => s.id === currentStep) > index;
+            const statusClass = isActive ? 'text-amber-500 border-amber-500' : 
+                               isPast ? 'text-green-500 border-green-500' : 'text-white/40 border-white/20';
+            
+            return (
+              <div key={step.id} className={`flex flex-col items-center relative ${index === 0 ? 'pl-0' : ''} ${index === steps.length - 1 ? 'pr-0' : ''}`}>
+                <div className={`w-10 h-10 rounded-full border-2 ${statusClass} flex items-center justify-center mb-2 bg-neutral-900 z-10`}>
+                  {step.icon === 'truck' && (
+                    <svg className="w-5 h-5" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                      <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={1.5} d="M5 8h14M5 8a2 2 0 100-4h14a2 2 0 100 4M5 8v10a2 2 0 002 2h10a2 2 0 002-2V8m-9 4h4" />
+                    </svg>
+                  )}
+                  {step.icon === 'credit-card' && (
+                    <svg className="w-5 h-5" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                      <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={1.5} d="M3 10h18M7 15h1m4 0h1m-7 4h12a3 3 0 003-3V8a3 3 0 00-3-3H6a3 3 0 00-3 3v8a3 3 0 003 3z" />
+                    </svg>
+                  )}
+                  {step.icon === 'check-circle' && (
+                    <svg className="w-5 h-5" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                      <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={1.5} d="M9 12l2 2 4-4m6 2a9 9 0 11-18 0 9 9 0 0118 0z" />
+                    </svg>
+                  )}
+                </div>
+                <span className={`text-sm font-medium ${statusClass}`}>{step.label}</span>
+              </div>
+            );
+          })}
+        </div>
+        
+        {/* Progress Line */}
+        <div className="relative mt-5">
+          <div className="absolute top-0 left-0 right-0 h-0.5 bg-white/10"></div>
+          <div 
+            className="absolute top-0 left-0 h-0.5 bg-amber-500 transition-all duration-500" 
+            style={{ width: currentStep === 'shipping' ? '0%' : currentStep === 'payment' ? '50%' : '100%' }}
+          ></div>
+        </div>
+      </div>
+      
+      {/* Order Summary Banner */}
+      <div className="bg-gradient-to-r from-amber-900/30 to-green-900/30 rounded-lg p-4 mb-6 border border-amber-500/20">
+        <div className="flex flex-col md:flex-row justify-between items-start md:items-center">
+          <div>
+            <h3 className="text-amber-400 font-medium mb-1">Order Summary</h3>
+            <p className="text-white/70 text-sm">
+              <span className="font-medium">{checkout.selectedCartItems.length}</span> items from <span className="font-medium">{Object.keys(checkout.groupItemsBySeller(checkout.selectedCartItems)).length}</span> local vendors
+            </p>
+          </div>
+          <div className="flex items-center mt-3 md:mt-0">
+            <div className="bg-black/30 rounded-lg px-3 py-1.5 flex items-center mr-3">
+              <svg className="w-4 h-4 text-green-500 mr-2" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M9 12l2 2 4-4m5.618-4.016A11.955 11.955 0 0112 2.944a11.955 11.955 0 01-8.618 3.04A12.02 12.02 0 003 9c0 5.591 3.824 10.29 9 11.622 5.176-1.332 9-6.03 9-11.622 0-1.042-.133-2.052-.382-3.016z" />
+              </svg>
+              <span className="text-white text-sm">Secure Checkout</span>
+            </div>
+            <div className="bg-black/30 rounded-lg px-3 py-1.5 flex items-center">
+              <svg className="w-4 h-4 text-green-500 mr-2" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M12 8v4l3 3m6-3a9 9 0 11-18 0 9 9 0 0118 0z" />
+              </svg>
+              <span className="text-white text-sm">Fast Processing</span>
+            </div>
+          </div>
+        </div>
+      </div>
+      
       <div className="grid grid-cols-1 lg:grid-cols-3 gap-6">
         <div className="lg:col-span-2 order-2 lg:order-1">
           <div className="space-y-6">
             {/* Shipping Information */}
             <div className="bg-neutral-900/80 backdrop-blur-sm rounded-lg shadow-sm border border-white/10 overflow-hidden">
-              <div className="bg-green-900/30 px-6 py-4 border-b border-white/10">
+              <div className="bg-green-900/30 px-6 py-4 border-b border-white/10 flex items-center">
+                <div className="w-8 h-8 rounded-full bg-green-600 flex items-center justify-center mr-3">
+                  <svg className="w-4 h-4 text-white" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                    <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M17.657 16.657L13.414 20.9a1.998 1.998 0 01-2.827 0l-4.244-4.243a8 8 0 1111.314 0z" />
+                    <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M15 11a3 3 0 11-6 0 3 3 0 016 0z" />
+                  </svg>
+                </div>
                 <h2 className="text-lg font-semibold text-white">Shipping Information</h2>
               </div>
               
@@ -84,8 +168,17 @@ export default function CheckoutPage() {
             <div className="bg-neutral-900/80 backdrop-blur-sm rounded-lg shadow-sm border border-white/10 overflow-hidden">
               <div className="bg-green-900/30 px-6 py-4 border-b border-white/10">
                 <div className="flex items-center justify-between">
-                  <h2 className="text-lg font-semibold text-white">Order Items</h2>
-                  <div className="text-white/60 text-sm">{checkout.selectedCartItems.length} items</div>
+                  <div className="flex items-center">
+                    <div className="w-8 h-8 rounded-full bg-green-600 flex items-center justify-center mr-3">
+                      <svg className="w-4 h-4 text-white" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                        <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M16 11V7a4 4 0 00-8 0v4M5 9h14l1 12H4L5 9z" />
+                      </svg>
+                    </div>
+                    <h2 className="text-lg font-semibold text-white">Order Items</h2>
+                  </div>
+                  <div className="bg-amber-500/20 text-amber-400 px-3 py-1 rounded-full text-sm font-medium">
+                    {checkout.selectedCartItems.length} {checkout.selectedCartItems.length === 1 ? 'item' : 'items'}
+                  </div>
                 </div>
               </div>
 
@@ -136,13 +229,41 @@ export default function CheckoutPage() {
         </div>
 
         <div className="lg:col-span-1 order-1 lg:order-2">
-          <div className="sticky top-20">
+          {/* Mobile Order Summary Floating Bar - Only visible on mobile */}
+          <div className="fixed bottom-0 left-0 right-0 bg-neutral-900/95 backdrop-blur-md border-t border-white/10 p-4 flex justify-between items-center lg:hidden z-50">
+            <div>
+              <div className="text-sm text-white/60">Total</div>
+              <div className="text-lg font-bold text-amber-500">{checkout.total.toLocaleString('id-ID', { style: 'currency', currency: 'IDR', minimumFractionDigits: 0 })}</div>
+            </div>
+            <button
+              onClick={() => {
+                // Scroll to payment section
+                const paymentSection = document.getElementById('payment-section');
+                if (paymentSection) {
+                  paymentSection.scrollIntoView({ behavior: 'smooth' });
+                }
+              }}
+              className="bg-green-600 text-white px-6 py-3 rounded-lg hover:bg-green-500 transition-colors flex items-center gap-2 font-medium"
+            >
+              <svg className="w-5 h-5" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M17 8l4 4m0 0l-4 4m4-4H3" />
+              </svg>
+              Proceed to Payment
+            </button>
+          </div>
+          
+          <div id="payment-section" className="sticky top-20">
             <PaymentSection
               subtotal={checkout.subtotal}
               discount={checkout.discount}
               total={checkout.total}
               paymentMethod={checkout.paymentMethod as 'balance' | 'cod'}
               isSubmitting={checkout.isSubmitting}
+              // Pass eco-friendly options to the payment section
+              ecoPackagingCost={5000}
+              carbonOffsetCost={3800}
+              ecoPackagingCount={Object.values(checkout.ecoPackaging).filter(Boolean).length}
+              carbonOffsetEnabled={checkout.carbonOffset}
               onPaymentMethodChange={(method: string) => {
                 // Cast the string to the expected type
                 if (method === 'balance' || method === 'cod') {

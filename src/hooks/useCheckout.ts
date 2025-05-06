@@ -152,33 +152,35 @@ export function useCheckout(): UseCheckoutReturn {
     return grouped;
   };
   
-  // Initialize eco-packaging state based on selected items
+  // Initialize eco-packaging state based on selected items grouped by seller
   useEffect(() => {
     if (selectedCartItems.length > 0) {
+      // Group items by seller
+      const grouped = groupItemsBySeller(selectedCartItems);
+      
       // Check if we need to update the eco-packaging state
       let needsUpdate = false;
       const newEcoPackaging = { ...ecoPackaging };
       
-      // Add missing items to eco-packaging state
-      selectedCartItems.forEach(item => {
-        if (ecoPackaging[item.id] === undefined) {
-          newEcoPackaging[item.id] = false;
+      // Add missing sellers to eco-packaging state
+      Object.keys(grouped).forEach(sellerId => {
+        if (ecoPackaging[sellerId] === undefined) {
+          newEcoPackaging[sellerId] = false;
           needsUpdate = true;
         }
       });
       
-      // Remove items that are no longer selected
-      Object.keys(ecoPackaging).forEach(itemId => {
-        const numericId = Number(itemId);
-        if (!selectedCartItems.some(item => item.id === numericId)) {
-          delete newEcoPackaging[itemId];
+      // Remove sellers that are no longer in the cart
+      Object.keys(ecoPackaging).forEach(sellerId => {
+        if (!grouped[sellerId]) {
+          delete newEcoPackaging[sellerId];
           needsUpdate = true;
         }
       });
       
       // Only update state if needed to avoid infinite loops
       if (needsUpdate) {
-        console.log('Updating eco-packaging state:', newEcoPackaging);
+        console.log('Updating eco-packaging state by seller:', newEcoPackaging);
         setEcoPackaging(newEcoPackaging);
       }
     } else if (Object.keys(ecoPackaging).length > 0 && selectedCartItems.length === 0) {
@@ -189,8 +191,14 @@ export function useCheckout(): UseCheckoutReturn {
   
   // Calculate totals
   const subtotal = calculateSubtotal(selectedCartItems);
-  const ecoPackagingCost = Object.values(ecoPackaging).filter(Boolean).length * 2000;
-  const carbonOffsetCost = carbonOffset ? 800 : 0;
+  
+  // Calculate eco-packaging cost based on selected seller options
+  const ecoPackagingCount = Object.values(ecoPackaging).filter(Boolean).length;
+  const ecoPackagingCost = ecoPackagingCount * 5000; // 5000 IDR per seller
+  
+  // Calculate carbon offset cost
+  const carbonOffsetCost = carbonOffset ? 3800 : 0; // 3800 IDR for carbon offset
+  
   const discount = calculateDiscount(subtotal, promoDiscount);
   const total = calculateTotal(subtotal + ecoPackagingCost + carbonOffsetCost, discount);
   

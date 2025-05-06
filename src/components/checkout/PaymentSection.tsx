@@ -9,6 +9,10 @@ interface PaymentSectionProps {
   isSubmitting: boolean;
   onPaymentMethodChange: (method: string) => void;
   onCheckout: () => void;
+  ecoPackagingCost?: number;
+  carbonOffsetCost?: number;
+  ecoPackagingCount?: number;
+  carbonOffsetEnabled?: boolean;
 }
 
 const PaymentSection: React.FC<PaymentSectionProps> = ({
@@ -18,11 +22,21 @@ const PaymentSection: React.FC<PaymentSectionProps> = ({
   paymentMethod,
   isSubmitting,
   onPaymentMethodChange,
-  onCheckout
+  onCheckout,
+  ecoPackagingCost = 5000,
+  carbonOffsetCost = 3800,
+  ecoPackagingCount = 0,
+  carbonOffsetEnabled = false
 }) => {
-  // Shipping cost is fixed at 13800 for now
+  // Shipping cost is fixed for now
   const shippingCost = 0;
-  const finalTotal = total + shippingCost;
+  
+  // Calculate eco-friendly options costs
+  const totalEcoPackagingCost = ecoPackagingCount * ecoPackagingCost;
+  const totalCarbonOffsetCost = carbonOffsetEnabled ? carbonOffsetCost : 0;
+  
+  // Calculate final total including eco options
+  const finalTotal = total + shippingCost + totalEcoPackagingCost + totalCarbonOffsetCost;
 
   return (
     <div className="bg-neutral-900/80 backdrop-blur-sm rounded-lg shadow-sm border border-white/10 overflow-hidden mb-6">
@@ -68,7 +82,12 @@ const PaymentSection: React.FC<PaymentSectionProps> = ({
         
         {/* Order Summary */}
         <div className="mt-6 pt-4 border-t border-white/10">
-          <h3 className="text-white font-medium mb-3">Order Summary</h3>
+          <div className="flex items-center mb-3">
+            <svg className="w-5 h-5 text-amber-500 mr-2" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+              <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M9 7h6m0 10v-3m-3 3h.01M9 17h.01M9 14h.01M12 14h.01M15 11h.01M12 11h.01M9 11h.01M7 21h10a2 2 0 002-2V5a2 2 0 00-2-2H7a2 2 0 00-2 2v14a2 2 0 002 2z" />
+            </svg>
+            <h3 className="text-white font-medium">Order Summary</h3>
+          </div>
           
           <div className="space-y-2 text-sm">
             <div className="flex justify-between">
@@ -80,6 +99,32 @@ const PaymentSection: React.FC<PaymentSectionProps> = ({
               <div className="flex justify-between">
                 <span className="text-white/70">Discount</span>
                 <span className="text-green-500 font-medium">-{formatCurrency(discount)}</span>
+              </div>
+            )}
+            
+            {/* Eco-friendly packaging cost */}
+            {totalEcoPackagingCost > 0 && (
+              <div className="flex justify-between">
+                <span className="text-white/70 flex items-center">
+                  <svg className="w-3 h-3 text-green-400 mr-1" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                    <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M5 8h14M5 8a2 2 0 110-4h14a2 2 0 110 4M5 8v10a2 2 0 002 2h10a2 2 0 002-2V8m-9 4h4" />
+                  </svg>
+                  Eco Packaging ({ecoPackagingCount})
+                </span>
+                <span className="text-green-400">{formatCurrency(totalEcoPackagingCost)}</span>
+              </div>
+            )}
+            
+            {/* Carbon offset cost */}
+            {totalCarbonOffsetCost > 0 && (
+              <div className="flex justify-between">
+                <span className="text-white/70 flex items-center">
+                  <svg className="w-3 h-3 text-green-400 mr-1" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                    <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M3.055 11H5a2 2 0 012 2v1a2 2 0 002 2 2 2 0 012 2v2.945M8 3.935V5.5A2.5 2.5 0 0010.5 8h.5a2 2 0 012 2 2 2 0 104 0 2 2 0 012-2h1.064M15 20.488V18a2 2 0 012-2h3.064M21 12a9 9 0 11-18 0 9 9 0 0118 0z" />
+                  </svg>
+                  Carbon Offset
+                </span>
+                <span className="text-green-400">{formatCurrency(totalCarbonOffsetCost)}</span>
               </div>
             )}
             
