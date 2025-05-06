@@ -60,16 +60,16 @@ export default function Footer() {
           <div>
             <h3 className="text-amber-500 font-bold uppercase tracking-wider text-sm mb-4">Newsletter</h3>
             <p className="text-white/70 mb-4">Subscribe to our newsletter for updates on new products and special promotions.</p>
-            <form className="flex">
+            <form className="flex flex-wrap gap-2">
               <input 
                 type="email" 
                 placeholder="Your email" 
-                className="bg-white/5 border border-white/10 rounded-sm px-4 py-2 text-white placeholder:text-white/30 focus:outline-none focus:border-amber-500/50 flex-grow"
+                className="bg-white/5 border border-white/10 rounded-sm px-4 py-2 text-white placeholder:text-white/30 focus:outline-none focus:border-amber-500/50 flex-1 min-w-0"
                 required
               />
               <button 
                 type="submit" 
-                className="bg-amber-500 text-black px-4 py-2 rounded-sm ml-2 font-bold hover:bg-amber-400 transition-colors"
+                className="bg-amber-500 text-black px-4 py-2 rounded-sm font-bold hover:bg-amber-400 transition-colors"
               >
                 Subscribe
               </button>
