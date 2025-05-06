@@ -4,6 +4,7 @@ import { useCart } from '@/hooks/useCart';
 import { useAuthUser } from '@/hooks/useAuthUser';
 import { CartItemWithDetails } from '@/types/cart';
 import { calculateSubtotal, calculateDiscount, calculateTotal } from '@/utils/cartUtils';
+import { formatCurrency } from '@/utils/format';
 import { toast } from 'react-hot-toast';
 import { ordersService } from '@/services/api/orders';
 import cartService from '@/services/api/cart';
@@ -316,6 +317,22 @@ export function useCheckout(): UseCheckoutReturn {
         toast.error('Please select at least one item to checkout');
         setIsSubmitting(false);
         return;
+      }
+      
+      // Check if user has sufficient balance when using balance payment method
+      if (formData.paymentMethod === 'balance') {
+        const balanceResponse = await balanceService.getUserBalance();
+        if (!balanceResponse.success) {
+          toast.error('Unable to verify your balance. Please try again.');
+          setIsSubmitting(false);
+          return;
+        }
+        
+        if (balanceResponse.balance < total) {
+          toast.error(`Insufficient balance. You need ${formatCurrency(total)} but your balance is ${formatCurrency(balanceResponse.balance)}`);
+          setIsSubmitting(false);
+          return;
+        }
       }
       
       // Create order notes combining eco-packaging, carbon offset, and customer notes
