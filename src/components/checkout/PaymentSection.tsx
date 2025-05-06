@@ -31,12 +31,13 @@ const PaymentSection: React.FC<PaymentSectionProps> = ({
   // Shipping cost is fixed for now
   const shippingCost = 0;
   
-  // Calculate eco-friendly options costs
+  // Calculate eco-friendly options costs for display only
+  // These costs are already included in the total from useCheckout
   const totalEcoPackagingCost = ecoPackagingCount * ecoPackagingCost;
   const totalCarbonOffsetCost = carbonOffsetEnabled ? carbonOffsetCost : 0;
   
-  // Calculate final total including eco options
-  const finalTotal = total + shippingCost + totalEcoPackagingCost + totalCarbonOffsetCost;
+  // Use the total directly from useCheckout which already includes eco options
+  const finalTotal = total;
 
   return (
     <div className="bg-neutral-900/80 backdrop-blur-sm rounded-lg shadow-sm border border-white/10 overflow-hidden mb-6">
