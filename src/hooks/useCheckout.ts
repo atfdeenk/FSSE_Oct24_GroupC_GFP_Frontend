@@ -7,6 +7,7 @@ import { calculateSubtotal, calculateDiscount, calculateTotal } from '@/utils/ca
 import { toast } from 'react-hot-toast';
 import { ordersService } from '@/services/api/orders';
 import cartService from '@/services/api/cart';
+import balanceService from '@/services/api/balance';
 import { refreshCart, refreshBalance } from '@/utils/events';
 import { CheckoutFormData } from '@/components/checkout/CheckoutForm';
 
@@ -405,8 +406,11 @@ export function useCheckout(): UseCheckoutReturn {
       // Refresh cart
       refreshCart();
       
-      // Refresh balance if payment method is balance
+      // Deduct balance and refresh if payment method is balance
       if (formData.paymentMethod === 'balance') {
+        // Deduct the total amount from the user's balance (negative amount for deduction)
+        await balanceService.updateBalance(-total);
+        // Refresh the balance display
         refreshBalance();
       }
       
