@@ -23,6 +23,7 @@ export interface Address {
 export interface UseCheckoutReturn {
   selectedCartItems: CartItemWithDetails[];
   isSubmitting: boolean;
+  loading: boolean; // Added loading state from useCart
   promoCode: string;
   promoDiscount: number;
   promoError: string;
@@ -425,6 +426,7 @@ export function useCheckout(): UseCheckoutReturn {
   return {
     selectedCartItems,
     isSubmitting,
+    loading: cartLoading, // Expose the loading state from useCart
     promoCode,
     promoDiscount,
     promoError,

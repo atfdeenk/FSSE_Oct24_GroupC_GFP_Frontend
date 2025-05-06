@@ -11,6 +11,7 @@ import CheckoutItemList from '@/components/checkout/CheckoutItemList';
 import PaymentSection from '@/components/checkout/PaymentSection';
 import { useCheckout } from '@/hooks/useCheckout';
 import { PROMO_CODES } from '@/constants/promoCodes';
+import { Header, Footer } from '@/components';
 
 export default function CheckoutPage() {
   const router = useRouter();
@@ -37,8 +38,27 @@ export default function CheckoutPage() {
   ];
   const currentStep = 'shipping';
   
-  // Show empty cart message if no items are selected
-  if (checkout.selectedCartItems.length === 0) {
+  // Show loading state while fetching cart items
+  if (checkout.loading) {
+    return (
+      <div className="min-h-screen bg-neutral-950 flex flex-col">
+        <Header />
+        <main className="flex-grow flex items-center justify-center">
+          <div className="text-white text-center py-12">
+            <div className="mb-4">
+              <div className="animate-spin rounded-full h-16 w-16 border-t-2 border-b-2 border-amber-500 mx-auto"></div>
+            </div>
+            <h2 className="text-xl font-medium mb-2">Loading checkout...</h2>
+            <p className="text-white/60 mb-6">Please wait while we prepare your checkout</p>
+          </div>
+        </main>
+        <Footer />
+      </div>
+    );
+  }
+  
+  // Show empty cart message if no items are selected and not loading
+  if (checkout.selectedCartItems.length === 0 && !checkout.loading) {
     return (
       <CheckoutContainer isSubmitting={false} title="Checkout">
         <div className="text-white text-center py-12">
