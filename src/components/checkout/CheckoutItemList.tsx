@@ -61,16 +61,16 @@ const CheckoutItemList: React.FC<CheckoutItemListProps> = ({
                   
                   <div className="flex-grow">
                     <div className="flex justify-between">
-                      <h4 className="font-medium text-white">{item.product?.name || `Product #${item.product_id}`}</h4>
+                      <h4 className="font-medium text-white">{item.name || item.product?.name || `Product #${item.product_id}`}</h4>
                       <span className="text-amber-500 font-medium">
-                        {formatCurrency((item.price || item.product?.price || 0) * item.quantity)}
+                        {formatCurrency((item.price || item.unit_price || item.product?.price || 0) * item.quantity)}
                       </span>
                     </div>
                     
                     <div className="flex items-center text-white/70 text-sm mt-1">
                       <span>Qty: {item.quantity}</span>
                       <span className="mx-2">•</span>
-                      <span>{formatCurrency(item.price || item.product?.price || 0)} each</span>
+                      <span>{formatCurrency(item.price || item.unit_price || item.product?.price || 0)} each</span>
                     </div>
                     
                     {/* Product notes */}
