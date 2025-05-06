@@ -268,83 +268,91 @@ export default function WishlistPage() {
           ) : (
             <div>
               <div className="mb-6 bg-neutral-900/80 backdrop-blur-sm rounded-sm border border-white/10 p-4 shadow-lg">
-                <div className="flex justify-between items-center">
+                <div className="flex flex-col sm:flex-row sm:justify-between sm:items-center gap-4">
                   <div className="flex items-center gap-3">
                     <h2 className="text-lg font-medium text-white">Saved Items</h2>
                     <span className="text-white/60 text-sm">{wishlistItems.length} {wishlistItems.length === 1 ? 'item' : 'items'}</span>
                   </div>
-                  <div className="flex items-center gap-4">
-                    {/* Filter dropdown */}
-                    <div className="relative">
-                      <select
-                        value={filterBy}
-                        onChange={(e) => setFilterBy(e.target.value as 'all' | 'inStock' | 'outOfStock')}
-                        className="bg-amber-500 text-white font-semibold shadow-sm border border-amber-500 rounded-md px-3 py-2 pr-8 text-sm appearance-none focus:outline-none focus:ring-2 focus:ring-amber-400 focus:border-amber-400 hover:bg-amber-600 transition-colors"
-                      >
-                        <option value="all">All items</option>
-                        <option value="inStock">In stock</option>
-                        <option value="outOfStock">Out of stock</option>
-                      </select>
-                      <div className="absolute right-3 top-1/2 transform -translate-y-1/2 pointer-events-none">
-                        <svg className="w-4 h-4 text-white/60" fill="none" viewBox="0 0 24 24" stroke="currentColor">
-                          <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M19 9l-7 7-7-7" />
-                        </svg>
-                      </div>
-                    </div>
-
-                    {/* Sort dropdown */}
-                    <div className="relative">
-                      <select
-                        value={sortBy}
-                        onChange={(e) => setSortBy(e.target.value as 'default' | 'priceAsc' | 'priceDesc' | 'nameAsc')}
-                        className="bg-amber-500 text-white font-semibold shadow-sm border border-amber-500 rounded-md px-3 py-2 pr-8 text-sm appearance-none focus:outline-none focus:ring-2 focus:ring-amber-400 focus:border-amber-400 hover:bg-amber-600 transition-colors"
-                      >
-                        <option value="default">Default sorting</option>
-                        <option value="priceAsc">Price: Low to high</option>
-                        <option value="priceDesc">Price: High to low</option>
-                        <option value="nameAsc">Name: A to Z</option>
-                      </select>
-                      <div className="absolute right-3 top-1/2 transform -translate-y-1/2 pointer-events-none">
-                        <svg className="w-4 h-4 text-white/60" fill="none" viewBox="0 0 24 24" stroke="currentColor">
-                          <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M19 9l-7 7-7-7" />
-                        </svg>
-                      </div>
-                    </div>
-
-                    {/* Selection controls */}
-                    <div className="flex items-center">
-                      <SelectionControls
-                        onSelectAll={selectAllItems}
-                        onDeselectAll={clearAllSelections}
-                        selectedCount={selectedItems.size}
-                        totalCount={wishlistItems.length}
-                        buttonOnly={true}
-                      />
-                    </div>
-
-                    <button
-                      onClick={toggleOrderSummary}
-                      className="text-sm text-white/70 hover:text-amber-400 transition-colors flex items-center gap-1"
-                    >
-                      {showOrderSummary ? (
-                        <>
-                          <svg className="w-4 h-4" fill="none" viewBox="0 0 24 24" stroke="currentColor">
-                            <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M6 18L18 6M6 6l12 12" />
+                  {/* <div className="flex items-center gap-4"> */}
+                  {/* update edit */}
+                  <div className="flex flex-col sm:flex-row sm:items-center sm:gap-4 gap-3 w-full sm:w-auto">
+                    <div className="flex items-center gap-2">
+                      {/* Filter dropdown */}
+                      <div className="relative">
+                        <select
+                          value={filterBy}
+                          onChange={(e) => setFilterBy(e.target.value as 'all' | 'inStock' | 'outOfStock')}
+                          // className="bg-amber-500 text-white font-semibold shadow-sm border border-amber-500 rounded-md px-3 py-2 pr-8 text-sm appearance-none focus:outline-none focus:ring-2 focus:ring-amber-400 focus:border-amber-400 hover:bg-amber-600 transition-colors"
+                          // update edit //
+                          className="w-36 sm:w-40 bg-amber-500 text-white font-semibold shadow-sm border border-amber-500 rounded-md px-3 py-2 text-sm appearance-none focus:outline-none focus:ring-2 focus:ring-amber-400 focus:border-amber-400 hover:bg-amber-600 transition-colors"
+                        >
+                          <option value="all">All items</option>
+                          <option value="inStock">In stock</option>
+                          <option value="outOfStock">Out of stock</option>
+                        </select>
+                        <div className="absolute right-3 top-1/2 transform -translate-y-1/2 pointer-events-none">
+                          <svg className="w-4 h-4 text-white/60" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                            <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M19 9l-7 7-7-7" />
                           </svg>
-                          Hide Summary
-                        </>
-                      ) : (
-                        <>
-                          <svg className="w-4 h-4" fill="none" viewBox="0 0 24 24" stroke="currentColor">
-                            <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M9 5l7 7-7 7" />
+                        </div>
+                      </div>
+
+                      {/* Sort dropdown */}
+                      <div className="relative">
+                        <select
+                          value={sortBy}
+                          onChange={(e) => setSortBy(e.target.value as 'default' | 'priceAsc' | 'priceDesc' | 'nameAsc')}
+                          // className="bg-amber-500 text-white font-semibold shadow-sm border border-amber-500 rounded-md px-3 py-2 pr-8 text-sm appearance-none focus:outline-none focus:ring-2 focus:ring-amber-400 focus:border-amber-400 hover:bg-amber-600 transition-colors"
+                          // update edit //
+                          className="w-36 sm:w-48 bg-amber-500 text-white font-semibold shadow-sm border border-amber-500 rounded-md px-3 py-2 text-sm appearance-none focus:outline-none focus:ring-2 focus:ring-amber-400 focus:border-amber-400 hover:bg-amber-600 transition-colors"
+                        >
+                          <option value="default">Default sorting</option>
+                          <option value="priceAsc">Price: Low to high</option>
+                          <option value="priceDesc">Price: High to low</option>
+                          <option value="nameAsc">Name: A to Z</option>
+                        </select>
+                        <div className="absolute right-3 top-1/2 transform -translate-y-1/2 pointer-events-none">
+                          <svg className="w-4 h-4 text-white/60" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                            <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M19 9l-7 7-7-7" />
                           </svg>
-                          Show Summary
-                        </>
-                      )}
-                    </button>
-                  </div>
+                        </div>
+                      </div>
+                    </div>  
+                    <div className="flex items-center gap-2">
+                      {/* Selection controls */}
+                      <div className="flex items-center">
+                        <SelectionControls
+                          onSelectAll={selectAllItems}
+                          onDeselectAll={clearAllSelections}
+                          selectedCount={selectedItems.size}
+                          totalCount={wishlistItems.length}
+                          buttonOnly={true}
+                        />
+                      </div>
+
+                      <button
+                        onClick={toggleOrderSummary}
+                        className="text-sm text-white/70 hover:text-amber-400 transition-colors flex items-center gap-1"
+                      >
+                        {showOrderSummary ? (
+                          <>
+                            <svg className="w-4 h-4" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                              <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M6 18L18 6M6 6l12 12" />
+                            </svg>
+                            Hide Summary
+                          </>
+                        ) : (
+                          <>
+                            <svg className="w-4 h-4" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                              <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M9 5l7 7-7 7" />
+                            </svg>
+                            Show Summary
+                          </>
+                        )}
+                      </button>
+                    </div>
+                  </div>              
                 </div>
-
                 {/* Order Summary Panel */}
                 {showOrderSummary && (
                   <div className="mt-6 p-5 bg-neutral-900/80 rounded-md border border-white/5 animate-fade-in">
@@ -372,11 +380,11 @@ export default function WishlistPage() {
                       </div>
                     </div>
 
-                    <div className="mt-5 grid grid-cols-2 gap-3">
+                    <div className="mt-5 flex flex-col sm:flex-row gap-3">
                       {selectedItems.size > 0 && (
                         <button
                           onClick={addSelectedToCart}
-                          className="bg-amber-500 text-black py-2.5 rounded-md text-sm font-medium hover:bg-amber-400 transition-all duration-300 flex items-center justify-center gap-2 shadow-lg hover:shadow-amber-500/20 transform hover:translate-y-[-2px]"
+                          className="bg-amber-500 text-black py-2.5 px-2 rounded-md text-sm font-medium hover:bg-amber-400 transition-all duration-300 flex items-center justify-center gap-2 shadow-lg hover:shadow-amber-500/20 transform hover:translate-y-[-2px]"
                           disabled={selectedItems.size === 0}
                         >
                           <svg className="w-4 h-4" fill="none" viewBox="0 0 24 24" stroke="currentColor">
@@ -387,7 +395,7 @@ export default function WishlistPage() {
                       )}
                       <button
                         onClick={() => router.push('/cart')}
-                        className="bg-white/10 text-white py-2.5 rounded-md text-sm font-medium hover:bg-white/20 transition-all duration-300 flex items-center justify-center gap-2"
+                        className="bg-white/10 text-white py-2.5 px-2 rounded-md text-sm font-medium hover:bg-white/20 transition-all duration-300 flex items-center justify-center gap-2"
                       >
                         <svg className="w-4 h-4" fill="none" viewBox="0 0 24 24" stroke="currentColor">
                           <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M16 11V7a4 4 0 00-8 0v4M5 9h14l1 12H4L5 9z" />
