@@ -11,13 +11,13 @@ interface SellerDashboardTabsProps {
   user: AuthUser | null;
 }
 
-export default function SellerDashboardTabs({ 
-  activeTab, 
+export default function SellerDashboardTabs({
+  activeTab,
   onTabChange,
   user
 }: SellerDashboardTabsProps) {
   const router = useRouter();
-  
+
   const tabs = [
     {
       id: 'overview',
@@ -30,19 +30,10 @@ export default function SellerDashboardTabs({
     },
     {
       id: 'products',
-      label: 'Products',
+      label: 'Inventory Management',
       icon: (
         <svg className="w-5 h-5" fill="none" viewBox="0 0 24 24" stroke="currentColor">
           <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={1.5} d="M16 11V7a4 4 0 00-8 0v4M5 9h14l1 12H4L5 9z" />
-        </svg>
-      )
-    },
-    {
-      id: 'categories',
-      label: 'Categories',
-      icon: (
-        <svg className="w-5 h-5" fill="none" viewBox="0 0 24 24" stroke="currentColor">
-          <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={1.5} d="M7 7h.01M7 3h5c.512 0 1.024.195 1.414.586l7 7a2 2 0 010 2.828l-7 7a2 2 0 01-2.828 0l-7-7A1.994 1.994 0 013 12V7a4 4 0 014-4z" />
         </svg>
       )
     },
@@ -65,31 +56,30 @@ export default function SellerDashboardTabs({
             {user.first_name?.charAt(0) || user.email?.charAt(0) || 'S'}
           </div>
           <h3 className="text-white font-medium text-lg">
-            {user.first_name && user.last_name 
+            {user.first_name && user.last_name
               ? `${user.first_name} ${user.last_name}`
               : user.email}
           </h3>
           <p className="text-amber-500 text-sm">Seller</p>
         </div>
       )}
-      
+
       <nav className="space-y-1">
         {tabs.map((tab) => (
           <button
             key={tab.id}
             onClick={() => onTabChange(tab.id)}
-            className={`w-full flex items-center px-4 py-3 text-sm font-medium rounded-md transition-colors ${
-              activeTab === tab.id
+            className={`w-full flex items-center px-4 py-3 text-sm font-medium rounded-md transition-colors ${activeTab === tab.id
                 ? 'bg-amber-500/20 text-amber-500 border-l-2 border-amber-500'
                 : 'text-white/70 hover:bg-white/5 hover:text-white'
-            }`}
+              }`}
           >
             <span className="mr-3">{tab.icon}</span>
             {tab.label}
           </button>
         ))}
       </nav>
-      
+
       <div className="mt-6 pt-6 border-t border-white/10">
         <Link
           href="/"

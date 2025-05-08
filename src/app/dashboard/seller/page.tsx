@@ -9,7 +9,6 @@ import LoadingOverlay from '@/components/ui/LoadingOverlay';
 import {
   SellerDashboardTabs,
   ProductManagement,
-  CategoryManagement,
   VoucherManagement,
   DashboardOverview
 } from '@/components/dashboard/seller';
@@ -75,8 +74,6 @@ export default function SellerDashboardPage() {
     switch (activeTab) {
       case 'products':
         return <ProductManagement />;
-      case 'categories':
-        return <CategoryManagement />;
       case 'vouchers':
         return <VoucherManagement />;
       case 'overview':
