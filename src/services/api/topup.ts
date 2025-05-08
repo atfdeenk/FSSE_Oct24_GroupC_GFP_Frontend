@@ -3,14 +3,15 @@ import axiosInstance from './axios';
 import { API_CONFIG } from './config';
 
 export interface TopUpRequest {
-  id?: number;
-  request_id?: number; // API returns request_id
-  user_id?: number;
-  requested_by?: number; // API returns requested_by
-  amount: number;
-  status?: 'pending' | 'approved' | 'rejected';
-  created_at?: string;
-  updated_at?: string;
+  // Fields from the API response
+  request_id: number;  // Primary identifier in the API
+  user_id: number;     // User who requested the top-up
+  amount: number;      // Amount requested
+  status: 'pending' | 'approved' | 'rejected';
+  timestamp: string;   // API uses timestamp instead of created_at/updated_at
+  
+  // Additional fields we might add for UI purposes
+  id?: number;         // For compatibility with existing code
   notes?: string;
   user_name?: string;
   user_email?: string;
@@ -23,6 +24,7 @@ export interface TopUpRequestResponse {
   requests?: TopUpRequest[];
   error?: string;
   msg?: string; // API returns 'msg' field
+  new_balance?: number; // API returns 'new_balance' field for approve operations
 }
 
 /**
@@ -66,12 +68,12 @@ const topupService = {
         return {
           success: true,
           request: {
-            id: response.data.requested.request_id,
+            request_id: response.data.requested.request_id,
             user_id: response.data.requested.requested_by,
             amount: response.data.requested.amount,
             status: 'pending',
-            created_at: new Date().toISOString(),
-            updated_at: new Date().toISOString(),
+            timestamp: new Date().toISOString(),
+            id: response.data.requested.request_id, // For compatibility
             notes: notes
           },
           msg: response.data.msg
@@ -97,28 +99,17 @@ const topupService = {
    */
   async getAllRequests(): Promise<TopUpRequestResponse> {
     try {
+      console.log('Fetching top-up requests from:', API_CONFIG.ENDPOINTS.topup.list);
       const response = await axiosInstance.get(API_CONFIG.ENDPOINTS.topup.list);
+      console.log('Top-up requests API response:', response.data);
       
-      // Handle different possible response structures
+      // Based on the actual API response format: { requests: [...] }
       let requests = [];
-      if (Array.isArray(response.data)) {
-        // If the API returns an array directly
-        requests = response.data;
-      } else if (response.data && typeof response.data === 'object') {
-        // If the API returns an object with a data/items/requests property
-        if (Array.isArray(response.data.requests)) {
-          requests = response.data.requests;
-        } else if (Array.isArray(response.data.data)) {
-          requests = response.data.data;
-        } else if (Array.isArray(response.data.items)) {
-          requests = response.data.items;
-        } else {
-          // As a fallback, try to convert the object to an array if possible
-          const possibleArray = Object.values(response.data).find(value => Array.isArray(value));
-          if (possibleArray) {
-            requests = possibleArray;
-          }
-        }
+      if (response.data && response.data.requests && Array.isArray(response.data.requests)) {
+        requests = response.data.requests;
+        console.log(`Found ${requests.length} top-up requests`);
+      } else {
+        console.warn('Unexpected response format:', response.data);
       }
       
       return {
@@ -141,37 +132,37 @@ const topupService = {
    */
   async approveRequest(requestId: number): Promise<TopUpRequestResponse> {
     try {
-      // First get the request details to get the user ID and amount
-      const requestResponse = await axiosInstance.get(API_CONFIG.ENDPOINTS.topup.detail(requestId));
-      const request = requestResponse.data;
+      console.log(`Approving top-up request ${requestId}`);
       
-      if (!request || !request.user_id || !request.amount) {
+      // Send the approval request directly to the API
+      const approveEndpoint = API_CONFIG.ENDPOINTS.topup.approve(requestId);
+      console.log(`Approving request at: ${approveEndpoint}`);
+      
+      // The API handles everything in one call - no need to update balance separately
+      const approveResponse = await axiosInstance.post(approveEndpoint);
+      console.log('Approve response:', approveResponse.data);
+      
+      // Handle the actual API response format
+      // { msg: "Top-up approved and balance updated for user 10", new_balance: 601000.0 }
+      if (approveResponse.data && approveResponse.data.msg) {
         return {
-          success: false,
-          error: 'Invalid request data'
+          success: true,
+          msg: approveResponse.data.msg,
+          new_balance: approveResponse.data.new_balance,
+          // Create a minimal request object for UI compatibility
+          request: {
+            request_id: requestId,
+            user_id: parseInt(approveResponse.data.msg.split('user ')[1]) || 0,
+            amount: 0, // We don't get this back from the API
+            status: 'approved',
+            timestamp: new Date().toISOString()
+          }
         };
       }
       
-      // Update the user's balance using the PATCH method to /users/{id}/balance
-      const response = await axiosInstance.patch(
-        `/users/${request.user_id}/balance`,
-        { 
-          amount: request.amount,
-          description: `Top-up request #${requestId} approved`
-        }
-      );
-      
-      // Mark the request as approved
-      await axiosInstance.patch(API_CONFIG.ENDPOINTS.topup.approve(requestId), {
-        status: 'approved'
-      });
-      
       return {
         success: true,
-        request: {
-          ...request,
-          status: 'approved'
-        }
+        msg: 'Top-up request approved successfully'
       };
     } catch (error: any) {
       console.error(`Failed to approve top-up request ${requestId}:`, error);
@@ -188,28 +179,36 @@ const topupService = {
    */
   async rejectRequest(requestId: number): Promise<TopUpRequestResponse> {
     try {
-      // First get the request details
-      const requestResponse = await axiosInstance.get(API_CONFIG.ENDPOINTS.topup.detail(requestId));
-      const request = requestResponse.data;
+      console.log(`Rejecting top-up request ${requestId}`);
       
-      if (!request) {
+      // Send the rejection request directly to the API
+      const rejectEndpoint = API_CONFIG.ENDPOINTS.topup.reject(requestId);
+      console.log(`Rejecting request at: ${rejectEndpoint}`);
+      
+      // The API handles everything in one call
+      const rejectResponse = await axiosInstance.post(rejectEndpoint);
+      console.log('Reject response:', rejectResponse.data);
+      
+      // Handle the actual API response format
+      // { msg: "Top-up request 14 rejected" }
+      if (rejectResponse.data && rejectResponse.data.msg) {
         return {
-          success: false,
-          error: 'Invalid request data'
+          success: true,
+          msg: rejectResponse.data.msg,
+          // Create a minimal request object for UI compatibility
+          request: {
+            request_id: requestId,
+            user_id: 0, // We don't get this back from the API
+            amount: 0, // We don't get this back from the API
+            status: 'rejected',
+            timestamp: new Date().toISOString()
+          }
         };
       }
       
-      // Mark the request as rejected
-      await axiosInstance.patch(API_CONFIG.ENDPOINTS.topup.reject(requestId), {
-        status: 'rejected'
-      });
-      
       return {
         success: true,
-        request: {
-          ...request,
-          status: 'rejected'
-        }
+        msg: 'Top-up request rejected successfully'
       };
     } catch (error: any) {
       console.error(`Failed to reject top-up request ${requestId}:`, error);

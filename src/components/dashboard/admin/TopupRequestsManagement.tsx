@@ -62,7 +62,18 @@ export default function TopupRequestsManagement() {
       const response = await topupService.approveRequest(requestId);
       
       if (response.success) {
-        toast.success('Top-up request approved successfully');
+        // Use the message from the API response if available
+        const successMessage = response.msg || 'Top-up request approved successfully';
+        toast.success(successMessage);
+        
+        // If we have new_balance info, we could display it in a more detailed toast
+        if (response.new_balance !== undefined) {
+          toast.success(`New user balance: Rp ${response.new_balance.toLocaleString()}`, {
+            duration: 5000,
+            position: 'bottom-right'
+          });
+        }
+        
         fetchRequests(); // Refresh the list
         setIsDetailsModalOpen(false);
       } else {
@@ -82,7 +93,9 @@ export default function TopupRequestsManagement() {
       const response = await topupService.rejectRequest(requestId);
       
       if (response.success) {
-        toast.success('Top-up request rejected successfully');
+        // Use the message from the API response if available
+        const successMessage = response.msg || 'Top-up request rejected successfully';
+        toast.success(successMessage);
         fetchRequests(); // Refresh the list
         setIsDetailsModalOpen(false);
       } else {
@@ -231,7 +244,7 @@ export default function TopupRequestsManagement() {
                       <td className="px-6 py-4 whitespace-nowrap text-sm text-gray-500">
                         <div className="flex items-center">
                           <FaCalendarAlt className="mr-1 h-3 w-3 text-gray-400" />
-                          {request.created_at ? new Date(request.created_at).toLocaleDateString() : 'N/A'}
+                          {request.timestamp ? new Date(request.timestamp).toLocaleDateString() : 'N/A'}
                         </div>
                       </td>
                       <td className="px-6 py-4 whitespace-nowrap text-sm font-medium">
@@ -326,7 +339,7 @@ export default function TopupRequestsManagement() {
                           </div>
                           <div className="flex justify-between items-center mb-2">
                             <span className="text-sm text-gray-500">Date Requested:</span>
-                            <span className="text-sm font-medium">{currentRequest.created_at ? new Date(currentRequest.created_at).toLocaleString() : 'N/A'}</span>
+                            <span className="text-sm font-medium">{currentRequest.timestamp ? new Date(currentRequest.timestamp).toLocaleString() : 'N/A'}</span>
                           </div>
                           {currentRequest.notes && (
                             <div className="mt-2">
@@ -341,7 +354,7 @@ export default function TopupRequestsManagement() {
                             <button
                               type="button"
                               className="inline-flex justify-center rounded-md border border-transparent bg-red-100 px-4 py-2 text-sm font-medium text-red-900 hover:bg-red-200 focus:outline-none focus-visible:ring-2 focus-visible:ring-red-500 focus-visible:ring-offset-2"
-                              onClick={() => currentRequest.id ? handleRejectRequest(currentRequest.id) : null}
+                              onClick={() => currentRequest.request_id ? handleRejectRequest(currentRequest.request_id) : (currentRequest.id ? handleRejectRequest(currentRequest.id) : null)}
                               disabled={processingAction}
                             >
                               <FaTimes className="mr-2 h-4 w-4" />
@@ -350,7 +363,7 @@ export default function TopupRequestsManagement() {
                             <button
                               type="button"
                               className="inline-flex justify-center rounded-md border border-transparent bg-green-100 px-4 py-2 text-sm font-medium text-green-900 hover:bg-green-200 focus:outline-none focus-visible:ring-2 focus-visible:ring-green-500 focus-visible:ring-offset-2"
-                              onClick={() => currentRequest.id ? handleApproveRequest(currentRequest.id) : null}
+                              onClick={() => currentRequest.request_id ? handleApproveRequest(currentRequest.request_id) : (currentRequest.id ? handleApproveRequest(currentRequest.id) : null)}
                               disabled={processingAction}
                             >
                               <FaCheck className="mr-2 h-4 w-4" />
