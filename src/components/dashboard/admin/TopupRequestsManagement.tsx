@@ -27,6 +27,8 @@ export default function TopupRequestsManagement() {
   const [currentRequest, setCurrentRequest] = useState<TopUpRequest | null>(null);
   const [processingAction, setProcessingAction] = useState(false);
   const [usersMap, setUsersMap] = useState<Map<string | number, User>>(new Map());
+  const [activeTab, setActiveTab] = useState<'all' | 'pending' | 'approved' | 'rejected'>('all');
+  const [sortConfig, setSortConfig] = useState<{ key: string; direction: 'ascending' | 'descending' } | null>(null);
 
   useEffect(() => {
     fetchUsers();
@@ -137,38 +139,145 @@ export default function TopupRequestsManagement() {
     }
   };
 
-  const filteredRequests = requests.filter(request => {
-    const userNameMatch = request.user_name ? 
-      request.user_name.toLowerCase().includes(searchTerm.toLowerCase()) : false;
-    const userEmailMatch = request.user_email ? 
-      request.user_email.toLowerCase().includes(searchTerm.toLowerCase()) : false;
-    const statusMatch = request.status ? request.status.toLowerCase().includes(searchTerm.toLowerCase()) : false;
+  // Handle sorting logic
+  const requestSort = (key: string) => {
+    let direction: 'ascending' | 'descending' = 'ascending';
+    if (sortConfig && sortConfig.key === key && sortConfig.direction === 'ascending') {
+      direction = 'descending';
+    }
+    setSortConfig({ key, direction });
+  };
+
+  // Apply sorting to the requests
+  const getSortedRequests = (requests: TopUpRequest[]) => {
+    if (!sortConfig) return requests;
     
-    return userNameMatch || userEmailMatch || statusMatch;
+    return [...requests].sort((a, b) => {
+      if (sortConfig.key === 'id' || sortConfig.key === 'request_id') {
+        return sortConfig.direction === 'ascending' 
+          ? (a.request_id || 0) - (b.request_id || 0)
+          : (b.request_id || 0) - (a.request_id || 0);
+      }
+      
+      if (sortConfig.key === 'user') {
+        const aName = usersMap.get(a.user_id)?.username || `User #${a.user_id}`;
+        const bName = usersMap.get(b.user_id)?.username || `User #${b.user_id}`;
+        return sortConfig.direction === 'ascending'
+          ? aName.localeCompare(bName)
+          : bName.localeCompare(aName);
+      }
+      
+      if (sortConfig.key === 'amount') {
+        return sortConfig.direction === 'ascending'
+          ? (a.amount || 0) - (b.amount || 0)
+          : (b.amount || 0) - (a.amount || 0);
+      }
+      
+      if (sortConfig.key === 'status') {
+        return sortConfig.direction === 'ascending'
+          ? a.status.localeCompare(b.status)
+          : b.status.localeCompare(a.status);
+      }
+      
+      if (sortConfig.key === 'date') {
+        const aDate = a.timestamp ? new Date(a.timestamp).getTime() : 0;
+        const bDate = b.timestamp ? new Date(b.timestamp).getTime() : 0;
+        return sortConfig.direction === 'ascending'
+          ? aDate - bDate
+          : bDate - aDate;
+      }
+      
+      return 0;
+    });
+  };
+
+  // Filter requests by search term and active tab
+  const filteredRequests = requests.filter(request => {
+    // Filter by search term
+    const userNameMatch = usersMap.get(request.user_id)?.username ? 
+      usersMap.get(request.user_id)?.username.toLowerCase().includes(searchTerm.toLowerCase()) : false;
+    const statusMatch = request.status ? request.status.toLowerCase().includes(searchTerm.toLowerCase()) : false;
+    const cityMatch = usersMap.get(request.user_id)?.city ? 
+      usersMap.get(request.user_id)?.city?.toLowerCase().includes(searchTerm.toLowerCase()) : false;
+    
+    const searchMatch = userNameMatch || statusMatch || cityMatch || String(request.user_id).includes(searchTerm);
+    
+    // Filter by tab
+    if (activeTab === 'all') return searchMatch;
+    return searchMatch && request.status === activeTab;
   });
+  
+  // Apply sorting
+  const sortedRequests = getSortedRequests(filteredRequests);
 
   return (
     <div className="space-y-6">
-      <div className="flex flex-col sm:flex-row justify-between items-start sm:items-center mb-6 bg-gradient-to-r from-amber-50 to-white p-4 rounded-lg shadow-sm">
-        <div>
-          <h2 className="text-2xl font-bold text-gray-900 mb-2 sm:mb-0 flex items-center">
-            <div className="bg-amber-100 p-2 rounded-full mr-3">
-              <FaMoneyBillWave className="text-amber-600" size={20} />
-            </div>
-            Top-up Requests
-          </h2>
-          <p className="text-gray-600 text-sm mt-1">Manage customer balance top-up requests</p>
+      <div className="bg-white p-6 rounded-lg shadow-sm border border-amber-100 mb-6">
+        <div className="flex items-center mb-4">
+          <div className="bg-amber-100 p-2 rounded-full mr-3">
+            <FaMoneyBillWave className="text-amber-600" size={20} />
+          </div>
+          <h2 className="text-2xl font-bold text-gray-900">Top-up Requests</h2>
         </div>
         
-        <div className="w-full sm:w-64 relative mt-4 sm:mt-0">
-          <input
-            type="text"
-            placeholder="Search requests..."
-            className="w-full pl-10 pr-4 py-2.5 border border-amber-200 rounded-lg focus:outline-none focus:ring-2 focus:ring-amber-500 focus:border-transparent bg-white shadow-sm transition-all duration-200"
-            value={searchTerm}
-            onChange={(e) => setSearchTerm(e.target.value)}
-          />
-          <FaSearch className="absolute left-3 top-3.5 text-amber-400" />
+        <p className="text-gray-600 text-sm mb-6">Manage customer balance top-up requests</p>
+        
+        <div className="flex flex-col md:flex-row justify-between items-center gap-4 mb-6">
+          <div className="relative w-full md:w-64">
+            <div className="absolute inset-y-0 left-0 pl-3 flex items-center pointer-events-none">
+              <FaSearch className="h-4 w-4 text-gray-400" />
+            </div>
+            <input
+              type="text"
+              className="block w-full pl-10 pr-3 py-2 border border-gray-300 rounded-md leading-5 bg-white placeholder-gray-500 focus:outline-none focus:ring-amber-500 focus:border-amber-500 sm:text-sm"
+              placeholder="Search requests..."
+              value={searchTerm}
+              onChange={(e) => setSearchTerm(e.target.value)}
+            />
+          </div>
+          
+          <div className="bg-amber-50 px-4 py-2 rounded-md text-sm text-amber-700 font-medium">
+            {sortedRequests.length} {sortedRequests.length === 1 ? 'request' : 'requests'} found
+          </div>
+        </div>
+        
+        <div className="flex flex-wrap border-b border-gray-200 mb-4">
+          <button
+            className={`py-3 px-6 font-medium text-sm transition-colors duration-200 ${activeTab === 'all' ? 'text-amber-600 border-b-2 border-amber-500' : 'text-gray-500 hover:text-gray-700'}`}
+            onClick={() => setActiveTab('all')}
+          >
+            All Requests
+            <span className="ml-2 bg-gray-100 text-gray-700 py-0.5 px-2 rounded-full text-xs">
+              {requests.length}
+            </span>
+          </button>
+          <button
+            className={`py-3 px-6 font-medium text-sm transition-colors duration-200 ${activeTab === 'pending' ? 'text-amber-600 border-b-2 border-amber-500' : 'text-gray-500 hover:text-gray-700'}`}
+            onClick={() => setActiveTab('pending')}
+          >
+            Pending
+            <span className="ml-2 bg-yellow-100 text-yellow-800 py-0.5 px-2 rounded-full text-xs">
+              {requests.filter(r => r.status === 'pending').length}
+            </span>
+          </button>
+          <button
+            className={`py-3 px-6 font-medium text-sm transition-colors duration-200 ${activeTab === 'approved' ? 'text-amber-600 border-b-2 border-amber-500' : 'text-gray-500 hover:text-gray-700'}`}
+            onClick={() => setActiveTab('approved')}
+          >
+            Approved
+            <span className="ml-2 bg-green-100 text-green-800 py-0.5 px-2 rounded-full text-xs">
+              {requests.filter(r => r.status === 'approved').length}
+            </span>
+          </button>
+          <button
+            className={`py-3 px-6 font-medium text-sm transition-colors duration-200 ${activeTab === 'rejected' ? 'text-amber-600 border-b-2 border-amber-500' : 'text-gray-500 hover:text-gray-700'}`}
+            onClick={() => setActiveTab('rejected')}
+          >
+            Rejected
+            <span className="ml-2 bg-red-100 text-red-800 py-0.5 px-2 rounded-full text-xs">
+              {requests.filter(r => r.status === 'rejected').length}
+            </span>
+          </button>
         </div>
       </div>
 
@@ -214,20 +323,55 @@ export default function TopupRequestsManagement() {
               <table className="min-w-full divide-y divide-amber-100 table-fixed">
                 <thead className="bg-amber-50">
                   <tr>
-                    <th scope="col" className="px-6 py-3.5 text-center text-xs font-medium text-amber-700 uppercase tracking-wider w-[10%]">
+                    <th 
+                      scope="col" 
+                      className="px-6 py-3.5 text-center text-xs font-medium text-amber-700 uppercase tracking-wider w-[10%] cursor-pointer hover:bg-amber-50"
+                      onClick={() => requestSort('id')}
+                    >
                       ID
+                      {sortConfig?.key === 'id' && (
+                        <span className="ml-1">{sortConfig.direction === 'ascending' ? '↑' : '↓'}</span>
+                      )}
                     </th>
-                    <th scope="col" className="px-6 py-3.5 text-center text-xs font-medium text-amber-700 uppercase tracking-wider w-[30%]">
+                    <th 
+                      scope="col" 
+                      className="px-6 py-3.5 text-center text-xs font-medium text-amber-700 uppercase tracking-wider w-[30%] cursor-pointer hover:bg-amber-50"
+                      onClick={() => requestSort('user')}
+                    >
                       User
+                      {sortConfig?.key === 'user' && (
+                        <span className="ml-1">{sortConfig.direction === 'ascending' ? '↑' : '↓'}</span>
+                      )}
                     </th>
-                    <th scope="col" className="px-6 py-3.5 text-center text-xs font-medium text-amber-700 uppercase tracking-wider w-[15%]">
+                    <th 
+                      scope="col" 
+                      className="px-6 py-3.5 text-center text-xs font-medium text-amber-700 uppercase tracking-wider w-[15%] cursor-pointer hover:bg-amber-50"
+                      onClick={() => requestSort('amount')}
+                    >
                       Amount
+                      {sortConfig?.key === 'amount' && (
+                        <span className="ml-1">{sortConfig.direction === 'ascending' ? '↑' : '↓'}</span>
+                      )}
                     </th>
-                    <th scope="col" className="px-6 py-3.5 text-center text-xs font-medium text-amber-700 uppercase tracking-wider w-[10%]">
+                    <th 
+                      scope="col" 
+                      className="px-6 py-3.5 text-center text-xs font-medium text-amber-700 uppercase tracking-wider w-[10%] cursor-pointer hover:bg-amber-50"
+                      onClick={() => requestSort('status')}
+                    >
                       Status
+                      {sortConfig?.key === 'status' && (
+                        <span className="ml-1">{sortConfig.direction === 'ascending' ? '↑' : '↓'}</span>
+                      )}
                     </th>
-                    <th scope="col" className="px-6 py-3.5 text-center text-xs font-medium text-amber-700 uppercase tracking-wider w-[15%]">
+                    <th 
+                      scope="col" 
+                      className="px-6 py-3.5 text-center text-xs font-medium text-amber-700 uppercase tracking-wider w-[15%] cursor-pointer hover:bg-amber-50"
+                      onClick={() => requestSort('date')}
+                    >
                       Date
+                      {sortConfig?.key === 'date' && (
+                        <span className="ml-1">{sortConfig.direction === 'ascending' ? '↑' : '↓'}</span>
+                      )}
                     </th>
                     <th scope="col" className="px-6 py-3.5 text-center text-xs font-medium text-amber-700 uppercase tracking-wider w-[20%]">
                       Actions
@@ -235,7 +379,7 @@ export default function TopupRequestsManagement() {
                   </tr>
                 </thead>
                 <tbody className="bg-white divide-y divide-amber-50">
-                  {filteredRequests.map((request, index) => (
+                  {sortedRequests.map((request, index) => (
                     <tr key={request.request_id || request.id || `request-${index}`} className="hover:bg-gray-50 transition-colors duration-150">
                       <td className="px-6 py-4 whitespace-nowrap text-sm font-medium text-gray-900 text-center">
                         <span className="bg-amber-50 px-2 py-1 rounded-md font-mono inline-block">#{request.request_id !== undefined ? request.request_id : 'N/A'}</span>
@@ -260,8 +404,11 @@ export default function TopupRequestsManagement() {
                             )}
                           </div>
                           <div className="ml-3 text-left">
-                            <div className="text-sm font-medium text-gray-900">
+                            <div className="text-sm font-medium text-gray-900 flex items-center">
                               {usersMap.get(request.user_id)?.username || `User #${request.user_id}`}
+                              <span className="ml-2 text-xs text-gray-500 bg-gray-100 px-1.5 py-0.5 rounded">
+                                ID: {request.user_id}
+                              </span>
                             </div>
                             <div className="flex items-center gap-1 mt-0.5">
                               {usersMap.get(request.user_id)?.role && (
@@ -276,9 +423,7 @@ export default function TopupRequestsManagement() {
                                 </span>
                               )}
                             </div>
-                            <div className="text-xs text-gray-500 mt-0.5">
-                              ID: {request.user_id}
-                            </div>
+
                           </div>
                         </div>
                       </td>
