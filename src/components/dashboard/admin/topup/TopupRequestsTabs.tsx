@@ -11,40 +11,40 @@ interface TopupRequestsTabsProps {
 
 export default function TopupRequestsTabs({ activeTab, onTabChange, counts }: TopupRequestsTabsProps) {
   return (
-    <div className="flex flex-wrap border-b border-gray-200 mb-4">
+    <div className="flex flex-wrap border-b border-neutral-700 mb-4">
       <button
-        className={`py-3 px-6 font-medium text-sm transition-colors duration-200 ${activeTab === 'all' ? 'text-amber-600 border-b-2 border-amber-500' : 'text-gray-500 hover:text-gray-700'}`}
+        className={`py-3 px-6 font-medium text-sm transition-all duration-200 ${activeTab === 'all' ? 'text-amber-500 border-b-2 border-amber-500' : 'text-neutral-400 hover:text-neutral-200'}`}
         onClick={() => onTabChange('all')}
       >
         All Requests
-        <span className="ml-2 bg-gray-100 text-gray-700 py-0.5 px-2 rounded-full text-xs">
+        <span className="ml-2 bg-neutral-700 text-neutral-300 py-0.5 px-2 rounded-full text-xs border border-neutral-600">
           {counts.all}
         </span>
       </button>
       <button
-        className={`py-3 px-6 font-medium text-sm transition-colors duration-200 ${activeTab === 'pending' ? 'text-amber-600 border-b-2 border-amber-500' : 'text-gray-500 hover:text-gray-700'}`}
+        className={`py-3 px-6 font-medium text-sm transition-all duration-200 ${activeTab === 'pending' ? 'text-amber-500 border-b-2 border-amber-500' : 'text-neutral-400 hover:text-neutral-200'}`}
         onClick={() => onTabChange('pending')}
       >
         Pending
-        <span className="ml-2 bg-yellow-100 text-yellow-800 py-0.5 px-2 rounded-full text-xs">
+        <span className="ml-2 bg-amber-900/20 text-amber-400 py-0.5 px-2 rounded-full text-xs border border-amber-700/50">
           {counts.pending}
         </span>
       </button>
       <button
-        className={`py-3 px-6 font-medium text-sm transition-colors duration-200 ${activeTab === 'approved' ? 'text-amber-600 border-b-2 border-amber-500' : 'text-gray-500 hover:text-gray-700'}`}
+        className={`py-3 px-6 font-medium text-sm transition-all duration-200 ${activeTab === 'approved' ? 'text-amber-500 border-b-2 border-amber-500' : 'text-neutral-400 hover:text-neutral-200'}`}
         onClick={() => onTabChange('approved')}
       >
         Approved
-        <span className="ml-2 bg-green-100 text-green-800 py-0.5 px-2 rounded-full text-xs">
+        <span className="ml-2 bg-green-900/20 text-green-400 py-0.5 px-2 rounded-full text-xs border border-green-700/50">
           {counts.approved}
         </span>
       </button>
       <button
-        className={`py-3 px-6 font-medium text-sm transition-colors duration-200 ${activeTab === 'rejected' ? 'text-amber-600 border-b-2 border-amber-500' : 'text-gray-500 hover:text-gray-700'}`}
+        className={`py-3 px-6 font-medium text-sm transition-all duration-200 ${activeTab === 'rejected' ? 'text-amber-500 border-b-2 border-amber-500' : 'text-neutral-400 hover:text-neutral-200'}`}
         onClick={() => onTabChange('rejected')}
       >
         Rejected
-        <span className="ml-2 bg-red-100 text-red-800 py-0.5 px-2 rounded-full text-xs">
+        <span className="ml-2 bg-red-900/20 text-red-400 py-0.5 px-2 rounded-full text-xs border border-red-700/50">
           {counts.rejected}
         </span>
       </button>

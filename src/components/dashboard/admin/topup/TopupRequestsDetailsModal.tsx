@@ -50,54 +50,54 @@ export default function TopupRequestsDetailsModal({
               leaveFrom="opacity-100 scale-100"
               leaveTo="opacity-0 scale-95"
             >
-              <Dialog.Panel className="w-full max-w-md transform overflow-hidden rounded-2xl bg-white p-6 text-left align-middle shadow-xl transition-all">
-                <Dialog.Title as="h3" className="text-lg font-medium leading-6 text-gray-900">
+              <Dialog.Panel className="w-full max-w-md transform overflow-hidden rounded-2xl bg-neutral-800 p-6 text-left align-middle shadow-xl transition-all border border-neutral-700">
+                <Dialog.Title as="h3" className="text-lg font-medium leading-6 text-white">
                   Top-up Request Details
                 </Dialog.Title>
 
                 <div className="mt-4 space-y-4">
-                  <div className="bg-gray-50 p-4 rounded-lg">
+                  <div className="bg-neutral-900 p-4 rounded-lg border border-neutral-700">
                     <div className="flex justify-between items-center mb-2">
-                      <span className="text-sm text-gray-500">Request ID:</span>
-                      <span className="text-sm font-medium text-gray-900">#{request.request_id}</span>
+                      <span className="text-sm text-neutral-400">Request ID:</span>
+                      <span className="text-sm font-medium text-white">#{request.request_id}</span>
                     </div>
                     <div className="flex justify-between items-center mb-2">
-                      <span className="text-sm text-gray-500">User ID:</span>
-                      <span className="text-sm font-medium text-gray-900">{request.user_id}</span>
+                      <span className="text-sm text-neutral-400">User ID:</span>
+                      <span className="text-sm font-medium text-white">{request.user_id}</span>
                     </div>
                     <div className="flex justify-between items-center mb-2">
-                      <span className="text-sm text-gray-500">Amount:</span>
-                      <span className="text-sm font-medium text-amber-600">
+                      <span className="text-sm text-neutral-400">Amount:</span>
+                      <span className="text-sm font-medium text-amber-400">
                         {typeof request.amount === 'number' ? formatCurrency(request.amount, 'IDR', 'id-ID') : 'N/A'}
                       </span>
                     </div>
                     <div className="flex justify-between items-center mb-2">
-                      <span className="text-sm text-gray-500">Status:</span>
-                      <span className={`px-2 py-1 text-xs leading-5 font-semibold rounded-full ${request.status === 'pending' ? 'bg-yellow-100 text-yellow-800' :
-                        request.status === 'approved' ? 'bg-green-100 text-green-800' :
-                          'bg-red-100 text-red-800'
+                      <span className="text-sm text-neutral-400">Status:</span>
+                      <span className={`px-2 py-1 text-xs leading-5 font-semibold rounded-full ${request.status === 'pending' ? 'bg-amber-900/20 text-amber-400 border border-amber-700/50' :
+                        request.status === 'approved' ? 'bg-green-900/20 text-green-400 border border-green-700/50' :
+                          'bg-red-900/20 text-red-400 border border-red-700/50'
                         }`}>
                         {request.status ? request.status.charAt(0).toUpperCase() + request.status.slice(1) : 'Unknown'}
                       </span>
                     </div>
                     <div className="flex justify-between items-center mb-2">
-                      <span className="text-sm text-gray-500">Date:</span>
-                      <span className="text-sm font-medium text-gray-900 flex items-center">
-                        <FaCalendarAlt className="mr-1 h-3 w-3 text-gray-400" />
+                      <span className="text-sm text-neutral-400">Date:</span>
+                      <span className="text-sm font-medium text-white flex items-center">
+                        <FaCalendarAlt className="mr-1 h-3 w-3 text-neutral-500" />
                         {request.timestamp ? formatApiTimestamp(request.timestamp).dateString : 'N/A'}
                       </span>
                     </div>
                     <div className="flex justify-between items-center">
-                      <span className="text-sm text-gray-500">Time:</span>
-                      <span className="text-sm font-medium text-gray-900 flex items-center">
-                        <FaClock className="mr-1 h-3 w-3 text-gray-400" />
+                      <span className="text-sm text-neutral-400">Time:</span>
+                      <span className="text-sm font-medium text-white flex items-center">
+                        <FaClock className="mr-1 h-3 w-3 text-neutral-500" />
                         {request.timestamp ? formatApiTimestamp(request.timestamp).timeString : 'N/A'}
                       </span>
                     </div>
                     {request.notes && (
-                      <div className="mt-3 pt-3 border-t border-gray-200">
-                        <span className="text-sm text-gray-500 block mb-1">Notes:</span>
-                        <div className="text-sm text-gray-700 bg-white p-2 rounded">
+                      <div className="mt-3 pt-3 border-t border-neutral-700">
+                        <span className="text-sm text-neutral-400 block mb-1">Notes:</span>
+                        <div className="text-sm text-neutral-300 bg-neutral-800 p-2 rounded border border-neutral-700">
                           {request.notes}
                         </div>
                       </div>
@@ -108,7 +108,7 @@ export default function TopupRequestsDetailsModal({
                     <div className="flex justify-between mt-6">
                       <button
                         type="button"
-                        className="inline-flex justify-center items-center px-4 py-2 border border-transparent text-sm font-medium rounded-md text-white bg-red-600 hover:bg-red-700 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-red-500 disabled:opacity-50 disabled:cursor-not-allowed"
+                        className="inline-flex justify-center items-center px-4 py-2 border border-red-700/50 text-sm font-medium rounded-md text-white bg-red-900/30 hover:bg-red-900/50 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-red-500 disabled:opacity-50 disabled:cursor-not-allowed transition-all duration-200"
                         onClick={() => onReject(request.request_id)}
                         disabled={processingAction}
                       >
@@ -117,7 +117,7 @@ export default function TopupRequestsDetailsModal({
                       </button>
                       <button
                         type="button"
-                        className="inline-flex justify-center items-center px-4 py-2 border border-transparent text-sm font-medium rounded-md text-white bg-green-600 hover:bg-green-700 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-green-500 disabled:opacity-50 disabled:cursor-not-allowed"
+                        className="inline-flex justify-center items-center px-4 py-2 border border-green-700/50 text-sm font-medium rounded-md text-white bg-green-900/30 hover:bg-green-900/50 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-green-500 disabled:opacity-50 disabled:cursor-not-allowed transition-all duration-200"
                         onClick={() => onApprove(request.request_id)}
                         disabled={processingAction}
                       >
@@ -131,7 +131,7 @@ export default function TopupRequestsDetailsModal({
                 <div className="mt-6 flex justify-end">
                   <button
                     type="button"
-                    className="inline-flex justify-center px-4 py-2 text-sm font-medium text-gray-700 bg-gray-100 border border-transparent rounded-md hover:bg-gray-200 focus:outline-none focus-visible:ring-2 focus-visible:ring-offset-2 focus-visible:ring-amber-500"
+                    className="inline-flex justify-center px-4 py-2 text-sm font-medium text-neutral-300 bg-neutral-700 border border-neutral-600 rounded-md hover:bg-neutral-600 focus:outline-none focus-visible:ring-2 focus-visible:ring-offset-2 focus-visible:ring-amber-500 transition-all duration-200"
                     onClick={onClose}
                   >
                     Close

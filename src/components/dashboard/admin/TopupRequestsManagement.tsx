@@ -220,7 +220,7 @@ export default function TopupRequestsManagement() {
   return (
     <div className="space-y-6">
       {newRequestsDetected && (
-        <div className="bg-green-50 border-l-4 border-green-400 p-4 mb-4 rounded shadow-sm flex justify-between items-center">
+        <div className="bg-green-900/20 border-l-4 border-green-600 p-4 mb-4 rounded shadow-sm flex justify-between items-center">
           <div className="flex items-center">
             <div className="flex-shrink-0">
               <svg className="h-5 w-5 text-green-400" xmlns="http://www.w3.org/2000/svg" viewBox="0 0 20 20" fill="currentColor">
@@ -228,7 +228,7 @@ export default function TopupRequestsManagement() {
               </svg>
             </div>
             <div className="ml-3">
-              <p className="text-sm text-green-700">
+              <p className="text-sm text-green-400">
                 New top-up requests have been detected!
               </p>
             </div>
@@ -238,14 +238,14 @@ export default function TopupRequestsManagement() {
               setNewRequestsDetected(false);
               fetchRequests();
             }}
-            className="bg-green-100 hover:bg-green-200 text-green-800 px-3 py-1 rounded-md text-sm font-medium transition-colors duration-200"
+            className="bg-green-900/30 hover:bg-green-900/50 text-green-400 px-3 py-1 rounded-md text-sm font-medium transition-all duration-200 border border-green-700/50"
           >
             View new requests
           </button>
         </div>
       )}
 
-      <div className="bg-white p-6 rounded-lg shadow-sm border border-amber-100 mb-6">
+      <div className="bg-neutral-800 p-6 rounded-lg shadow-lg border border-neutral-700 mb-6">
         {/* Header Component */}
         <TopupRequestsHeader
           title="Top-up Requests"
@@ -279,17 +279,17 @@ export default function TopupRequestsManagement() {
       {loading ? (
         <div className="grid grid-cols-1 gap-4">
           {[1, 2, 3].map((i) => (
-            <div key={i} className="bg-white rounded-lg shadow-sm border border-amber-100 p-6 animate-pulse">
+            <div key={i} className="bg-neutral-800 rounded-lg shadow-lg border border-neutral-700 p-6 animate-pulse">
               <div className="flex items-center mb-4">
-                <div className="rounded-full bg-amber-200/50 h-10 w-10 mr-3"></div>
+                <div className="rounded-full bg-amber-900/30 h-10 w-10 mr-3"></div>
                 <div>
-                  <div className="h-4 bg-amber-200/50 rounded w-32 mb-2"></div>
-                  <div className="h-3 bg-amber-100/50 rounded w-24"></div>
+                  <div className="h-4 bg-amber-900/30 rounded w-32 mb-2"></div>
+                  <div className="h-3 bg-amber-900/20 rounded w-24"></div>
                 </div>
-                <div className="ml-auto h-6 bg-amber-100/50 rounded w-20"></div>
+                <div className="ml-auto h-6 bg-amber-900/20 rounded w-20"></div>
               </div>
-              <div className="h-4 bg-amber-100/50 rounded w-3/4 mb-3"></div>
-              <div className="h-4 bg-amber-100/50 rounded w-1/2"></div>
+              <div className="h-4 bg-amber-900/20 rounded w-3/4 mb-3"></div>
+              <div className="h-4 bg-amber-900/20 rounded w-1/2"></div>
             </div>
           ))}
         </div>

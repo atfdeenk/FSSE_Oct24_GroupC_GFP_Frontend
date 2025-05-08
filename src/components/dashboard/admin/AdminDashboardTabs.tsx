@@ -39,17 +39,17 @@ export default function AdminDashboardTabs() {
   return (
     <div className="w-full px-2 py-4 sm:px-0">
       <Tab.Group selectedIndex={selectedIndex} onChange={setSelectedIndex}>
-        <Tab.List className="flex space-x-1 rounded-xl bg-amber-900/20 p-1 mb-4">
+        <Tab.List className="flex space-x-1 rounded-xl bg-neutral-800 p-1.5 mb-4 border border-neutral-700 shadow-lg">
           {Object.keys(categories).map((category) => (
             <Tab
               key={category}
               className={({ selected }) =>
                 classNames(
-                  'w-full rounded-lg py-2.5 text-sm font-medium leading-5',
-                  'ring-white/60 ring-offset-2 ring-offset-amber-400 focus:outline-none focus:ring-2',
+                  'w-full rounded-lg py-3 text-sm font-medium leading-5 transition-all duration-200',
+                  'focus:outline-none focus:ring-2 ring-offset-2 ring-offset-amber-500 ring-opacity-60',
                   selected
-                    ? 'bg-amber-500 text-white shadow'
-                    : 'text-amber-700 hover:bg-white/[0.12] hover:text-amber-500'
+                    ? 'bg-gradient-to-r from-amber-600 to-amber-700 text-white shadow-md border border-amber-500/50'
+                    : 'text-neutral-300 hover:bg-neutral-700 hover:text-white border border-transparent'
                 )
               }
             >
@@ -62,8 +62,8 @@ export default function AdminDashboardTabs() {
             <Tab.Panel
               key={idx}
               className={classNames(
-                'rounded-xl bg-white p-3',
-                'ring-white/60 ring-offset-2 ring-offset-amber-400 focus:outline-none focus:ring-2'
+                'rounded-xl bg-transparent p-0',
+                'focus:outline-none focus:ring-0'
               )}
             >
               <Component />

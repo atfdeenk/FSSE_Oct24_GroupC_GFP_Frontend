@@ -66,10 +66,10 @@ export default function DashboardOverview() {
     return (
       <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
         {[1, 2, 3, 4, 5, 6].map((i) => (
-          <div key={i} className="bg-white rounded-lg shadow-sm border border-gray-100 p-6 animate-pulse">
-            <div className="h-4 bg-gray-200 rounded w-1/2 mb-4"></div>
-            <div className="h-8 bg-gray-200 rounded mb-2"></div>
-            <div className="h-4 bg-gray-200 rounded w-3/4"></div>
+          <div key={i} className="bg-neutral-800 rounded-lg shadow-lg border border-neutral-700 p-6 animate-pulse">
+            <div className="h-4 bg-neutral-700 rounded w-1/2 mb-4"></div>
+            <div className="h-8 bg-neutral-700 rounded mb-2"></div>
+            <div className="h-4 bg-neutral-700 rounded w-3/4"></div>
           </div>
         ))}
       </div>
@@ -83,35 +83,35 @@ export default function DashboardOverview() {
         <AdminCard
           title="Total Users"
           icon={<FaUsers size={20} />}
-          className="hover:shadow-md transition-shadow duration-200"
+          className="hover:shadow-xl transition-shadow duration-200"
         >
-          <div className="text-3xl font-bold text-gray-900 mb-1">{stats?.totalUsers || 0}</div>
-          <p className="text-sm text-gray-500">Registered users on the platform</p>
+          <div className="text-3xl font-bold text-white mb-1">{stats?.totalUsers || 0}</div>
+          <p className="text-sm text-neutral-400">Registered users on the platform</p>
         </AdminCard>
 
         <AdminCard
           title="Admin Users"
           icon={<FaUserShield size={20} />}
-          className="hover:shadow-md transition-shadow duration-200"
+          className="hover:shadow-xl transition-shadow duration-200"
         >
-          <div className="text-3xl font-bold text-gray-900 mb-1">{stats?.totalAdmins || 0}</div>
-          <p className="text-sm text-gray-500">Users with admin privileges</p>
+          <div className="text-3xl font-bold text-white mb-1">{stats?.totalAdmins || 0}</div>
+          <p className="text-sm text-neutral-400">Users with admin privileges</p>
         </AdminCard>
 
         <AdminCard
           title="Pending Products"
           icon={<FaBoxOpen size={20} />}
-          className="hover:shadow-md transition-shadow duration-200"
+          className="hover:shadow-xl transition-shadow duration-200"
           headerAction={
             stats && stats.pendingProducts && stats.pendingProducts > 0 ? (
-              <span className="inline-flex items-center px-2.5 py-0.5 rounded-full text-xs font-medium bg-amber-100 text-amber-800">
+              <span className="inline-flex items-center px-2.5 py-0.5 rounded-full text-xs font-medium bg-amber-600/20 text-amber-400 border border-amber-600/30">
                 {stats.pendingProducts}
               </span>
             ) : null
           }
         >
-          <div className="text-3xl font-bold text-gray-900 mb-1">{stats?.pendingProducts || 0}</div>
-          <p className="text-sm text-gray-500">Products awaiting approval</p>
+          <div className="text-3xl font-bold text-white mb-1">{stats?.pendingProducts || 0}</div>
+          <p className="text-sm text-neutral-400">Products waiting for approval</p>
           {stats && stats.pendingProducts && stats.pendingProducts > 0 && (
             <button 
               onClick={() => navigateToSection('products')} 
@@ -267,13 +267,13 @@ export default function DashboardOverview() {
       
       {/* Alert for pending products */}
       {stats && stats.pendingProducts && stats.pendingProducts > 0 && (
-        <div className="rounded-md bg-amber-50 p-4">
+        <div className="rounded-lg bg-amber-900/20 border border-amber-700 p-4 shadow-md">
           <div className="flex">
             <div className="flex-shrink-0">
-              <FaExclamationTriangle className="h-5 w-5 text-amber-400" aria-hidden="true" />
+              <FaExclamationTriangle className="h-5 w-5 text-amber-500" aria-hidden="true" />
             </div>
             <div className="ml-3">
-              <p className="text-sm text-amber-700">
+              <p className="text-sm text-amber-400">
                 <span className="font-bold">Attention needed:</span> There are {stats.pendingProducts} products awaiting your approval.
               </p>
             </div>
@@ -281,7 +281,7 @@ export default function DashboardOverview() {
               <div className="-mx-1.5 -my-1.5">
                 <button
                   onClick={() => navigateToSection('products')}
-                  className="px-3 py-1.5 bg-amber-100 text-amber-800 rounded-md text-sm font-medium hover:bg-amber-200 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-amber-500"
+                  className="px-4 py-2 bg-amber-600/30 text-amber-400 border border-amber-600 rounded-lg text-sm font-medium hover:bg-amber-600/40 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-amber-500 transition-colors shadow-md"
                 >
                   Review Now
                 </button>
