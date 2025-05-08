@@ -147,11 +147,11 @@ const categoryService = {
   },
   
   // Get categories by vendor
-  getCategoriesByVendor: async (vendorId: number | string, limit = 20): Promise<CategoriesResponse> => {
+  getCategoriesByVendor: async (vendorId: number | string): Promise<CategoriesResponse> => {
     try {
       const response = await axiosInstance.get<CategoriesResponse>(
         API_CONFIG.ENDPOINTS.categories.list,
-        { params: { vendor_id: vendorId, limit } }
+        { params: { vendor_id: vendorId, limit: 10000 } } // Use a higher limit to ensure all vendor categories are returned
       );
       return response.data;
     } catch (error: any) {

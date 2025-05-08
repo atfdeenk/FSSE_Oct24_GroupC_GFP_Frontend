@@ -271,11 +271,11 @@ const productService = {
   },
 
   // Get products by vendor
-  getProductsByVendor: async (vendorId: number | string, page = 1, limit = 12) => {
+  getProductsByVendor: async (vendorId: number | string) => {
     try {
       const response = await axiosInstance.get<ProductsResponse>(
         API_CONFIG.ENDPOINTS.products.list,
-        { params: { vendor_id: vendorId, page, limit } }
+        { params: { vendor_id: vendorId, limit: 10000 } } // Use a higher limit to ensure all vendor products are returned
       );
       return response.data;
     } catch (error) {

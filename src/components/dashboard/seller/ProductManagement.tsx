@@ -7,6 +7,7 @@ import LoadingOverlay from '@/components/ui/LoadingOverlay';
 import productService, { CreateProductData, UpdateProductData } from '@/services/api/products';
 import categoryService from '@/services/api/categories';
 import { useAuthUser } from '@/hooks/useAuthUser';
+import { usePolling } from '@/hooks/usePolling';
 import { Category as ApiCategory, Product as ApiProduct, BaseResponse } from '@/types/apiResponses';
 
 // Define product interface for local use, extending the API type
@@ -43,7 +44,7 @@ export default function ProductManagement() {
     currency: 'IDR',
     unit_quantity: 'piece'
   });
-  
+
   // Category form state
   const [categoryFormData, setCategoryFormData] = useState({
     name: '',
@@ -54,101 +55,112 @@ export default function ProductManagement() {
   const [categoryImageFile, setCategoryImageFile] = useState<File | null>(null);
 
   // Fetch products and categories
-  useEffect(() => {
-    const fetchData = async () => {
-      setLoading(true);
+  const fetchData = async () => {
+    setLoading(true);
+    try {
+      // Fetch categories from API
       try {
-        // Fetch categories from API
-        try {
-          const categoriesResponse = await categoryService.getCategories();
-          
-          // Based on the actual API response format which has a categories array property
-          if (categoriesResponse && 
-              typeof categoriesResponse === 'object' && 
-              'categories' in categoriesResponse && 
-              Array.isArray((categoriesResponse as any).categories)) {
-            // Get categories from the categories property
-            const categoriesArray = (categoriesResponse as any).categories;
-            
-            // Filter categories by the current seller's vendor_id if user is logged in
-            if (user && user.id) {
-              const filteredCategories = categoriesArray.filter((category: any) => {
-                const categoryVendorId = typeof category.vendor_id === 'string' ? 
-                  parseInt(category.vendor_id) : category.vendor_id;
-                return categoryVendorId === user.id;
-              });
-              setCategories(filteredCategories as Category[]);
-              console.log(`Loaded ${filteredCategories.length} categories for vendor ${user.id}`);
-            } else {
-              // If no user, show all categories (should not happen in seller dashboard)
-              setCategories(categoriesArray as Category[]);
-              console.log(`Loaded ${categoriesArray.length} categories (no user filter)`);
-            }
-          } else if (Array.isArray(categoriesResponse)) {
-            // Handle direct array response (fallback)
-            setCategories(categoriesResponse as Category[]);
-            console.log(`Loaded ${categoriesResponse.length} categories (array format)`);
+        const categoriesResponse = await categoryService.getCategories();
+
+        // Based on the actual API response format which has a categories array property
+        if (categoriesResponse &&
+          typeof categoriesResponse === 'object' &&
+          'categories' in categoriesResponse &&
+          Array.isArray((categoriesResponse as any).categories)) {
+          // Get categories from the categories property
+          const categoriesArray = (categoriesResponse as any).categories;
+
+          // Filter categories by the current seller's vendor_id if user is logged in
+          if (user && user.id) {
+            const filteredCategories = categoriesArray.filter((category: any) => {
+              const categoryVendorId = typeof category.vendor_id === 'string' ?
+                parseInt(category.vendor_id) : category.vendor_id;
+              return categoryVendorId === user.id;
+            });
+            setCategories(filteredCategories as Category[]);
+            console.log(`Loaded ${filteredCategories.length} categories for vendor ${user.id}`);
           } else {
-            // Fallback to empty array
-            setCategories([]);
-            console.warn('Categories response format not recognized, using empty array');
+            // If no user, show all categories (should not happen in seller dashboard)
+            setCategories(categoriesArray as Category[]);
+            console.log(`Loaded ${categoriesArray.length} categories (no user filter)`);
           }
-        } catch (categoryError) {
-          console.error('Error fetching categories:', categoryError);
+        } else if (Array.isArray(categoriesResponse)) {
+          // Handle direct array response (fallback)
+          setCategories(categoriesResponse as Category[]);
+          console.log(`Loaded ${categoriesResponse.length} categories (array format)`);
+        } else {
+          // Fallback to empty array
           setCategories([]);
-          toast.error('Failed to load categories');
+          console.warn('Categories response format not recognized, using empty array');
         }
-        
-        // Fetch products from API - always filter by the current seller's vendor_id
-        let productsResponse;
-        if (user && user.id) {
-          // Use the getProductsByVendor method to get only this seller's products
-          productsResponse = await productService.getProductsByVendor(user.id);
-          console.log(`Fetching products for vendor ID: ${user.id}`);
-        } else {
-          // Fallback - should not happen in seller dashboard
-          console.warn('No user ID found, fetching all products');
-          productsResponse = await productService.getProducts();
-        }
-        
-        if (productsResponse && Array.isArray(productsResponse.products)) {
-          // Convert API products to our local Product type
-          const formattedProducts = productsResponse.products.map(p => ({
-            ...p,
-            id: typeof p.id === 'string' ? parseInt(p.id) : p.id as number
-          }));
-          
-          // Additional filter to ensure we only show this seller's products
-          // This is a safety measure in case the API doesn't filter correctly
-          const filteredProducts = user && user.id ? 
-            formattedProducts.filter(product => {
-              const productVendorId = typeof product.vendor_id === 'string' ? 
-                parseInt(product.vendor_id) : product.vendor_id;
-              return productVendorId === user.id;
-            }) : 
-            formattedProducts;
-          
-          setProducts(filteredProducts as Product[]);
-          console.log(`Loaded ${filteredProducts.length} products for this seller`);
-        } else {
-          setProducts([]);
-          console.error('Invalid products response:', productsResponse);
-        }
-      } catch (error) {
-        console.error('Error fetching data:', error);
-        toast.error('Failed to load data');
-      } finally {
-        setLoading(false);
+      } catch (categoryError) {
+        console.error('Error fetching categories:', categoryError);
+        setCategories([]);
+        toast.error('Failed to load categories');
       }
-    };
-    
+
+      // Fetch products from API - always filter by the current seller's vendor_id
+      let productsResponse;
+      if (user && user.id) {
+        // Use the getProductsByVendor method to get only this seller's products
+        productsResponse = await productService.getProductsByVendor(user.id);
+        console.log(`Fetching products for vendor ID: ${user.id}`);
+      } else {
+        // Fallback - should not happen in seller dashboard
+        console.warn('No user ID found, fetching all products');
+        productsResponse = await productService.getProducts();
+      }
+
+      if (productsResponse && Array.isArray(productsResponse.products)) {
+        // Convert API products to our local Product type
+        const formattedProducts = productsResponse.products.map(p => ({
+          ...p,
+          id: typeof p.id === 'string' ? parseInt(p.id) : p.id as number
+        }));
+
+        // Apply client-side filtering since the API filtering isn't working correctly
+        const filteredProducts = user && user.id ?
+          formattedProducts.filter(product => {
+            const productVendorId = typeof product.vendor_id === 'string' ?
+              parseInt(product.vendor_id) : product.vendor_id;
+            return productVendorId === user.id;
+          }) :
+          formattedProducts;
+
+        setProducts(filteredProducts as Product[]);
+        console.log(`Loaded ${filteredProducts.length} products for this seller`);
+        toast.success(`Loaded ${filteredProducts.length} products for your store`);
+      } else {
+        setProducts([]);
+        console.error('Invalid products response:', productsResponse);
+      }
+    } catch (error) {
+      console.error('Error fetching data:', error);
+      toast.error('Failed to load data');
+    } finally {
+      setLoading(false);
+    }
+  };
+
+  // Initial data fetch on component mount
+  useEffect(() => {
     fetchData();
-  }, [user]);  // Re-fetch when user changes
+  }, []);
+
+  // Set up polling to refresh data every 30 seconds
+  usePolling(
+    () => {
+      console.log('Polling: refreshing product and category data');
+      fetchData();
+    },
+    10000, // 10 seconds
+    true // enabled by default
+  );
 
   // Handle form input changes
   const handleInputChange = (e: React.ChangeEvent<HTMLInputElement | HTMLTextAreaElement | HTMLSelectElement>) => {
     const { name, value, type } = e.target;
-    
+
     // Handle numeric inputs
     if (type === 'number') {
       setFormData({
@@ -173,7 +185,7 @@ export default function ProductManagement() {
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
     setIsSubmitting(true);
-    
+
     try {
       // Validate form
       if (!formData.name || !formData.description || !formData.price) {
@@ -181,7 +193,7 @@ export default function ProductManagement() {
         setIsSubmitting(false);
         return;
       }
-      
+
       // Handle image upload if there's a new image
       let imageUrl = formData.image_url;
       if (imageFile) {
@@ -195,7 +207,7 @@ export default function ProductManagement() {
           toast.error('Failed to upload image, but continuing with product save');
         }
       }
-      
+
       if (editingProduct) {
         // Update existing product
         const updateData: UpdateProductData = {
@@ -206,34 +218,34 @@ export default function ProductManagement() {
           currency: formData.currency || 'IDR',
           unit_quantity: formData.unit_quantity || 'piece'
         };
-        
+
         // Only include image_url if we have one
         if (imageUrl) {
           updateData.image_url = imageUrl;
         }
-        
+
         const response = await productService.updateProduct(editingProduct.id, updateData);
-        
+
         if (response) {
           // Update local state
-          const updatedProducts = products.map(product => 
-            product.id === editingProduct.id 
+          const updatedProducts = products.map(product =>
+            product.id === editingProduct.id
               ? { ...product, ...updateData, image_url: imageUrl || product.image_url } as Product
               : product
           );
           setProducts(updatedProducts);
           toast.success('Product updated successfully');
-          
+
           // If category changed, handle that separately
           if (formData.category_id && formData.category_id !== editingProduct.category_id) {
             try {
               // First remove existing categories if any
               if (editingProduct.categories && editingProduct.categories.length > 0) {
-                await Promise.all(editingProduct.categories.map(cat => 
+                await Promise.all(editingProduct.categories.map(cat =>
                   productService.removeCategoryFromProduct(editingProduct.id, cat.id)
                 ));
               }
-              
+
               // Then add the new category
               await productService.addCategoryToProduct(editingProduct.id, formData.category_id);
             } catch (categoryError) {
@@ -252,19 +264,19 @@ export default function ProductManagement() {
           currency: formData.currency || 'IDR',
           unit_quantity: formData.unit_quantity || 'piece'
         };
-        
+
         // Only include image_url if we have one
         if (imageUrl) {
           createData.image_url = imageUrl;
         }
-        
+
         // Add category if selected
         if (formData.category_id && formData.category_id !== 0) {
           createData.categories = [formData.category_id as number];
         }
-        
+
         const response = await productService.createProduct(createData);
-        
+
         if (response && response.id) {
           // Get the full product details
           const newProductDetails = await productService.getProduct(response.id);
@@ -272,7 +284,7 @@ export default function ProductManagement() {
             // Format the new product to match our local Product type
             const newProduct = {
               ...newProductDetails,
-              id: typeof newProductDetails.id === 'string' ? 
+              id: typeof newProductDetails.id === 'string' ?
                 parseInt(newProductDetails.id) : newProductDetails.id as number
             };
             setProducts([...products, newProduct as Product]);
@@ -280,7 +292,7 @@ export default function ProductManagement() {
           }
         }
       }
-      
+
       // Reset form
       resetForm();
     } catch (error) {
@@ -299,9 +311,9 @@ export default function ProductManagement() {
       description: product.description,
       price: product.price,
       image_url: product.image_url,
-      category_id: product.categories && product.categories.length > 0 ? 
-        (typeof product.categories[0].id === 'string' ? 
-          parseInt(product.categories[0].id as string) : 
+      category_id: product.categories && product.categories.length > 0 ?
+        (typeof product.categories[0].id === 'string' ?
+          parseInt(product.categories[0].id as string) :
           product.categories[0].id as number) : 0,
       stock_quantity: product.stock_quantity,
       status: product.status || 'active',
@@ -318,13 +330,13 @@ export default function ProductManagement() {
       try {
         // Call API to delete the product
         const response = await productService.deleteProduct(productId);
-        
+
         if (response) {
           // Update local state
           const updatedProducts = products.filter(product => product.id !== productId);
           setProducts(updatedProducts);
           toast.success('Product deleted successfully');
-          
+
           // If we're editing this product, reset the form
           if (editingProduct && editingProduct.id === productId) {
             resetForm();
@@ -354,7 +366,7 @@ export default function ProductManagement() {
     setImageFile(null);
     setShowForm(false);
   };
-  
+
   // Reset category form
   const resetCategoryForm = () => {
     setCategoryFormData({
@@ -367,7 +379,7 @@ export default function ProductManagement() {
     setCategoryImageFile(null);
     setShowForm(false);
   };
-  
+
   // Handle category form input change
   const handleCategoryInputChange = (e: React.ChangeEvent<HTMLInputElement | HTMLTextAreaElement | HTMLSelectElement>) => {
     const { name, value } = e.target;
@@ -376,22 +388,22 @@ export default function ProductManagement() {
       [name]: name === 'parent_id' ? (value === '' ? null : parseInt(value)) : value
     }));
   };
-  
+
   // Handle category image upload
   const handleCategoryImageChange = (e: React.ChangeEvent<HTMLInputElement>) => {
     if (e.target.files && e.target.files[0]) {
       setCategoryImageFile(e.target.files[0]);
     }
   };
-  
+
   // Handle category form submission
   const handleCategorySubmit = async (e: React.FormEvent) => {
     e.preventDefault();
     setIsSubmitting(true);
-    
+
     try {
       let response;
-      
+
       // Upload image if provided
       if (categoryImageFile) {
         try {
@@ -407,7 +419,7 @@ export default function ProductManagement() {
           // Continue without image
         }
       }
-      
+
       if (editingCategory) {
         // Update existing category
         response = await categoryService.updateCategory(editingCategory.id, categoryFormData);
@@ -415,7 +427,7 @@ export default function ProductManagement() {
           // Check if response is CategoryResponse (has id) or BaseResponse (has success)
           if ('id' in response) {
             // Refresh categories list
-            const updatedCategories = categories.map(cat => 
+            const updatedCategories = categories.map(cat =>
               cat.id === editingCategory.id ? { ...cat, ...categoryFormData } : cat
             );
             setCategories(updatedCategories);
@@ -466,21 +478,21 @@ export default function ProductManagement() {
       setIsSubmitting(false);
     }
   };
-  
+
   // Handle category edit
   const handleEditCategory = (category: Category) => {
     setEditingCategory(category);
     setCategoryFormData({
       name: category.name,
       description: category.description || '',
-      parent_id: typeof category.parent_id === 'string' ? 
+      parent_id: typeof category.parent_id === 'string' ?
         parseInt(category.parent_id) : category.parent_id,
       image_url: category.image_url || ''
     });
     setCategoryImageFile(null);
     setShowForm(true);
   };
-  
+
   // Handle category delete
   const handleDeleteCategory = async (categoryId: number | string) => {
     if (window.confirm('Are you sure you want to delete this category?')) {
@@ -504,14 +516,40 @@ export default function ProductManagement() {
     }
   };
 
+  // Extract unique categories from all products
+  const extractUniqueCategories = () => {
+    const uniqueCategories = new Map();
+    
+    // First add seller's own categories
+    categories.forEach(category => {
+      uniqueCategories.set(category.id, category);
+    });
+    
+    // Then add categories from products
+    products.forEach(product => {
+      if (product.categories && product.categories.length > 0) {
+        product.categories.forEach(category => {
+          if (!uniqueCategories.has(category.id)) {
+            uniqueCategories.set(category.id, category);
+          }
+        });
+      }
+    });
+    
+    return Array.from(uniqueCategories.values());
+  };
+  
+  // Get all unique categories for the filter dropdown
+  const allCategories = extractUniqueCategories();
+  
   // Filter products based on search term and category
   const filteredProducts = products.filter(product => {
-    const matchesSearch = product.name.toLowerCase().includes(searchTerm.toLowerCase()) || 
-                         product.description.toLowerCase().includes(searchTerm.toLowerCase());
-    
-    const matchesCategory = selectedCategory === 'all' || 
-                          (product.categories && product.categories.some(cat => cat.id === selectedCategory));
-    
+    const matchesSearch = product.name.toLowerCase().includes(searchTerm.toLowerCase()) ||
+      product.description.toLowerCase().includes(searchTerm.toLowerCase());
+
+    const matchesCategory = selectedCategory === 'all' ||
+      (product.categories && product.categories.some(cat => cat.id === selectedCategory));
+
     return matchesSearch && matchesCategory;
   });
 
@@ -552,7 +590,7 @@ export default function ProductManagement() {
           )}
         </button>
       </div>
-      
+
       {/* Tab Navigation */}
       <div className="flex border-b border-white/10 mb-6">
         <button
@@ -581,7 +619,7 @@ export default function ProductManagement() {
           <h3 className="text-xl font-bold text-white mb-4">
             {editingProduct ? 'Edit Product' : 'Create New Product'}
           </h3>
-          
+
           <form onSubmit={handleSubmit} className="space-y-4">
             <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
               <div>
@@ -598,7 +636,7 @@ export default function ProductManagement() {
                   required
                 />
               </div>
-              
+
               <div>
                 <label htmlFor="category_id" className="block text-sm font-medium text-white/70 mb-1">
                   Category*
@@ -619,7 +657,7 @@ export default function ProductManagement() {
                   ))}
                 </select>
               </div>
-              
+
               <div className="md:col-span-2">
                 <label htmlFor="description" className="block text-sm font-medium text-white/70 mb-1">
                   Description
@@ -633,7 +671,7 @@ export default function ProductManagement() {
                   className="w-full bg-neutral-800 border border-white/10 rounded-md px-4 py-2 text-white focus:outline-none focus:ring-2 focus:ring-amber-500/50"
                 />
               </div>
-              
+
               <div>
                 <label htmlFor="price" className="block text-sm font-medium text-white/70 mb-1">
                   Price (Rp)*
@@ -650,7 +688,7 @@ export default function ProductManagement() {
                   required
                 />
               </div>
-              
+
               <div>
                 <label htmlFor="stock_quantity" className="block text-sm font-medium text-white/70 mb-1">
                   Stock*
@@ -666,16 +704,16 @@ export default function ProductManagement() {
                   required
                 />
               </div>
-              
+
               <div>
                 <label htmlFor="image" className="block text-sm font-medium text-white/70 mb-1">
                   Product Image
                 </label>
                 {formData.image_url && (
                   <div className="mb-2">
-                    <img 
-                      src={formData.image_url} 
-                      alt="Product preview" 
+                    <img
+                      src={formData.image_url}
+                      alt="Product preview"
                       className="h-20 w-20 object-cover rounded-md"
                       onError={(e) => {
                         (e.target as HTMLImageElement).src = 'https://via.placeholder.com/80?text=Preview';
@@ -692,7 +730,7 @@ export default function ProductManagement() {
                   className="w-full bg-neutral-800 border border-white/10 rounded-md px-4 py-2 text-white focus:outline-none focus:ring-2 focus:ring-amber-500/50"
                 />
               </div>
-              
+
               <div>
                 <label htmlFor="status" className="block text-sm font-medium text-white/70 mb-1">
                   Status
@@ -709,7 +747,7 @@ export default function ProductManagement() {
                 </select>
               </div>
             </div>
-            
+
             <div className="flex justify-end space-x-3 pt-4">
               <button
                 type="button"
@@ -768,7 +806,7 @@ export default function ProductManagement() {
                   required
                 />
               </div>
-              
+
               <div>
                 <label htmlFor="parent_id" className="block text-sm font-medium text-white/70 mb-1">
                   Parent Category
@@ -788,7 +826,7 @@ export default function ProductManagement() {
                   ))}
                 </select>
               </div>
-              
+
               <div className="md:col-span-2">
                 <label htmlFor="description" className="block text-sm font-medium text-white/70 mb-1">
                   Description
@@ -802,7 +840,7 @@ export default function ProductManagement() {
                   className="w-full bg-neutral-800 border border-white/10 rounded-md px-4 py-2 text-white focus:outline-none focus:ring-2 focus:ring-amber-500/50"
                 />
               </div>
-              
+
               <div className="md:col-span-2">
                 <label htmlFor="category_image" className="block text-sm font-medium text-white/70 mb-1">
                   Category Image
@@ -817,9 +855,9 @@ export default function ProductManagement() {
                 {(categoryFormData.image_url || (editingCategory && editingCategory.image_url)) && (
                   <div className="mt-2">
                     <p className="text-sm text-white/70 mb-1">Current Image:</p>
-                    <img 
-                      src={categoryFormData.image_url || (editingCategory ? editingCategory.image_url || '' : '')} 
-                      alt="Category Preview" 
+                    <img
+                      src={categoryFormData.image_url || (editingCategory ? editingCategory.image_url || '' : '')}
+                      alt="Category Preview"
                       className="h-20 w-auto object-contain rounded-md border border-white/10"
                       onError={(e) => {
                         (e.target as HTMLImageElement).src = '/images/placeholder.png';
@@ -829,7 +867,7 @@ export default function ProductManagement() {
                 )}
               </div>
             </div>
-            
+
             <div className="flex justify-end space-x-3 pt-4">
               <button
                 type="button"
@@ -865,7 +903,7 @@ export default function ProductManagement() {
           </form>
         </div>
       )}
-      
+
       {/* Filters - Only show in Products tab */}
       {activeTab === 'products' && (
         <div className="flex flex-col md:flex-row gap-4 mb-6">
@@ -883,7 +921,7 @@ export default function ProductManagement() {
               </svg>
             </div>
           </div>
-          
+
           <div className="w-full md:w-64">
             <select
               value={selectedCategory === 'all' ? 'all' : selectedCategory}
@@ -891,7 +929,7 @@ export default function ProductManagement() {
               className="w-full bg-neutral-800 border border-white/10 rounded-md px-4 py-2 text-white focus:outline-none focus:ring-2 focus:ring-amber-500/50"
             >
               <option value="all">All Categories</option>
-              {categories.map(category => (
+              {allCategories.map(category => (
                 <option key={category.id} value={category.id}>
                   {category.name}
                 </option>
@@ -936,9 +974,9 @@ export default function ProductManagement() {
                         <div className="flex items-center">
                           <div className="h-10 w-10 flex-shrink-0 rounded-md overflow-hidden bg-neutral-800">
                             {product.image_url ? (
-                              <img 
-                                src={product.image_url} 
-                                alt={product.name} 
+                              <img
+                                src={product.image_url}
+                                alt={product.name}
                                 className="h-10 w-10 object-cover"
                                 onError={(e) => {
                                   (e.target as HTMLImageElement).src = '/images/placeholder.png';
@@ -960,7 +998,7 @@ export default function ProductManagement() {
                       </td>
                       <td className="px-6 py-4 whitespace-nowrap">
                         <div className="text-sm text-white">
-                          {product.categories && product.categories.length > 0 
+                          {product.categories && product.categories.length > 0
                             ? product.categories.map(cat => cat.name).join(', ')
                             : 'Uncategorized'}
                         </div>
@@ -977,13 +1015,13 @@ export default function ProductManagement() {
                         </span>
                       </td>
                       <td className="px-6 py-4 whitespace-nowrap text-right text-sm font-medium">
-                        <button 
+                        <button
                           onClick={() => handleEdit(product)}
                           className="text-amber-500 hover:text-amber-400 mr-3"
                         >
                           Edit
                         </button>
-                        <button 
+                        <button
                           onClick={() => handleDelete(product.id)}
                           className="text-red-500 hover:text-red-400"
                         >
@@ -1004,7 +1042,7 @@ export default function ProductManagement() {
           </div>
         </div>
       )}
-      
+
       {/* Categories Table - Only show in Categories tab */}
       {activeTab === 'categories' && (
         <div className="bg-neutral-900/50 rounded-lg border border-white/10 overflow-hidden">
@@ -1034,9 +1072,9 @@ export default function ProductManagement() {
                         <div className="flex items-center">
                           <div className="h-10 w-10 flex-shrink-0 rounded-md overflow-hidden bg-neutral-800">
                             {category.image_url ? (
-                              <img 
-                                src={category.image_url} 
-                                alt={category.name} 
+                              <img
+                                src={category.image_url}
+                                alt={category.name}
                                 className="h-10 w-10 object-cover"
                                 onError={(e) => {
                                   (e.target as HTMLImageElement).src = '/images/placeholder.png';
@@ -1057,14 +1095,14 @@ export default function ProductManagement() {
                       </td>
                       <td className="px-6 py-4 whitespace-nowrap">
                         <div className="text-sm text-white">
-                          {category.parent_id ? 
+                          {category.parent_id ?
                             categories.find(c => {
-                              const parentId = typeof category.parent_id === 'string' ? 
+                              const parentId = typeof category.parent_id === 'string' ?
                                 parseInt(category.parent_id) : category.parent_id;
-                              const categoryId = typeof c.id === 'string' ? 
+                              const categoryId = typeof c.id === 'string' ?
                                 parseInt(c.id) : c.id as number;
                               return categoryId === parentId;
-                            })?.name || 'Unknown' 
+                            })?.name || 'Unknown'
                             : 'None (Top Level)'}
                         </div>
                       </td>
@@ -1072,13 +1110,13 @@ export default function ProductManagement() {
                         <div className="text-sm text-white truncate max-w-xs">{category.description || 'No description'}</div>
                       </td>
                       <td className="px-6 py-4 whitespace-nowrap text-right text-sm font-medium">
-                        <button 
+                        <button
                           onClick={() => handleEditCategory(category)}
                           className="text-amber-500 hover:text-amber-400 mr-3"
                         >
                           Edit
                         </button>
-                        <button 
+                        <button
                           onClick={() => handleDeleteCategory(category.id)}
                           className="text-red-500 hover:text-red-400"
                         >
