@@ -9,6 +9,7 @@ import { UserProfile } from '@/types/apiResponses';
 
 interface AdminUser extends UserProfile {
   permissions?: string[];
+  status?: string;
 }
 
 interface Admin {
@@ -33,7 +34,8 @@ export default function AdminManagement() {
     last_name: '',
     email: '',
     password: '',
-    permissions: [] as string[]
+    permissions: [] as string[],
+    status: 'active' // Add status property with default value
   });
 
   const availablePermissions = [
@@ -88,7 +90,8 @@ export default function AdminManagement() {
       last_name: admin.last_name,
       email: admin.email,
       password: '',
-      permissions: [...(admin.permissions || [])]
+      permissions: [...(admin.permissions || [])],
+      status: admin.status || 'active'
     });
     setIsEditModalOpen(true);
   };
@@ -104,7 +107,8 @@ export default function AdminManagement() {
       last_name: '',
       email: '',
       password: '',
-      permissions: []
+      permissions: [],
+      status: 'active'
     });
     setIsAddModalOpen(true);
   };
