@@ -29,6 +29,7 @@ export const API_CONFIG = {
       register: '/register',
       me: '/me',
       users: '/users',
+      allUsers: '/users/all',
       admins: '/users/admins',
       customers: '/users/customers',
       sellers: '/users/sellers',

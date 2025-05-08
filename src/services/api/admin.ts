@@ -148,13 +148,65 @@ export const adminService = {
     }
   },
   
-  // Get all users
+  // Get all users by combining data from multiple endpoints
   getUsers: async (): Promise<UserProfile[]> => {
     try {
-      const response = await axiosInstance.get<UserProfile[]>(
-        API_CONFIG.ENDPOINTS.auth.users
-      );
-      return response.data;
+      console.log('Fetching users from all endpoints...');
+      
+      // Fetch data from all three endpoints in parallel for better performance
+      const [allUsersResponse, usersResponse, adminsResponse] = await Promise.all([
+        axiosInstance.get(API_CONFIG.ENDPOINTS.auth.allUsers),
+        axiosInstance.get(API_CONFIG.ENDPOINTS.auth.users),
+        axiosInstance.get(API_CONFIG.ENDPOINTS.auth.admins)
+      ]);
+      
+      // Extract data from responses
+      const allUsers = allUsersResponse.data || [];
+      const users = usersResponse.data || [];
+      const admins = adminsResponse.data || [];
+      
+      console.log(`Received data: ${allUsers.length} users from /users/all, ${users.length} from /users, ${admins.length} from /users/admins`);
+      
+      // Create a map for location data lookup (from /users and /users/admins endpoints)
+      const locationDataMap = new Map();
+      [...users, ...admins].forEach((userData: any) => {
+        locationDataMap.set(userData.id, userData);
+      });
+      
+      // Combine the data using the same logic that worked with mock data
+      const combinedUsers = allUsers.map((user: any) => {
+        // Get location data for this user if available
+        const locationData = locationDataMap.get(user.id) || {};
+        
+        // Combine all data into a complete user profile
+        return {
+          // Basic user info from /users/all endpoint
+          id: user.id,
+          username: user.username,
+          email: user.email,
+          role: user.role,
+          is_active: user.is_active,
+          created_at: user.created_at,
+          
+          // Location data from /users or /users/admins endpoints
+          city: locationData.city || '',
+          image_url: locationData.image_url || '',
+          
+          // Default values for required UserProfile fields
+          first_name: user.first_name || '',
+          last_name: user.last_name || '',
+          phone: user.phone || '',
+          address: user.address || '',
+          state: user.state || '',
+          country: user.country || 'Indonesia',
+          zip_code: user.zip_code || '',
+          balance: user.balance || 0,
+          status: user.is_active ? 'active' : 'inactive'
+        };
+      });
+      
+      console.log(`Combined ${combinedUsers.length} users with complete information`);
+      return combinedUsers;
     } catch (error) {
       console.error('Error fetching users:', error);
       return [];

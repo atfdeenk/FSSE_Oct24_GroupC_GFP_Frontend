@@ -16,19 +16,19 @@ export const formatApiTimestamp = (timestamp?: string) => {
   }
   
   try {
-    // Format from API: "2025-05-08 04:31:42.253331"
-    // This timestamp is in UTC, we need to convert it to local time (UTC+7)
+    // Parse the timestamp directly as a Date object
+    // This works for both ISO format (2025-04-24T12:32:25.059268)
+    // and space-separated format (2025-04-24 12:32:25.059268)
+    const date = new Date(timestamp);
     
-    // First, parse the timestamp components
-    const [datePart, timeWithMsPart] = timestamp.split(' ');
-    const [timePart] = timeWithMsPart.split('.');
-    
-    // Create a date string in ISO format that JavaScript can parse
-    // Note: We're explicitly treating this as UTC by adding 'Z'
-    const isoString = `${datePart}T${timePart}Z`;
-    
-    // Parse as UTC and convert to local time
-    const date = new Date(isoString);
+    // Check if the date is valid
+    if (isNaN(date.getTime())) {
+      console.error('Invalid date format:', timestamp);
+      return {
+        dateString: 'Invalid date',
+        timeString: ''
+      };
+    }
     
     // Format the date in "Month Day, Year" format
     const dateString = date.toLocaleDateString('en-US', {
@@ -52,7 +52,7 @@ export const formatApiTimestamp = (timestamp?: string) => {
     console.error('Error parsing API timestamp:', e, timestamp);
     return {
       dateString: 'Invalid date',
-      timeString: 'Invalid time'
+      timeString: ''
     };
   }
 };

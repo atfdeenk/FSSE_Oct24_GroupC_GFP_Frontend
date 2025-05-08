@@ -48,6 +48,8 @@ export interface UserProfile {
   image_url: string;
   balance?: number; // Optional balance field for admin dashboard
   status?: string; // Optional status field for admin dashboard
+  created_at?: string; // Created at timestamp from API
+  is_active?: boolean; // Active status from API
 }
 
 // The API returns a user object directly for the /me endpoint
