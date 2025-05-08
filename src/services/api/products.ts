@@ -329,14 +329,58 @@ const productService = {
     }
   },
 
-  // Get products by vendor
+  // Get products by vendor - uses direct vendor_id filtering only
   getProductsByVendor: async (vendorId: number | string) => {
     try {
+      console.log(`=== Starting getProductsByVendor for vendor ${vendorId} ===`);
+      
+      // Convert vendorId to number for consistent comparison
+      const numericVendorId = typeof vendorId === 'string' ? parseInt(vendorId) : vendorId;
+      console.log(`Normalized vendor ID: ${numericVendorId}`);
+      
+      // Use direct vendor_id filtering with a high limit
+      console.log(`Fetching products with vendor_id=${numericVendorId}`);
+      
+      // Make the API request with vendor_id filter
       const response = await axiosInstance.get<ProductsResponse>(
         API_CONFIG.ENDPOINTS.products.list,
-        { params: { vendor_id: vendorId, limit: 1000000 } } // Use a higher limit to ensure all vendor products are returned
+        { 
+          params: { 
+            vendor_id: numericVendorId,
+            page: 1,
+            limit: 100 // Use a high limit to get all vendor products at once
+          } 
+        }
       );
-      return response.data;
+      
+      // Extract products from the response
+      const vendorProducts = response.data.products || [];
+      
+      console.log(`Server returned ${vendorProducts.length} products for vendor ${vendorId}`);
+      
+      // Log all vendor products for debugging
+      vendorProducts.forEach(product => {
+        console.log(`Product: ID: ${product.id}, Name: ${product.name}, Vendor ID: ${product.vendor_id}`);
+      });
+      
+      // Sort products by ID in descending order (newest first)
+      vendorProducts.sort((a, b) => {
+        const idA = typeof a.id === 'string' ? parseInt(a.id) : a.id;
+        const idB = typeof b.id === 'string' ? parseInt(b.id) : b.id;
+        return idB - idA; // Descending order
+      });
+      
+      // Return in the same format as the API would
+      const result = {
+        products: vendorProducts,
+        total: vendorProducts.length,
+        page: 1,
+        limit: vendorProducts.length,
+        pages: 1
+      };
+      
+      console.log(`=== Completed getProductsByVendor with ${vendorProducts.length} products ===`);
+      return result;
     } catch (error) {
       console.error(`Get products by vendor ${vendorId} error:`, error);
       throw error;

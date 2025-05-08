@@ -127,40 +127,78 @@ export default function ProductManagement() {
       }
 
       // Fetch products from API - always filter by the current seller's vendor_id
+      console.log('=== ProductManagement: Starting product fetch ===');
       let productsResponse;
+      
       if (user && user.id) {
+        console.log(`ProductManagement: Fetching products for vendor ID: ${user.id} (${typeof user.id})`);
         // Use the getProductsByVendor method to get only this seller's products
         productsResponse = await productService.getProductsByVendor(user.id);
-        console.log(`Fetching products for vendor ID: ${user.id}`);
       } else {
         // Fallback - should not happen in seller dashboard
-        console.warn('No user ID found, fetching all products');
+        console.warn('ProductManagement: No user ID found, fetching all products');
         productsResponse = await productService.getProducts();
       }
 
+      console.log('ProductManagement: Products response received:', productsResponse);
+      
       if (productsResponse && Array.isArray(productsResponse.products)) {
+        // Log the raw products data
+        console.log(`ProductManagement: Raw products count: ${productsResponse.products.length}`);
+        
         // Convert API products to our local Product type
-        const formattedProducts = productsResponse.products.map(p => ({
-          ...p,
-          id: typeof p.id === 'string' ? parseInt(p.id) : p.id as number
-        }));
+        const formattedProducts = productsResponse.products.map(p => {
+          // Ensure consistent ID format
+          const formattedProduct = {
+            ...p,
+            id: typeof p.id === 'string' ? parseInt(p.id) : p.id as number
+          };
+          
+          // Log the first few products for debugging
+          if (productsResponse.products.indexOf(p) < 3) {
+            console.log(`ProductManagement: Formatted product ${formattedProduct.id}:`, formattedProduct);
+          }
+          
+          return formattedProduct;
+        });
 
-        // Apply client-side filtering since the API filtering isn't working correctly
-        const filteredProducts = user && user.id ?
-          formattedProducts.filter(product => {
-            const productVendorId = typeof product.vendor_id === 'string' ?
+        // Apply additional vendor ID filtering to ensure we only show this user's products
+        if (user && user.id) {
+          // Convert user.id to number for consistent comparison
+          const numericUserId = typeof user.id === 'string' ? parseInt(user.id) : user.id;
+          
+          // Filter products to only include those with matching vendor_id
+          const vendorFilteredProducts = formattedProducts.filter(product => {
+            // Convert product vendor_id to number for consistent comparison
+            const productVendorId = typeof product.vendor_id === 'string' ? 
               parseInt(product.vendor_id) : product.vendor_id;
-            return productVendorId === user.id;
-          }) :
-          formattedProducts;
-
-        setProducts(filteredProducts as Product[]);
-        console.log(`Loaded ${filteredProducts.length} products for this seller`);
-        toast.success(`Loaded ${filteredProducts.length} products for your store`);
+            
+            const isMatch = productVendorId === numericUserId;
+            if (!isMatch) {
+              console.log(`Filtering out product ${product.id} (${product.name}) with vendor_id ${productVendorId} != ${numericUserId}`);
+            }
+            return isMatch;
+          });
+          
+          console.log(`ProductManagement: Filtered from ${formattedProducts.length} to ${vendorFilteredProducts.length} products for vendor ${user.id}`);
+          
+          // Store the filtered products in state
+          setProducts(vendorFilteredProducts as Product[]);
+          
+          // Show success message
+          toast.success(`Loaded ${vendorFilteredProducts.length} products for your store`);
+        } else {
+          // If no user, just use the formatted products (shouldn't happen in seller dashboard)
+          setProducts(formattedProducts as Product[]);
+          toast.success(`Loaded ${formattedProducts.length} products`);
+        }
       } else {
         setProducts([]);
-        console.error('Invalid products response:', productsResponse);
+        console.error('ProductManagement: Invalid products response:', productsResponse);
+        toast.error('Failed to load products');
       }
+      
+      console.log('=== ProductManagement: Completed product fetch ===');
     } catch (error) {
       console.error('Error fetching data:', error);
       toast.error('Failed to load data');
@@ -169,20 +207,54 @@ export default function ProductManagement() {
     }
   };
 
-  // Initial data fetch on component mount
+  // Initial data fetch when component mounts or user changes
+  // This ensures we only fetch products when user authentication is complete
   useEffect(() => {
-    fetchData();
-  }, []);
-
-  // Set up polling to refresh data every 30 seconds
-  usePolling(
-    () => {
-      console.log('Polling: refreshing product and category data');
+    console.log('User changed or component mounted, user:', user);
+    if (user) {
+      // Only fetch data if we have a user object with an ID
+      console.log('User authenticated, fetching data for vendor ID:', user.id);
       fetchData();
-    },
-    10000, // 10 seconds
-    true // enabled by default
-  );
+    } else {
+      console.log('Waiting for user authentication...');
+      // Show loading state while waiting for authentication
+      setLoading(true);
+    }
+  }, [user]); // Dependency on user ensures this runs when user auth completes
+
+  // Disable automatic polling for now to debug the inconsistent product counts
+  // Instead, we'll use a manual refresh button
+  // usePolling(
+  //   () => {
+  //     console.log('Polling: refreshing product and category data');
+  //     fetchData();
+  //   },
+  //   10000, // 10 seconds
+  //   true // enabled by default
+  // );
+  
+  // Function to manually refresh data
+  const handleManualRefresh = async () => {
+    try {
+      toast.loading('Refreshing data...', { id: 'refresh-toast' });
+      
+      // Clear existing data first to avoid stale data display
+      setProducts([]);
+      
+      // Force browser cache refresh by adding timestamp
+      console.log('=== Manual refresh initiated ===');
+      
+      // Wait for data to be fetched
+      await fetchData();
+      
+      // Show success toast
+      toast.success('Data refreshed successfully!', { id: 'refresh-toast' });
+      console.log('=== Manual refresh completed ===');
+    } catch (error) {
+      console.error('Manual refresh error:', error);
+      toast.error('Failed to refresh data. Please try again.', { id: 'refresh-toast' });
+    }
+  };
 
   // Handle form input changes
   const handleInputChange = (e: React.ChangeEvent<HTMLInputElement | HTMLTextAreaElement | HTMLSelectElement>) => {
@@ -409,8 +481,19 @@ export default function ProductManagement() {
   const handleDelete = async (productId: number) => {
     if (window.confirm('Are you sure you want to delete this product?')) {
       try {
+        // Find the product in our local state to get all its details
+        const productToDelete = products.find(p => p.id === productId);
+        
+        if (!productToDelete) {
+          toast.error('Product not found in local state');
+          return;
+        }
+        
+        console.log('Deleting product:', productToDelete);
+        
         // Call API to delete the product
-        const response = await productService.deleteProduct(productId);
+        // Ensure we're using the correct ID format that the API expects
+        const response = await productService.deleteProduct(productToDelete.id);
 
         if (response) {
           // Update local state
@@ -423,9 +506,22 @@ export default function ProductManagement() {
             resetForm();
           }
         }
-      } catch (error) {
+      } catch (error: any) {
         console.error('Error deleting product:', error);
-        toast.error('Failed to delete product');
+        
+        // Provide more detailed error message
+        if (error.response) {
+          console.error('Error response status:', error.response.status);
+          console.error('Error response data:', error.response.data);
+          
+          if (error.response.status === 404) {
+            toast.error('Product not found on the server. It may have been already deleted.');
+          } else {
+            toast.error(`Failed to delete product: ${error.response.data?.message || error.message}`);
+          }
+        } else {
+          toast.error(`Failed to delete product: ${error.message}`);
+        }
       }
     }
   };
@@ -645,16 +741,35 @@ export default function ProductManagement() {
   return (
     <div>
       <div className="flex justify-between items-center mb-6">
-        <h2 className="text-2xl font-bold text-white">Inventory Management</h2>
+        <div className="flex items-center gap-4">
+          <div>
+            <h2 className="text-2xl font-bold text-white">
+              {activeTab === 'products' ? 'Product Management' : 'Category Management'}
+            </h2>
+          </div>
+          {/* Manual Refresh Button */}
+          <button
+            onClick={handleManualRefresh}
+            className="bg-blue-600 text-white px-3 py-1 rounded-md font-medium hover:bg-blue-500 transition-all flex items-center gap-1 text-sm"
+            title="Manually refresh data"
+          >
+            <svg className="w-4 h-4" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+              <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M4 4v5h.582m15.356 2A8.001 8.001 0 004.582 9m0 0H9m11 11v-5h-.581m0 0a8.003 8.003 0 01-15.357-2m15.357 2H15" />
+            </svg>
+            Refresh Data
+          </button>
+        </div>
         <button
           onClick={() => {
-            setShowForm(!showForm);
-            // Reset appropriate form based on active tab
-            if (activeTab === 'products') {
-              resetForm();
-            } else {
-              resetCategoryForm();
+            if (showForm) {
+              // If form is already showing, this acts as a cancel button
+              if (activeTab === 'products') {
+                resetForm();
+              } else {
+                resetCategoryForm();
+              }
             }
+            setShowForm(!showForm);
           }}
           className="bg-amber-500 text-black px-4 py-2 rounded-md font-medium hover:bg-amber-400 transition-all flex items-center gap-2"
         >
@@ -1171,7 +1286,12 @@ export default function ProductManagement() {
                             )}
                           </div>
                           <div className="ml-4">
-                            <div className="text-sm font-medium text-white">{product.name}</div>
+                            <div className="text-sm font-medium text-white">
+                              {product.name} 
+                              <span className="text-xs text-amber-500 ml-1">
+                                (Vendor ID: {product.vendor_id || 'N/A'})
+                              </span>
+                            </div>
                             <div className="text-xs text-white/50 truncate max-w-xs">{product.description}</div>
                           </div>
                         </div>

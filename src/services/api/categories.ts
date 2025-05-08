@@ -146,14 +146,52 @@ const categoryService = {
     }
   },
   
-  // Get categories by vendor
+  // Get categories by vendor - fetches all categories and filters on client side
   getCategoriesByVendor: async (vendorId: number | string): Promise<CategoriesResponse> => {
     try {
+      console.log(`=== Starting getCategoriesByVendor for vendor ${vendorId} ===`);
+      
+      // Convert vendorId to number for consistent comparison
+      const numericVendorId = typeof vendorId === 'string' ? parseInt(vendorId) : vendorId;
+      console.log(`Normalized vendor ID: ${numericVendorId}`);
+      
+      // Fetch all categories without any filtering
+      console.log('Fetching all categories and filtering client-side...');
+      
+      // Make the API request without any params
       const response = await axiosInstance.get<CategoriesResponse>(
         API_CONFIG.ENDPOINTS.categories.list,
-        { params: { vendor_id: vendorId, limit: 10000 } } // Use a higher limit to ensure all vendor categories are returned
+        { 
+          params: { 
+            limit: 1000 // Use a high limit to get all categories at once
+          } 
+        }
       );
-      return response.data;
+      
+      // Extract all categories from the response
+      const allCategories = response.data || [];
+      console.log(`Server returned ${allCategories.length} total categories`);
+      
+      // Filter categories by vendor ID on the client side
+      const vendorCategories = allCategories.filter((category: Category) => {
+        // Convert category vendor_id to number for consistent comparison
+        const categoryVendorId = typeof category.vendor_id === 'string' ? 
+          parseInt(category.vendor_id) : category.vendor_id;
+        
+        // Check if this category belongs to the specified vendor
+        return categoryVendorId === numericVendorId;
+      });
+      
+      console.log(`Filtered to ${vendorCategories.length} categories for vendor ${vendorId}`);
+      
+      // Log all vendor categories for debugging
+      vendorCategories.forEach((category: Category) => {
+        console.log(`Category: ID: ${category.id}, Name: ${category.name}, Vendor ID: ${category.vendor_id}`);
+      });
+      
+      // Return only the filtered categories
+      console.log(`=== Completed getCategoriesByVendor with ${vendorCategories.length} categories ===`);
+      return vendorCategories;
     } catch (error: any) {
       console.error(`Get categories for vendor ${vendorId} error:`, error);
       // Return empty array on error

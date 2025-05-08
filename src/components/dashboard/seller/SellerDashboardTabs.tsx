@@ -60,7 +60,12 @@ export default function SellerDashboardTabs({
               ? `${user.first_name} ${user.last_name}`
               : user.email}
           </h3>
-          <p className="text-amber-500 text-sm">Seller</p>
+          {user.username && (
+            <p className="text-white/60 text-sm mb-1">@{user.username}</p>
+          )}
+          <p className="text-amber-500 text-sm">
+            Seller {user.id && <span className="ml-1">(ID: {user.id})</span>}
+          </p>
         </div>
       )}
 
