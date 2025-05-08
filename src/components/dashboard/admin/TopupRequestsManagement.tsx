@@ -1,12 +1,12 @@
 'use client';
 
 import { useState, useEffect, Fragment } from 'react';
-import { 
-  FaMoneyBillWave, 
-  FaSearch, 
-  FaCheck, 
-  FaTimes, 
-  FaUserCircle, 
+import {
+  FaMoneyBillWave,
+  FaSearch,
+  FaCheck,
+  FaTimes,
+  FaUserCircle,
   FaCalendarAlt,
   FaInfoCircle,
   FaMapMarkerAlt,
@@ -36,20 +36,20 @@ export default function TopupRequestsManagement() {
   useEffect(() => {
     fetchUsers();
     fetchRequests();
-    
+
     // Set up polling interval to check for new requests every 30 seconds
     const pollingInterval = setInterval(() => {
       fetchRequests(false); // Pass false to avoid showing loading state during polling
-    }, 30000);
-    
+    }, 1000);
+
     // Clean up interval on component unmount
     return () => clearInterval(pollingInterval);
   }, []);
-  
+
   const fetchUsers = async () => {
     try {
       const response = await usersService.getUsers();
-      
+
       if (response.success && response.data) {
         // Create a map of user_id to user information for quick lookup
         const newUsersMap = new Map<string | number, User>();
@@ -60,7 +60,7 @@ export default function TopupRequestsManagement() {
             console.log(`Added user to map: ID=${user.id}, username=${user.username}`);
           }
         });
-        
+
         setUsersMap(newUsersMap);
         console.log(`Loaded information for ${newUsersMap.size / 2} users`);
       }
@@ -75,13 +75,13 @@ export default function TopupRequestsManagement() {
         setLoading(true);
       }
       const response = await topupService.getAllRequests();
-      
+
       if (response.success && response.requests) {
         // Check if there are new requests
         if (lastRequestCount > 0 && response.requests.length > lastRequestCount) {
           setNewRequestsDetected(true);
         }
-        
+
         // Update the request count for next comparison
         setLastRequestCount(response.requests.length);
         setRequests(response.requests);
@@ -106,12 +106,12 @@ export default function TopupRequestsManagement() {
     setProcessingAction(true);
     try {
       const response = await topupService.approveRequest(requestId);
-      
+
       if (response.success) {
         // Use the message from the API response if available
         const successMessage = response.msg || 'Top-up request approved successfully';
         toast.success(successMessage);
-        
+
         // If we have new_balance info, we could display it in a more detailed toast
         if (response.new_balance !== undefined) {
           toast.success(`New user balance: Rp ${response.new_balance.toLocaleString()}`, {
@@ -119,7 +119,7 @@ export default function TopupRequestsManagement() {
             position: 'bottom-right'
           });
         }
-        
+
         fetchRequests(); // Refresh the list
         setIsDetailsModalOpen(false);
       } else {
@@ -137,7 +137,7 @@ export default function TopupRequestsManagement() {
     setProcessingAction(true);
     try {
       const response = await topupService.rejectRequest(requestId);
-      
+
       if (response.success) {
         // Use the message from the API response if available
         const successMessage = response.msg || 'Top-up request rejected successfully';
@@ -167,14 +167,14 @@ export default function TopupRequestsManagement() {
   // Apply sorting to the requests
   const getSortedRequests = (requests: TopUpRequest[]) => {
     if (!sortConfig) return requests;
-    
+
     return [...requests].sort((a, b) => {
       if (sortConfig.key === 'id' || sortConfig.key === 'request_id') {
-        return sortConfig.direction === 'ascending' 
+        return sortConfig.direction === 'ascending'
           ? (a.request_id || 0) - (b.request_id || 0)
           : (b.request_id || 0) - (a.request_id || 0);
       }
-      
+
       if (sortConfig.key === 'user') {
         const aName = usersMap.get(a.user_id)?.username || `User #${a.user_id}`;
         const bName = usersMap.get(b.user_id)?.username || `User #${b.user_id}`;
@@ -182,19 +182,19 @@ export default function TopupRequestsManagement() {
           ? aName.localeCompare(bName)
           : bName.localeCompare(aName);
       }
-      
+
       if (sortConfig.key === 'amount') {
         return sortConfig.direction === 'ascending'
           ? (a.amount || 0) - (b.amount || 0)
           : (b.amount || 0) - (a.amount || 0);
       }
-      
+
       if (sortConfig.key === 'status') {
         return sortConfig.direction === 'ascending'
           ? a.status.localeCompare(b.status)
           : b.status.localeCompare(a.status);
       }
-      
+
       if (sortConfig.key === 'date') {
         const aDate = a.timestamp ? new Date(a.timestamp).getTime() : 0;
         const bDate = b.timestamp ? new Date(b.timestamp).getTime() : 0;
@@ -202,7 +202,7 @@ export default function TopupRequestsManagement() {
           ? aDate - bDate
           : bDate - aDate;
       }
-      
+
       return 0;
     });
   };
@@ -210,19 +210,19 @@ export default function TopupRequestsManagement() {
   // Filter requests by search term and active tab
   const filteredRequests = requests.filter(request => {
     // Filter by search term
-    const userNameMatch = usersMap.get(request.user_id)?.username ? 
+    const userNameMatch = usersMap.get(request.user_id)?.username ?
       usersMap.get(request.user_id)?.username.toLowerCase().includes(searchTerm.toLowerCase()) : false;
     const statusMatch = request.status ? request.status.toLowerCase().includes(searchTerm.toLowerCase()) : false;
-    const cityMatch = usersMap.get(request.user_id)?.city ? 
+    const cityMatch = usersMap.get(request.user_id)?.city ?
       usersMap.get(request.user_id)?.city?.toLowerCase().includes(searchTerm.toLowerCase()) : false;
-    
+
     const searchMatch = userNameMatch || statusMatch || cityMatch || String(request.user_id).includes(searchTerm);
-    
+
     // Filter by tab
     if (activeTab === 'all') return searchMatch;
     return searchMatch && request.status === activeTab;
   });
-  
+
   // Apply sorting
   const sortedRequests = getSortedRequests(filteredRequests);
 
@@ -242,7 +242,7 @@ export default function TopupRequestsManagement() {
               </p>
             </div>
           </div>
-          <button 
+          <button
             onClick={() => {
               setNewRequestsDetected(false);
               fetchRequests();
@@ -253,7 +253,7 @@ export default function TopupRequestsManagement() {
           </button>
         </div>
       )}
-      
+
       <div className="bg-white p-6 rounded-lg shadow-sm border border-amber-100 mb-6">
         <div className="flex items-center mb-4">
           <div className="bg-amber-100 p-2 rounded-full mr-3">
@@ -261,9 +261,9 @@ export default function TopupRequestsManagement() {
           </div>
           <h2 className="text-2xl font-bold text-gray-900">Top-up Requests</h2>
         </div>
-        
+
         <p className="text-gray-600 text-sm mb-6">Manage customer balance top-up requests</p>
-        
+
         <div className="flex flex-col md:flex-row justify-between items-center gap-4 mb-6">
           <div className="relative w-full md:w-64">
             <div className="absolute inset-y-0 left-0 pl-3 flex items-center pointer-events-none">
@@ -277,12 +277,12 @@ export default function TopupRequestsManagement() {
               onChange={(e) => setSearchTerm(e.target.value)}
             />
           </div>
-          
+
           <div className="flex items-center gap-3">
             <div className="bg-amber-50 px-4 py-2 rounded-md text-sm text-amber-700 font-medium">
               {sortedRequests.length} {sortedRequests.length === 1 ? 'request' : 'requests'} found
             </div>
-            <button 
+            <button
               onClick={() => {
                 setNewRequestsDetected(false);
                 fetchRequests();
@@ -295,7 +295,7 @@ export default function TopupRequestsManagement() {
             </button>
           </div>
         </div>
-        
+
         <div className="flex flex-wrap border-b border-gray-200 mb-4">
           <button
             className={`py-3 px-6 font-medium text-sm transition-colors duration-200 ${activeTab === 'all' ? 'text-amber-600 border-b-2 border-amber-500' : 'text-gray-500 hover:text-gray-700'}`}
@@ -365,7 +365,7 @@ export default function TopupRequestsManagement() {
                 {searchTerm ? 'Try adjusting your search terms or clear the search filter' : 'There are no pending top-up requests at the moment'}
               </p>
               {searchTerm && (
-                <button 
+                <button
                   onClick={() => setSearchTerm('')}
                   className="mt-4 px-4 py-2 bg-amber-100 text-amber-700 rounded-md hover:bg-amber-200 transition-colors duration-200"
                 >
@@ -378,8 +378,8 @@ export default function TopupRequestsManagement() {
               <table className="min-w-full divide-y divide-amber-100 table-fixed">
                 <thead className="bg-amber-50">
                   <tr>
-                    <th 
-                      scope="col" 
+                    <th
+                      scope="col"
                       className="px-6 py-3.5 text-center text-xs font-medium text-amber-700 uppercase tracking-wider w-[10%] cursor-pointer hover:bg-amber-50"
                       onClick={() => requestSort('id')}
                     >
@@ -388,8 +388,8 @@ export default function TopupRequestsManagement() {
                         <span className="ml-1">{sortConfig.direction === 'ascending' ? '↑' : '↓'}</span>
                       )}
                     </th>
-                    <th 
-                      scope="col" 
+                    <th
+                      scope="col"
                       className="px-6 py-3.5 text-center text-xs font-medium text-amber-700 uppercase tracking-wider w-[30%] cursor-pointer hover:bg-amber-50"
                       onClick={() => requestSort('user')}
                     >
@@ -398,8 +398,8 @@ export default function TopupRequestsManagement() {
                         <span className="ml-1">{sortConfig.direction === 'ascending' ? '↑' : '↓'}</span>
                       )}
                     </th>
-                    <th 
-                      scope="col" 
+                    <th
+                      scope="col"
                       className="px-6 py-3.5 text-center text-xs font-medium text-amber-700 uppercase tracking-wider w-[15%] cursor-pointer hover:bg-amber-50"
                       onClick={() => requestSort('amount')}
                     >
@@ -408,8 +408,8 @@ export default function TopupRequestsManagement() {
                         <span className="ml-1">{sortConfig.direction === 'ascending' ? '↑' : '↓'}</span>
                       )}
                     </th>
-                    <th 
-                      scope="col" 
+                    <th
+                      scope="col"
                       className="px-6 py-3.5 text-center text-xs font-medium text-amber-700 uppercase tracking-wider w-[10%] cursor-pointer hover:bg-amber-50"
                       onClick={() => requestSort('status')}
                     >
@@ -418,8 +418,8 @@ export default function TopupRequestsManagement() {
                         <span className="ml-1">{sortConfig.direction === 'ascending' ? '↑' : '↓'}</span>
                       )}
                     </th>
-                    <th 
-                      scope="col" 
+                    <th
+                      scope="col"
                       className="px-6 py-3.5 text-center text-xs font-medium text-amber-700 uppercase tracking-wider w-[15%] cursor-pointer hover:bg-amber-50"
                       onClick={() => requestSort('date')}
                     >
@@ -443,8 +443,8 @@ export default function TopupRequestsManagement() {
                         <div className="flex items-center justify-center">
                           <div className="flex-shrink-0 h-10 w-10 rounded-full bg-gradient-to-br from-amber-100 to-amber-200 flex items-center justify-center shadow-inner overflow-hidden">
                             {usersMap.get(request.user_id)?.image_url ? (
-                              <Image 
-                                src={usersMap.get(request.user_id)?.image_url || ''} 
+                              <Image
+                                src={usersMap.get(request.user_id)?.image_url || ''}
                                 alt={usersMap.get(request.user_id)?.username || `User #${request.user_id}`}
                                 width={40}
                                 height={40}
@@ -553,7 +553,7 @@ export default function TopupRequestsManagement() {
                       <Dialog.Title as="h3" className="text-lg font-medium leading-6 text-gray-900">
                         Top-up Request Details
                       </Dialog.Title>
-                      
+
                       <div className="mt-4 space-y-4">
                         <div className="bg-gray-50 p-4 rounded-lg">
                           <div className="flex justify-between items-center mb-2">
@@ -578,11 +578,10 @@ export default function TopupRequestsManagement() {
                           </div>
                           <div className="flex justify-between items-center mb-2">
                             <span className="text-sm text-gray-500">Status:</span>
-                            <span className={`px-2 py-1 text-xs leading-5 font-semibold rounded-full ${
-                              currentRequest.status === 'pending' ? 'bg-yellow-100 text-yellow-800' : 
-                              currentRequest.status === 'approved' ? 'bg-green-100 text-green-800' : 
-                              'bg-red-100 text-red-800'
-                            }`}>
+                            <span className={`px-2 py-1 text-xs leading-5 font-semibold rounded-full ${currentRequest.status === 'pending' ? 'bg-yellow-100 text-yellow-800' :
+                              currentRequest.status === 'approved' ? 'bg-green-100 text-green-800' :
+                                'bg-red-100 text-red-800'
+                              }`}>
                               {currentRequest.status ? currentRequest.status.charAt(0).toUpperCase() + currentRequest.status.slice(1) : 'Unknown'}
                             </span>
                           </div>
@@ -597,7 +596,7 @@ export default function TopupRequestsManagement() {
                             </div>
                           )}
                         </div>
-                        
+
                         {currentRequest.status === 'pending' && (
                           <div className="flex justify-between mt-6">
                             <button
@@ -621,7 +620,7 @@ export default function TopupRequestsManagement() {
                           </div>
                         )}
                       </div>
-                      
+
                       <div className="mt-6 flex justify-end">
                         <button
                           type="button"
