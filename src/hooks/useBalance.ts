@@ -37,14 +37,17 @@ export function useBalance() {
   const [loading, setLoading] = useState<boolean>(true);
   const [error, setError] = useState<string | null>(null);
 
-  const fetchBalance = useCallback(async () => {
+  const fetchBalance = useCallback(async (showLoading = true) => {
     if (!isAuthenticated()) {
       setBalance(0);
       setLoading(false);
       return;
     }
 
-    setLoading(true);
+    if (showLoading) {
+      setLoading(true);
+    }
+    
     try {
       const response = await balanceService.getUserBalance();
       
@@ -59,7 +62,9 @@ export function useBalance() {
       setError(err?.message || 'Failed to fetch balance');
       // Don't show error toast for balance fetch failures - it's not critical
     } finally {
-      setLoading(false);
+      if (showLoading) {
+        setLoading(false);
+      }
     }
   }, []);
 
@@ -72,10 +77,19 @@ export function useBalance() {
     // Initial fetch
     fetchBalance();
     
+    // Set up polling interval to check for balance updates every 30 seconds
+    const pollingInterval = setInterval(() => {
+      fetchBalance(false); // Pass false to avoid showing loading state during polling
+    }, 1000);
+    
     // Listen for balance refresh events
     const cleanup = onRefresh(REFRESH_EVENTS.BALANCE, handleBalanceRefresh);
     
-    return cleanup;
+    // Clean up interval and event listener on component unmount
+    return () => {
+      clearInterval(pollingInterval);
+      cleanup();
+    };
   }, [fetchBalance, handleBalanceRefresh]);
 
   return {

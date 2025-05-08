@@ -34,7 +34,7 @@ export default function TopupRequestsManagement() {
     // Set up polling interval to check for new requests every 30 seconds
     const pollingInterval = setInterval(() => {
       fetchRequests(false); // Pass false to avoid showing loading state during polling
-    }, 30000);
+    }, 1000);
 
     // Clean up interval on component unmount
     return () => clearInterval(pollingInterval);
@@ -233,7 +233,7 @@ export default function TopupRequestsManagement() {
               </p>
             </div>
           </div>
-          <button 
+          <button
             onClick={() => {
               setNewRequestsDetected(false);
               fetchRequests();
@@ -244,16 +244,16 @@ export default function TopupRequestsManagement() {
           </button>
         </div>
       )}
-      
+
       <div className="bg-white p-6 rounded-lg shadow-sm border border-amber-100 mb-6">
         {/* Header Component */}
-        <TopupRequestsHeader 
-          title="Top-up Requests" 
-          description="Manage customer balance top-up requests" 
+        <TopupRequestsHeader
+          title="Top-up Requests"
+          description="Manage customer balance top-up requests"
         />
-        
+
         {/* Search Bar Component */}
-        <TopupRequestsSearchBar 
+        <TopupRequestsSearchBar
           searchTerm={searchTerm}
           onSearchChange={setSearchTerm}
           requestCount={sortedRequests.length}
@@ -262,9 +262,9 @@ export default function TopupRequestsManagement() {
             fetchRequests();
           }}
         />
-        
+
         {/* Tabs Component */}
-        <TopupRequestsTabs 
+        <TopupRequestsTabs
           activeTab={activeTab}
           onTabChange={setActiveTab}
           counts={{
