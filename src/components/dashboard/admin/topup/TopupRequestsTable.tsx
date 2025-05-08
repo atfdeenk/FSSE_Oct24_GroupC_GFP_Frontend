@@ -1,8 +1,9 @@
 import { TopUpRequest } from '@/services/api/topup';
 import { User } from '@/services/api/users';
+import { formatApiTimestamp } from '@/utils/date';
 import { formatCurrency } from '@/utils/format';
 import Image from 'next/image';
-import { FaUserCircle, FaMapMarkerAlt, FaCalendarAlt } from 'react-icons/fa';
+import { FaUserCircle, FaMapMarkerAlt, FaClock, FaCalendarAlt } from 'react-icons/fa';
 
 interface TopupRequestsTableProps {
   requests: TopUpRequest[];
@@ -99,7 +100,7 @@ export default function TopupRequestsTable({
               className="px-6 py-3.5 text-center text-xs font-medium text-amber-700 uppercase tracking-wider w-[15%] cursor-pointer hover:bg-amber-50"
               onClick={() => onRequestSort('date')}
             >
-              Date
+              Date & Time
               {sortConfig?.key === 'date' && (
                 <span className="ml-1">{sortConfig.direction === 'ascending' ? '↑' : '↓'}</span>
               )}
@@ -168,9 +169,21 @@ export default function TopupRequestsTable({
                 </span>
               </td>
               <td className="px-6 py-4 whitespace-nowrap text-sm text-gray-500 text-center">
-                <div className="flex items-center justify-center">
-                  <FaCalendarAlt className="mr-1 h-3 w-3 text-gray-400" />
-                  {request.timestamp ? new Date(request.timestamp).toLocaleDateString() : 'N/A'}
+                <div className="flex flex-col items-center justify-center">
+                  {request.timestamp ? (
+                    <>
+                      <div className="flex items-center">
+                        <FaCalendarAlt className="mr-1 h-3 w-3 text-gray-400" />
+                        {request.timestamp ? formatApiTimestamp(request.timestamp).dateString : 'N/A'}
+                      </div>
+                      <div className="flex items-center mt-1 text-xs text-gray-400">
+                        <FaClock className="mr-1 h-2.5 w-2.5" />
+                        {request.timestamp ? formatApiTimestamp(request.timestamp).timeString : ''}
+                      </div>
+                    </>
+                  ) : (
+                    <span>N/A</span>
+                  )}
                 </div>
               </td>
               <td className="px-6 py-4 whitespace-nowrap text-sm font-medium text-center">

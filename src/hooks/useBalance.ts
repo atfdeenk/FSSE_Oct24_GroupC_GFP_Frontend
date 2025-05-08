@@ -4,6 +4,7 @@ import { useState, useEffect, useCallback } from 'react';
 import { roleBasedBalanceService as balanceService } from '@/services/roleBasedBalanceService';
 import { isAuthenticated } from '@/lib/auth';
 import { showError } from '@/utils/toast';
+import { usePolling } from '@/hooks/usePolling';
 // Define event types and handlers locally until events module is properly set up
 const REFRESH_EVENTS = {
   BALANCE: 'balance-refresh',
@@ -73,23 +74,22 @@ export function useBalance() {
     fetchBalance();
   }, [fetchBalance]);
 
+  // Use the centralized polling hook to handle balance updates
+  usePolling(
+    () => fetchBalance(false), // Pass false to avoid showing loading state during polling
+    1000, // Polling interval in milliseconds
+    isAuthenticated() // Only enable polling when authenticated
+  );
+  
   useEffect(() => {
-    // Initial fetch
+    // Initial fetch (this is also handled by usePolling, but we keep it for clarity)
     fetchBalance();
-    
-    // Set up polling interval to check for balance updates every 30 seconds
-    const pollingInterval = setInterval(() => {
-      fetchBalance(false); // Pass false to avoid showing loading state during polling
-    }, 1000);
     
     // Listen for balance refresh events
     const cleanup = onRefresh(REFRESH_EVENTS.BALANCE, handleBalanceRefresh);
     
-    // Clean up interval and event listener on component unmount
-    return () => {
-      clearInterval(pollingInterval);
-      cleanup();
-    };
+    // Clean up event listener on component unmount
+    return cleanup;
   }, [fetchBalance, handleBalanceRefresh]);
 
   return {

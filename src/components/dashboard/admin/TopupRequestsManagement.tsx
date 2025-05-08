@@ -4,6 +4,7 @@ import { useState, useEffect } from 'react';
 import { toast } from 'react-hot-toast';
 import topupService, { TopUpRequest } from '@/services/api/topup';
 import usersService, { User } from '@/services/api/users';
+import { usePolling } from '@/hooks/usePolling';
 
 // Import the new components
 import {
@@ -30,15 +31,14 @@ export default function TopupRequestsManagement() {
   useEffect(() => {
     fetchUsers();
     fetchRequests();
-
-    // Set up polling interval to check for new requests every 30 seconds
-    const pollingInterval = setInterval(() => {
-      fetchRequests(false); // Pass false to avoid showing loading state during polling
-    }, 1000);
-
-    // Clean up interval on component unmount
-    return () => clearInterval(pollingInterval);
   }, []);
+  
+  // Use the centralized polling hook to handle automatic request updates
+  usePolling(
+    () => fetchRequests(false), // Pass false to avoid showing loading state during polling
+    1000, // Polling interval in milliseconds
+    true // Always enable polling for admin
+  );
 
   const fetchUsers = async () => {
     try {
