@@ -1,12 +1,12 @@
 "use client";
 import { useState, useEffect, useCallback, useRef } from 'react';
 import { useRouter } from 'next/navigation';
-import { fetchCartWithDetails } from '@/services/cartLogic';
-import cartService from '@/services/api/cart';
+import { roleBasedCartService as cartService } from '@/services/roleBasedServices';
 import { CartItemWithDetails } from '@/types/cart';
-import { isAuthenticated } from '@/lib/auth';
-import { showSuccess, showError } from '@/utils/toast';
+import { isAuthenticated, getCurrentUser } from '@/lib/auth';
+import { fetchCartWithDetails } from '@/services/cartLogic';
 import { REFRESH_EVENTS, onRefresh, RefreshEventDetail } from '@/lib/dataRefresh';
+import { showSuccess, showError } from '@/utils/toast';
 
 // Flag to prevent duplicate toasts
 let isRefreshingFromApi = false;
@@ -17,6 +17,8 @@ export function useCart() {
   const [selectedItems, setSelectedItems] = useState<Set<string | number>>(new Set());
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
+  const [userRole, setUserRole] = useState<string | null>(null);
+  const [isCustomer, setIsCustomer] = useState(true); // Default to true for non-logged in users
 
 
   // Keep track of initial load to know when to auto-select all items
@@ -117,14 +119,39 @@ export function useCart() {
     }
   }, []);
 
+  // Check user role on mount
   useEffect(() => {
-    fetchCart();
+    const checkUserRole = async () => {
+      if (isAuthenticated()) {
+        try {
+          const user = await getCurrentUser();
+          setUserRole(user?.role || null);
+          // Only customers should fetch cart data
+          setIsCustomer(user?.role === 'customer');
+        } catch (error) {
+          console.error('Error fetching user role:', error);
+          setIsCustomer(true); // Default to showing cart functionality if role check fails
+        }
+      } else {
+        setUserRole(null);
+        setIsCustomer(true); // Non-logged in users should see cart functionality
+      }
+    };
     
-    // Set up event listener for cart refresh events using the utility
-    const cleanup = onRefresh(REFRESH_EVENTS.CART, handleApiRefresh);
-    
-    return cleanup;
-  }, [fetchCart, handleApiRefresh]);
+    checkUserRole();
+  }, []);
+
+  useEffect(() => {
+    // Only fetch cart data if user is a customer
+    if (isCustomer) {
+      fetchCart();
+      
+      // Set up event listener for cart refresh events using the utility
+      const cleanup = onRefresh(REFRESH_EVENTS.CART, handleApiRefresh);
+      return cleanup;
+    }
+    return () => {}; // Empty cleanup function if not a customer
+  }, [fetchCart, handleApiRefresh, isCustomer]);
 
   // Add to cart with count check
   // Helper: deep compare cart items (product_id and quantity)

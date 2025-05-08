@@ -11,7 +11,7 @@ import { getImageUrl, handleImageError } from '@/utils/imageUtils';
 import { formatProductPrice } from '@/utils/format';
 // Import ProductImage directly from products/page.tsx
 import ProductImage from '@/components/ui/ProductImage';
-import wishlistService from '@/services/api/wishlist';
+import { roleBasedWishlistService as wishlistService } from '@/services/roleBasedServices';
 import { showSuccess, showError } from '@/utils/toast';
 import { REFRESH_EVENTS, onRefresh } from '@/lib/dataRefresh';
 
@@ -23,7 +23,10 @@ const ProductCard: React.FC<ProductCardProps> = ({ product }) => {
   const [cartLoading, setCartLoading] = useState(false);
   const [wishlistLoading, setWishlistLoading] = useState(false);
   const [isInWishlist, setIsInWishlist] = useState(false);
-  const { isLoggedIn } = useAuthUser();
+  const { isLoggedIn, user } = useAuthUser();
+  
+  // Check if user is a customer (not admin or seller)
+  const isCustomer = !user || user.role === 'customer';
   const { addToCartWithCountCheck } = useCart();
 
   // Check if product is in wishlist
@@ -129,44 +132,48 @@ const ProductCard: React.FC<ProductCardProps> = ({ product }) => {
           className="transition-transform duration-300 group-hover:scale-105"
           onError={handleImageError}
         />
-        {/* Wishlist heart icon button (top-right) */}
-        <div className="absolute top-2 right-2 z-10">
-          <button
-            type="button"
-            onClick={handleWishlistToggle}
-            aria-label={isInWishlist ? "Remove from wishlist" : "Add to wishlist"}
-            className={`rounded-full ${isInWishlist ? 'bg-amber-400 dark:bg-amber-500' : 'bg-white/90 dark:bg-neutral-900/80'} p-1 shadow hover:bg-amber-100 dark:hover:bg-amber-400/10 transition-all duration-300 ease-out opacity-0 scale-90 translate-y-2 group-hover:opacity-100 group-hover:scale-100 group-hover:translate-y-0 group-focus-within:opacity-100 group-focus-within:scale-100 group-focus-within:translate-y-0 focus:opacity-100 focus:scale-100 focus:translate-y-0 focus-visible:opacity-100 focus-visible:scale-100 focus-visible:translate-y-0 pointer-events-auto`}
-            disabled={wishlistLoading}
-          >
-            {wishlistLoading ? (
-              <svg className="w-5 h-5 animate-spin text-white" fill="none" viewBox="0 0 24 24">
-                <circle className="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" strokeWidth="4"></circle>
-                <path className="opacity-75" fill="currentColor" d="M4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4zm2 5.291A7.962 7.962 0 014 12H0c0 3.042 1.135 5.824 3 7.938l3-2.647z"></path>
-              </svg>
-            ) : (
-              <HeartIcon className={`w-6 h-6 ${isInWishlist ? 'text-white fill-current' : 'text-amber-400 group-hover/wishlist:fill-amber-400 group-hover/wishlist:text-amber-500'} transition-colors`} />
-            )}
-          </button>
-        </div>
-        {/* Cart icon button (bottom-right) */}
-        <div className="absolute bottom-2 right-2 z-10">
-          <button
-            type="button"
-            aria-label="Add to cart"
-            className="rounded-full bg-white/90 dark:bg-neutral-900/80 p-1 shadow hover:bg-amber-100 dark:hover:bg-amber-400/10 transition-all duration-300 ease-out opacity-0 scale-90 translate-y-2 group-hover:opacity-100 group-hover:scale-100 group-hover:translate-y-0 group-focus-within:opacity-100 group-focus-within:scale-100 group-focus-within:translate-y-0 focus:opacity-100 focus:scale-100 focus:translate-y-0 focus-visible:opacity-100 focus-visible:scale-100 focus-visible:translate-y-0 pointer-events-auto"
-            onClick={handleAddToCart}
-            disabled={cartLoading}
-          >
-            {cartLoading ? (
-              <svg className="w-5 h-5 animate-spin text-amber-500" fill="none" viewBox="0 0 24 24">
-                <circle className="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" strokeWidth="4"></circle>
-                <path className="opacity-75" fill="currentColor" d="M4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4zm2 5.291A7.962 7.962 0 014 12H0c0 3.042 1.135 5.824 3 7.938l3-2.647z"></path>
-              </svg>
-            ) : (
-              <CartIcon className="w-6 h-6 text-amber-500 group-hover/cart:fill-amber-400 group-hover/cart:text-amber-600 transition-colors" />
-            )}
-          </button>
-        </div>
+        {/* Wishlist heart icon button (top-right) - only for customers or non-logged in users */}
+        {(!isLoggedIn || isCustomer) && (
+          <div className="absolute top-2 right-2 z-10">
+            <button
+              type="button"
+              onClick={handleWishlistToggle}
+              aria-label={isInWishlist ? "Remove from wishlist" : "Add to wishlist"}
+              className={`rounded-full ${isInWishlist ? 'bg-amber-400 dark:bg-amber-500' : 'bg-white/90 dark:bg-neutral-900/80'} p-1 shadow hover:bg-amber-100 dark:hover:bg-amber-400/10 transition-all duration-300 ease-out opacity-0 scale-90 translate-y-2 group-hover:opacity-100 group-hover:scale-100 group-hover:translate-y-0 group-focus-within:opacity-100 group-focus-within:scale-100 group-focus-within:translate-y-0 focus:opacity-100 focus:scale-100 focus:translate-y-0 focus-visible:opacity-100 focus-visible:scale-100 focus-visible:translate-y-0 pointer-events-auto`}
+              disabled={wishlistLoading}
+            >
+              {wishlistLoading ? (
+                <svg className="w-5 h-5 animate-spin text-white" fill="none" viewBox="0 0 24 24">
+                  <circle className="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" strokeWidth="4"></circle>
+                  <path className="opacity-75" fill="currentColor" d="M4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4zm2 5.291A7.962 7.962 0 014 12H0c0 3.042 1.135 5.824 3 7.938l3-2.647z"></path>
+                </svg>
+              ) : (
+                <HeartIcon className={`w-6 h-6 ${isInWishlist ? 'text-white fill-current' : 'text-amber-400 group-hover/wishlist:fill-amber-400 group-hover/wishlist:text-amber-500'} transition-colors`} />
+              )}
+            </button>
+          </div>
+        )}
+        {/* Cart icon button (bottom-right) - only for customers or non-logged in users */}
+        {(!isLoggedIn || isCustomer) && (
+          <div className="absolute bottom-2 right-2 z-10">
+            <button
+              type="button"
+              aria-label="Add to cart"
+              className="rounded-full bg-white/90 dark:bg-neutral-900/80 p-1 shadow hover:bg-amber-100 dark:hover:bg-amber-400/10 transition-all duration-300 ease-out opacity-0 scale-90 translate-y-2 group-hover:opacity-100 group-hover:scale-100 group-hover:translate-y-0 group-focus-within:opacity-100 group-focus-within:scale-100 group-focus-within:translate-y-0 focus:opacity-100 focus:scale-100 focus:translate-y-0 focus-visible:opacity-100 focus-visible:scale-100 focus-visible:translate-y-0 pointer-events-auto"
+              onClick={handleAddToCart}
+              disabled={cartLoading}
+            >
+              {cartLoading ? (
+                <svg className="w-5 h-5 animate-spin text-amber-500" fill="none" viewBox="0 0 24 24">
+                  <circle className="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" strokeWidth="4"></circle>
+                  <path className="opacity-75" fill="currentColor" d="M4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4zm2 5.291A7.962 7.962 0 014 12H0c0 3.042 1.135 5.824 3 7.938l3-2.647z"></path>
+                </svg>
+              ) : (
+                <CartIcon className="w-6 h-6 text-amber-500 group-hover/cart:fill-amber-400 group-hover/cart:text-amber-600 transition-colors" />
+              )}
+            </button>
+          </div>
+        )}
       </div>
       {/* Card content */}
       <div className="flex flex-col gap-1 p-3 flex-1">

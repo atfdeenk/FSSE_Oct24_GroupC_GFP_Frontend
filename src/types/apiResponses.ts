@@ -46,6 +46,8 @@ export interface UserProfile {
   zip_code: string;
   role: string;
   image_url: string;
+  balance?: number; // Optional balance field for admin dashboard
+  status?: string; // Optional status field for admin dashboard
 }
 
 // The API returns a user object directly for the /me endpoint

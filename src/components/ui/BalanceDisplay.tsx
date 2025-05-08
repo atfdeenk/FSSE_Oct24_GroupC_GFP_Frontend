@@ -3,6 +3,7 @@
 import React from 'react';
 import { useBalance } from '@/hooks/useBalance';
 import { formatCurrency } from '@/utils/format';
+import { useAuthUser } from '@/hooks/useAuthUser';
 
 interface BalanceDisplayProps {
   className?: string;
@@ -16,7 +17,14 @@ const BalanceDisplay: React.FC<BalanceDisplayProps> = ({
   showSufficiency = false
 }) => {
   const { balance, loading } = useBalance();
+  const { user } = useAuthUser();
   const isBalanceSufficient = balance >= orderTotal;
+  
+  // Only show balance for customer role
+  const isCustomer = user?.role === 'customer';
+  
+  // If not a customer, don't render anything
+  if (!isCustomer) return null;
 
   return (
     <div className={`rounded-md border ${isBalanceSufficient ? 'border-green-500/30 bg-green-900/10' : 'border-amber-500/30 bg-amber-900/10'} p-4 ${className}`}>

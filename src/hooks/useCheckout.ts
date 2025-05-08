@@ -7,8 +7,8 @@ import { calculateSubtotal, calculateDiscount, calculateTotal } from '@/utils/ca
 import { formatCurrency } from '@/utils/format';
 import { toast } from 'react-hot-toast';
 import { ordersService } from '@/services/api/orders';
-import cartService from '@/services/api/cart';
-import balanceService from '@/services/api/balance';
+import { roleBasedCartService as cartService } from '@/services/roleBasedServices';
+import { roleBasedBalanceService as balanceService } from '@/services/roleBasedBalanceService';
 import { refreshCart, refreshBalance } from '@/utils/events';
 import { CheckoutFormData } from '@/components/checkout/CheckoutForm';
 

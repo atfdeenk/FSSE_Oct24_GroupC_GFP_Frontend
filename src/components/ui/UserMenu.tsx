@@ -60,11 +60,11 @@ const UserMenu: React.FC<UserMenuProps> = ({ user, show, onToggle, onLogout, use
           <ul>
             <li>
               <Link
-                href={user?.role === 'seller' || user?.role === 'vendor' || user?.role === 'admin' ? '/dashboard/seller' : '/dashboard/customer'}
+                href={user?.role === 'admin' ? '/dashboard/admin' : user?.role === 'seller' || user?.role === 'vendor' ? '/dashboard/seller' : '/dashboard/customer'}
                 className="block px-4 py-2 text-white/80 hover:bg-amber-500/10 hover:text-amber-500 transition-colors"
                 onClick={(e) => {
                   // Debug: Log the navigation path when clicking dashboard
-                  const path = user?.role === 'seller' || user?.role === 'vendor' || user?.role === 'admin' ? '/dashboard/seller' : '/dashboard/customer';
+                  const path = user?.role === 'admin' ? '/dashboard/admin' : user?.role === 'seller' || user?.role === 'vendor' ? '/dashboard/seller' : '/dashboard/customer';
                   console.log('Navigating to dashboard:', { role: user?.role, path });
                   onToggle();
                 }}

@@ -17,7 +17,8 @@ if (typeof window === 'undefined') {
   } as Storage;
 }
 
-import { authService, productService, categoryService, orderService, cartService, feedbackService } from '@/services/api';
+import { authService, productService, categoryService, orderService, feedbackService } from '@/services/api';
+import { roleBasedCartService as cartService, roleBasedWishlistService as wishlistService } from '@/services/roleBasedServices';
 import type {
   AuthResponse,
   ProductsResponse,

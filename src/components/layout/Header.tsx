@@ -97,9 +97,21 @@ export default function Header() {
             <UserBalance className="hidden md:flex mr-2" />
           )}
           
-          <CartWidget count={cartCount} isLoggedIn={isLoggedIn} />
-
-          <WishlistWidget count={wishlistCount} isLoggedIn={isLoggedIn} />
+          {/* Only show cart and wishlist for customer role */}
+          {isLoggedIn && user?.role === 'customer' && (
+            <>
+              <CartWidget count={cartCount} isLoggedIn={isLoggedIn} />
+              <WishlistWidget count={wishlistCount} isLoggedIn={isLoggedIn} />
+            </>
+          )}
+          
+          {/* Show cart and wishlist for non-logged in users to encourage sign up */}
+          {!isLoggedIn && (
+            <>
+              <CartWidget count={cartCount} isLoggedIn={isLoggedIn} />
+              <WishlistWidget count={wishlistCount} isLoggedIn={isLoggedIn} />
+            </>
+          )}
 
           {/* User Menu */}
           {isLoggedIn ? (

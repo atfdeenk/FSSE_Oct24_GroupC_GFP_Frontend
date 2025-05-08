@@ -1,7 +1,7 @@
 "use client";
 
 import { useState, useEffect, useCallback } from 'react';
-import balanceService from '@/services/api/balance';
+import { roleBasedBalanceService as balanceService } from '@/services/roleBasedBalanceService';
 import { isAuthenticated } from '@/lib/auth';
 import { showError } from '@/utils/toast';
 // Define event types and handlers locally until events module is properly set up

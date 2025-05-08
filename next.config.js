@@ -24,6 +24,10 @@ module.exports = {
         hostname: 'example.com',
       },
       {
+        protocol: 'http',
+        hostname: 'example.com',
+      },
+      {
         protocol: 'https',
         hostname: 'img.freepik.com',
       },

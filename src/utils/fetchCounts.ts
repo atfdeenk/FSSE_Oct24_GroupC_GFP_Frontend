@@ -1,5 +1,4 @@
-import cartService from "@/services/api/cart";
-import wishlistService from "@/services/api/wishlist";
+import { roleBasedCartService as cartService, roleBasedWishlistService as wishlistService } from "@/services/roleBasedServices";
 
 /**
  * Fetches the cart and wishlist item counts in parallel.

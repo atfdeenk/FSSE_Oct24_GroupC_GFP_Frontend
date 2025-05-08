@@ -6,7 +6,7 @@ import type { Product } from '@/types/apiResponses';
 import LoadingOverlay from '@/components/ui/LoadingOverlay';
 import productService from '@/services/api/products';
 import { useCart } from '@/hooks/useCart';
-import { isAuthenticated } from '@/lib/auth';
+import { isAuthenticated, getCurrentUser } from '@/lib/auth';
 // Using centralized toast system
 import { Toaster } from '@/utils/toast';
 import { Header, Footer } from '@/components';
@@ -30,6 +30,30 @@ export default function ProductDetail() {
   const [quantity, setQuantity] = useState(1);
   const [activeTab, setActiveTab] = useState("description");
   const [relatedProducts, setRelatedProducts] = useState<Product[]>([]);
+  const [userRole, setUserRole] = useState<string | null>(null);
+  const [isCustomer, setIsCustomer] = useState(true);
+
+  // Check user role on mount
+  useEffect(() => {
+    const checkUserRole = async () => {
+      if (isAuthenticated()) {
+        try {
+          const user = await getCurrentUser();
+          setUserRole(user?.role || null);
+          // Only customers should see cart functionality
+          setIsCustomer(user?.role === 'customer');
+        } catch (error) {
+          console.error('Error fetching user role:', error);
+          setIsCustomer(true); // Default to showing cart functionality if role check fails
+        }
+      } else {
+        setUserRole(null);
+        setIsCustomer(true); // Non-logged in users should see cart functionality
+      }
+    };
+    
+    checkUserRole();
+  }, []);
 
   useEffect(() => {
     const productId = params?.id as string;
@@ -143,24 +167,26 @@ export default function ProductDetail() {
           <div className="flex flex-col gap-8">
             <ProductInfo product={product} activeTab={activeTab} setActiveTab={setActiveTab} />
 
-            {/* Add to Cart */}
-            <div className="pt-2 border-t border-white">
-              <div className="flex flex-col space-y-4 mt-6">
-                <div className="flex items-center gap-8">
-                  <QuantityInput
-                    value={quantity}
-                    min={1}
-                    onChange={q => setQuantity(q)}
-                    disabled={addingToCart}
-                  />
-                  <AddToCartButton
-                    onClick={handleAddToCart}
-                    disabled={addingToCart}
-                    loading={addingToCart}
-                  />
+            {/* Add to Cart - Only shown for customers or non-logged in users */}
+            {isCustomer && (
+              <div className="pt-2 border-t border-white">
+                <div className="flex flex-col space-y-4 mt-6">
+                  <div className="flex items-center gap-8">
+                    <QuantityInput
+                      value={quantity}
+                      min={1}
+                      onChange={q => setQuantity(q)}
+                      disabled={addingToCart}
+                    />
+                    <AddToCartButton
+                      onClick={handleAddToCart}
+                      disabled={addingToCart}
+                      loading={addingToCart}
+                    />
+                  </div>
                 </div>
               </div>
-            </div>
+            )}
             {/* Seller Info */}
             <SellerInfo
               name={typeof product.vendor_id === 'string' ? product.vendor_id : `Seller #${product.vendor_id}`}

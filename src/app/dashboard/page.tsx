@@ -37,9 +37,9 @@ export default function DashboardRedirectPage() {
         // Redirect based on user role
         switch (currentUser.role) {
           case 'admin':
-            // Temporarily redirect admins to seller dashboard until admin dashboard is implemented
-            // TODO: Create a dedicated admin dashboard and update this redirect
-            router.push('/dashboard/seller');
+            // Redirect admins to the admin dashboard
+            console.log('Dashboard Router - Admin user, redirecting to admin dashboard');
+            router.push('/dashboard/admin');
             break;
           case 'seller':
             router.push('/dashboard/seller');

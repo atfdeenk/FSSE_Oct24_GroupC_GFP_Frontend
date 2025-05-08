@@ -1,6 +1,6 @@
 // Centralized cart logic for add-to-cart UX feedback
 // Returns: { success: boolean, error: string|null }
-import cartService from '@/services/api/cart';
+import { roleBasedCartService as cartService } from '@/services/roleBasedServices';
 
 export async function addProductToCart(productId: number | string, quantity: number = 1): Promise<{ success: boolean; error: string | null }> {
   try {

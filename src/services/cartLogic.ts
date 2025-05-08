@@ -1,4 +1,4 @@
-import cartService from './api/cart';
+import { roleBasedCartService as cartService } from '@/services/roleBasedServices';
 import productService from './api/products';
 import usersService from './api/users';
 import { isProductInStock } from '@/utils/products';

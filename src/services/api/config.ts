@@ -29,6 +29,9 @@ export const API_CONFIG = {
       register: '/register',
       me: '/me',
       users: '/users',
+      admins: '/users/admins',
+      customers: '/users/customers',
+      sellers: '/users/sellers',
       user: (id: string | number) => `/users/${id}`,
       balance: '/users/me/balance'
     },
@@ -81,6 +84,15 @@ export const API_CONFIG = {
       list: '/orders',
       detail: (id: string | number) => `/orders/${id}`,
       status: (id: string | number) => `/orders/${id}/status`
+    },
+    
+    // Balance top-up endpoints
+    topup: {
+      request: '/request-topup',  // For users to request top-ups
+      list: '/topup-requests',    // For admins to get all requests
+      detail: (id: string | number) => `/topup-requests/${id}`,
+      approve: (id: string | number) => `/request-topup/${id}/approve`,
+      reject: (id: string | number) => `/request-topup/${id}/reject`
     }
   }
 };
