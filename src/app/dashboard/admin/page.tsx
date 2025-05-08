@@ -1,9 +1,11 @@
 'use client';
 
 import { useEffect, useState } from 'react';
-import { getCurrentUser } from '@/lib/auth';
+import { getCurrentUser, logout } from '@/lib/auth';
 import { toast } from 'react-hot-toast';
 import { useRouter } from 'next/navigation';
+import { adminService } from '@/services/api/admin';
+import topupService from '@/services/api/topup';
 import {
   FaUsers,
   FaUserShield,
@@ -29,7 +31,7 @@ export default function AdminDashboardPage() {
   const [loading, setLoading] = useState(true);
   const [activeSection, setActiveSection] = useState('overview');
   const [sidebarCollapsed, setSidebarCollapsed] = useState(false);
-  const [notifications, setNotifications] = useState(3); // Example notification count
+  const [notifications, setNotifications] = useState(0);
   const router = useRouter();
 
   useEffect(() => {
@@ -61,6 +63,37 @@ export default function AdminDashboardPage() {
 
     checkAuth();
   }, [router]);
+
+  // Fetch notifications count - pending products and top-up requests
+  useEffect(() => {
+    const fetchNotifications = async () => {
+      try {
+        // Only fetch if user is authenticated
+        if (user) {
+          // Get pending products count
+          const pendingProducts = await adminService.getPendingProducts();
+          const pendingProductsCount = pendingProducts.length;
+          
+          // Get pending top-up requests count
+          const topupResponse = await topupService.getAllRequests();
+          const pendingTopupCount = topupResponse.success && topupResponse.requests ? 
+            topupResponse.requests.filter(req => req.status === 'pending').length : 0;
+          
+          // Set total notification count
+          const totalCount = pendingProductsCount + pendingTopupCount;
+          setNotifications(totalCount);
+        }
+      } catch (error) {
+        console.error('Error fetching notifications:', error);
+      }
+    };
+    
+    fetchNotifications();
+    
+    // Set up polling for notifications (every 30 seconds)
+    const interval = setInterval(fetchNotifications, 30000);
+    return () => clearInterval(interval);
+  }, [user]);
 
   // Handle section change from URL hash
   useEffect(() => {
@@ -102,7 +135,9 @@ export default function AdminDashboardPage() {
   };
 
   const handleLogout = () => {
-    // Implement logout functionality
+    // Properly clear localStorage and cookies
+    logout();
+    // Redirect to login page
     router.push('/login');
   };
 
@@ -287,12 +322,25 @@ export default function AdminDashboardPage() {
             <div className="flex items-center space-x-4">
               {/* Notification bell */}
               <div className="relative">
-                <button className="text-white/70 hover:text-amber-500 transition-colors">
+                <button 
+                  className="text-white/70 hover:text-amber-500 transition-colors"
+                  onClick={() => {
+                    // Navigate to the section with the most pending items
+                    if (notifications > 0) {
+                      // For simplicity, we'll just go to the products section
+                      // In a real app, you might want to check which has more pending items
+                      window.location.hash = 'products';
+                      setActiveSection('products');
+                      toast.success(`You have ${notifications} pending items to review`);
+                    }
+                  }}
+                  title={notifications > 0 ? `${notifications} pending items` : 'No notifications'}
+                >
                   <svg xmlns="http://www.w3.org/2000/svg" className="h-6 w-6" fill="none" viewBox="0 0 24 24" stroke="currentColor">
                     <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M15 17h5l-1.405-1.405A2.032 2.032 0 0118 14.158V11a6.002 6.002 0 00-4-5.659V5a2 2 0 10-4 0v.341C7.67 6.165 6 8.388 6 11v3.159c0 .538-.214 1.055-.595 1.436L4 17h5m6 0v1a3 3 0 11-6 0v-1m6 0H9" />
                   </svg>
                   {notifications > 0 && (
-                    <span className="absolute -top-1 -right-1 bg-red-500 text-white text-xs rounded-full h-5 w-5 flex items-center justify-center">
+                    <span className="absolute -top-1 -right-1 bg-red-500 text-white text-xs rounded-full h-5 w-5 flex items-center justify-center animate-pulse">
                       {notifications}
                     </span>
                   )}
