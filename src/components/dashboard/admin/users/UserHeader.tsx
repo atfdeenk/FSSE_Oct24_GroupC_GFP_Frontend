@@ -11,12 +11,12 @@ interface UserHeaderProps {
 export default function UserHeader({ title, description }: UserHeaderProps) {
   return (
     <div className="flex items-start mb-6">
-      <div className="bg-amber-100 p-3 rounded-lg mr-4">
-        <FaUsers className="text-amber-600 text-xl" />
+      <div className="bg-amber-600/20 p-3 rounded-lg mr-4 shadow-md border border-amber-600/30">
+        <FaUsers className="text-amber-500 text-xl" />
       </div>
       <div>
-        <h2 className="text-xl font-semibold text-gray-800">{title}</h2>
-        <p className="text-gray-600 mt-1">{description}</p>
+        <h2 className="text-xl font-semibold text-white">{title}</h2>
+        <p className="text-neutral-400 mt-1">{description}</p>
       </div>
     </div>
   );

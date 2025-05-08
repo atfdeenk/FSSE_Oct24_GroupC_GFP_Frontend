@@ -47,45 +47,44 @@ export default function UserDetailsModal({ isOpen, onClose, user }: UserDetailsM
               leaveFrom="opacity-100 scale-100"
               leaveTo="opacity-0 scale-95"
             >
-              <Dialog.Panel className="w-full max-w-2xl transform overflow-hidden rounded-2xl bg-white p-6 text-left align-middle shadow-xl transition-all">
+              <Dialog.Panel className="w-full max-w-2xl transform overflow-hidden rounded-2xl bg-neutral-800 p-6 text-left align-middle shadow-xl transition-all border border-neutral-700">
                 <Dialog.Title
                   as="h3"
-                  className="text-lg font-medium leading-6 text-gray-900 mb-4"
+                  className="text-lg font-medium leading-6 text-white mb-4 flex items-center"
                 >
-                  User Details
+                  <FaUser className="mr-2 text-amber-500" /> User Details
                 </Dialog.Title>
 
                 <div className="flex flex-col md:flex-row gap-6">
                   {/* User avatar and basic info */}
                   <div className="md:w-1/3 flex flex-col items-center">
-                    <div className="h-32 w-32 rounded-full overflow-hidden mb-4 border-4 border-amber-100">
+                    <div className="h-32 w-32 rounded-full overflow-hidden mb-4 border-4 border-amber-600/30 shadow-lg">
                       {user.image_url ? (
                         <img
                           src={user.image_url}
                           alt={`${user.first_name} ${user.last_name}`}
                           className="h-full w-full object-cover"
                           onError={(e) => {
-                            (e.target as HTMLImageElement).src = 'https://ui-avatars.com/api/?name=' + 
-                              encodeURIComponent(`${user.first_name || ''} ${user.last_name || ''}`);
+                            (e.target as HTMLImageElement).src = `https://ui-avatars.com/api/?name=${encodeURIComponent(`${user.first_name || ''} ${user.last_name || ''}`)}&background=D97706&color=ffffff`;
                           }}
                         />
                       ) : (
-                        <div className="h-full w-full bg-amber-100 flex items-center justify-center text-amber-800 text-3xl font-medium">
+                        <div className="h-full w-full bg-amber-600/30 flex items-center justify-center text-amber-400 text-3xl font-medium">
                           {user.first_name?.[0]?.toUpperCase() || ''}
                           {user.last_name?.[0]?.toUpperCase() || ''}
                         </div>
                       )}
                     </div>
-                    <h4 className="text-xl font-medium text-gray-900">
+                    <h4 className="text-xl font-medium text-white">
                       {user.first_name} {user.last_name}
                     </h4>
-                    <p className="text-gray-500 mb-2">@{user.username}</p>
+                    <p className="text-neutral-400 mb-2">@{user.username}</p>
                     <div className={`inline-flex rounded-full px-3 py-1 text-sm font-semibold ${
                       user.role === 'admin' 
-                        ? 'bg-purple-100 text-purple-800' 
-                        : user.role === 'seller' 
-                          ? 'bg-blue-100 text-blue-800' 
-                          : 'bg-green-100 text-green-800'
+                        ? 'bg-purple-900/50 text-purple-300 border border-purple-700' 
+                        : user.role === 'seller' || user.role === 'vendor'
+                          ? 'bg-blue-900/50 text-blue-300 border border-blue-700' 
+                          : 'bg-green-900/50 text-green-300 border border-green-700'
                     }`}>
                       {user.role}
                     </div>
@@ -105,30 +104,32 @@ export default function UserDetailsModal({ isOpen, onClose, user }: UserDetailsM
 
                   {/* User details */}
                   <div className="md:w-2/3 space-y-4">
-                    <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-                      <div className="bg-gray-50 p-3 rounded-lg">
-                        <div className="flex items-center mb-1">
-                          <FaEnvelope className="text-gray-400 mr-2" />
-                          <span className="text-sm text-gray-500">Email</span>
-                        </div>
-                        <p className="text-gray-900">{user.email}</p>
+                    <div className="flex items-center py-2 border-b border-neutral-700">
+                      <div className="flex items-center">
+                        <FaEnvelope className="h-5 w-5 text-amber-500 mr-3" />
+                        <span className="text-sm text-neutral-400">Email</span>
                       </div>
-                      
-                      <div className="bg-gray-50 p-3 rounded-lg">
-                        <div className="flex items-center mb-1">
-                          <FaPhone className="text-gray-400 mr-2" />
-                          <span className="text-sm text-gray-500">Phone</span>
-                        </div>
-                        <p className="text-gray-900">{user.phone || 'Not provided'}</p>
+                      <span className="font-semibold text-white ml-auto">
+                        {user.email}
+                      </span>
+                    </div>
+
+                    <div className="flex items-center py-2 border-b border-neutral-700">
+                      <div className="flex items-center">
+                        <FaPhone className="h-5 w-5 text-amber-500 mr-3" />
+                        <span className="text-sm text-neutral-400">Phone</span>
                       </div>
+                      <span className="font-semibold text-white ml-auto">
+                        {user.phone || 'Not provided'}
+                      </span>
                     </div>
 
                     <div className="flex items-center py-2">
                       <div className="flex items-center">
                         <FaUser className="h-5 w-5 text-amber-500 mr-3" />
-                        <span className="text-sm text-gray-600">Username</span>
+                        <span className="text-sm text-neutral-400">Username</span>
                       </div>
-                      <span className="font-semibold text-gray-900 ml-auto">
+                      <span className="font-semibold text-white ml-auto">
                         @{user.username}
                       </span>
                     </div>
@@ -136,19 +137,19 @@ export default function UserDetailsModal({ isOpen, onClose, user }: UserDetailsM
                     <div className="flex items-center py-2">
                       <div className="flex items-center">
                         <FaTag className="h-5 w-5 text-amber-500 mr-3" />
-                        <span className="text-sm text-gray-600">ID</span>
+                        <span className="text-sm text-neutral-400">ID</span>
                       </div>
-                      <span className="font-semibold text-gray-900 ml-auto">
+                      <span className="font-semibold text-white ml-auto">
                         {user.id}
                       </span>
                     </div>
 
-                    <div className="bg-gray-50 p-3 rounded-lg">
-                      <div className="flex items-center mb-1">
-                        <FaMapMarkerAlt className="text-gray-400 mr-2" />
-                        <span className="text-sm text-gray-500">Address</span>
+                    <div className="bg-neutral-700/50 p-4 rounded-lg border border-neutral-600">
+                      <div className="flex items-center mb-2">
+                        <FaMapMarkerAlt className="text-amber-500 mr-2" />
+                        <span className="text-sm text-neutral-300">Address</span>
                       </div>
-                      <p className="text-gray-900">
+                      <p className="text-white">
                         {user.address ? (
                           <>
                             {user.address}
@@ -164,28 +165,28 @@ export default function UserDetailsModal({ isOpen, onClose, user }: UserDetailsM
                     </div>
 
                     <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-                      <div className="bg-gray-50 p-3 rounded-lg">
-                        <div className="flex items-center mb-1">
-                          <FaCalendarAlt className="text-gray-400 mr-2" />
-                          <span className="text-sm text-gray-500">Joined</span>
+                      <div className="bg-neutral-700/50 p-4 rounded-lg border border-neutral-600">
+                        <div className="flex items-center mb-2">
+                          <FaCalendarAlt className="text-amber-500 mr-2" />
+                          <span className="text-sm text-neutral-300">Joined</span>
                         </div>
-                        <p className="text-gray-900">{dateString}</p>
-                        {timeString && <p className="text-gray-500 text-sm">{timeString}</p>}
+                        <p className="text-white">{dateString}</p>
+                        {timeString && <p className="text-neutral-400 text-sm">{timeString}</p>}
                       </div>
                       
-                      <div className="bg-gray-50 p-3 rounded-lg">
-                        <div className="flex items-center mb-1">
-                          <FaTag className="text-gray-400 mr-2" />
-                          <span className="text-sm text-gray-500">Status</span>
+                      <div className="bg-neutral-700/50 p-4 rounded-lg border border-neutral-600">
+                        <div className="flex items-center mb-2">
+                          <FaTag className="text-amber-500 mr-2" />
+                          <span className="text-sm text-neutral-300">Status</span>
                         </div>
-                        <p className={`inline-flex rounded-full px-2 text-xs font-semibold leading-5 ${
-                          user.status === 'active' 
-                            ? 'bg-green-100 text-green-800' 
-                            : user.status === 'inactive' 
-                              ? 'bg-gray-100 text-gray-800' 
-                              : 'bg-red-100 text-red-800'
+                        <p className={`inline-flex rounded-full px-2.5 py-1 text-xs font-semibold ${
+                          user.status === 'active' || user.is_active === true
+                            ? 'bg-green-900/50 text-green-300 border border-green-700' 
+                            : user.status === 'inactive' || user.is_active === false
+                              ? 'bg-neutral-700/50 text-neutral-300 border border-neutral-600' 
+                              : 'bg-red-900/50 text-red-300 border border-red-700'
                         }`}>
-                          {user.status || 'active'}
+                          {user.status || (user.is_active ? 'active' : 'inactive')}
                         </p>
                       </div>
                     </div>
@@ -195,7 +196,7 @@ export default function UserDetailsModal({ isOpen, onClose, user }: UserDetailsM
                 <div className="mt-6 flex justify-end">
                   <button
                     type="button"
-                    className="inline-flex justify-center rounded-md border border-transparent bg-amber-100 px-4 py-2 text-sm font-medium text-amber-900 hover:bg-amber-200 focus:outline-none focus-visible:ring-2 focus-visible:ring-amber-500 focus-visible:ring-offset-2"
+                    className="inline-flex justify-center rounded-lg border border-amber-600 bg-transparent px-4 py-2 text-sm font-medium text-amber-500 hover:bg-amber-600/10 focus:outline-none focus-visible:ring-2 focus-visible:ring-amber-500 focus-visible:ring-offset-2 transition-colors shadow-md"
                     onClick={onClose}
                   >
                     Close

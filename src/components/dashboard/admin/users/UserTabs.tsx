@@ -31,23 +31,23 @@ export default function UserTabs({ activeTab, onTabChange, counts }: UserTabsPro
   return (
     <div className="mb-6">
       <Tab.Group selectedIndex={selectedIndex} onChange={(index) => onTabChange(tabs[index].key)}>
-        <Tab.List className="flex space-x-1 rounded-xl bg-amber-50 p-1">
+        <Tab.List className="flex space-x-1 rounded-xl bg-neutral-700/50 p-1 border border-neutral-600 shadow-md">
           {tabs.map((tab) => (
             <Tab
               key={tab.key}
               className={({ selected }) =>
                 classNames(
-                  'w-full rounded-lg py-2.5 text-sm font-medium leading-5 transition-colors duration-200',
-                  'ring-white ring-opacity-60 ring-offset-2 ring-offset-amber-400 focus:outline-none focus:ring-2',
+                  'w-full rounded-lg py-3 text-sm font-medium leading-5 transition-colors duration-200',
+                  'focus:outline-none focus:ring-2 ring-offset-2 ring-offset-amber-500 ring-opacity-60',
                   selected
-                    ? 'bg-amber-600 text-white shadow'
-                    : 'text-amber-700 hover:bg-amber-100 hover:text-amber-800'
+                    ? 'bg-amber-600 text-white shadow-md'
+                    : 'text-neutral-300 hover:bg-neutral-600/70 hover:text-white'
                 )
               }
             >
               <span>{tab.label}</span>
-              <span className={`ml-2 px-2 py-0.5 rounded-full text-xs ${
-                activeTab === tab.key ? 'bg-amber-500 text-white' : 'bg-amber-100 text-amber-800'
+              <span className={`ml-2 px-2.5 py-0.5 rounded-full text-xs ${
+                activeTab === tab.key ? 'bg-amber-500/80 text-white' : 'bg-neutral-600 text-neutral-300'
               }`}>
                 {tab.count}
               </span>
