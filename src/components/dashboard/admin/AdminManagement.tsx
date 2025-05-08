@@ -10,6 +10,7 @@ import { UserProfile } from '@/types/apiResponses';
 // Extend UserProfile with admin-specific properties
 interface AdminUser extends UserProfile {
   permissions?: string[];
+  status?: string;
 }
 
 export default function AdminManagement() {
@@ -25,7 +26,8 @@ export default function AdminManagement() {
     last_name: '',
     email: '',
     password: '',
-    permissions: [] as string[]
+    permissions: [] as string[],
+    status: 'active'
   });
 
   const availablePermissions = [
@@ -80,7 +82,8 @@ export default function AdminManagement() {
       last_name: admin.last_name,
       email: admin.email,
       password: '',
-      permissions: [...(admin.permissions || [])]
+      permissions: [...(admin.permissions || [])],
+      status: admin.status || 'active'
     });
     setIsEditModalOpen(true);
   };
@@ -96,7 +99,8 @@ export default function AdminManagement() {
       last_name: '',
       email: '',
       password: '',
-      permissions: []
+      permissions: [],
+      status: 'active'
     });
     setIsAddModalOpen(true);
   };
@@ -171,16 +175,32 @@ export default function AdminManagement() {
         email: formData.email,
         password: formData.password,
         role: 'admin',
-        permissions: formData.permissions
+        permissions: formData.permissions,
+        status: formData.status
       };
       
       // Call API to create admin
       const newAdmin = await adminService.createUser(newAdminData);
       
-      // Add permissions to the new admin
-      const adminWithPermissions = {
-        ...newAdmin,
-        permissions: formData.permissions
+      // Ensure we have a valid admin object with required properties
+      const adminWithPermissions: AdminUser = {
+        // Use nullish coalescing to provide fallbacks for all required fields
+        id: typeof newAdmin?.id === 'number' ? newAdmin.id : Math.floor(Math.random() * 1000),
+        permissions: formData.permissions,
+        status: formData.status || 'active',
+        // Add default values for required UserProfile properties
+        first_name: newAdmin?.first_name || formData.first_name,
+        last_name: newAdmin?.last_name || formData.last_name,
+        email: newAdmin?.email || formData.email,
+        username: newAdmin?.username || formData.email.split('@')[0],
+        phone: newAdmin?.phone || '',
+        address: newAdmin?.address || '',
+        city: newAdmin?.city || '',
+        state: newAdmin?.state || '',
+        country: newAdmin?.country || '',
+        zip_code: newAdmin?.zip_code || '',
+        role: newAdmin?.role || 'admin',
+        image_url: newAdmin?.image_url || ''
       };
       
       // Update local state

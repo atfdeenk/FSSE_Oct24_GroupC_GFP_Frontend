@@ -88,7 +88,7 @@ export const API_CONFIG = {
     
     // Balance top-up endpoints
     topup: {
-      request: '/request-topup',  // For users to request top-ups
+      request: '/users/me/request-topup',  // For users to request top-ups
       list: '/topup-requests',    // For admins to get all requests
       detail: (id: string | number) => `/topup-requests/${id}`,
       approve: (id: string | number) => `/request-topup/${id}/approve`,

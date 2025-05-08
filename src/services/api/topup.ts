@@ -3,12 +3,14 @@ import axiosInstance from './axios';
 import { API_CONFIG } from './config';
 
 export interface TopUpRequest {
-  id: number;
-  user_id: number;
+  id?: number;
+  request_id?: number; // API returns request_id
+  user_id?: number;
+  requested_by?: number; // API returns requested_by
   amount: number;
-  status: 'pending' | 'approved' | 'rejected';
-  created_at: string;
-  updated_at: string;
+  status?: 'pending' | 'approved' | 'rejected';
+  created_at?: string;
+  updated_at?: string;
   notes?: string;
   user_name?: string;
   user_email?: string;
@@ -17,8 +19,10 @@ export interface TopUpRequest {
 export interface TopUpRequestResponse {
   success: boolean;
   request?: TopUpRequest;
+  requested?: TopUpRequest; // API returns 'requested' field
   requests?: TopUpRequest[];
   error?: string;
+  msg?: string; // API returns 'msg' field
 }
 
 /**
@@ -39,45 +43,45 @@ const topupService = {
         };
       }
 
-      // For development/testing - provide a fallback if API is unavailable
-      try {
-        const response = await axiosInstance.post(API_CONFIG.ENDPOINTS.topup.request, {
-          amount,
-          notes
-        });
-        
+      // Log request details for debugging
+      console.log('Sending top-up request to:', API_CONFIG.ENDPOINTS.topup.request);
+      console.log('Request payload:', { amount, notes });
+      
+      // Make the API request with the exact format expected by the API
+      // The API might expect a specific format like { amount: number }
+      const requestPayload = { amount };
+      if (notes) {
+        Object.assign(requestPayload, { notes });
+      }
+      
+      console.log('Final request payload:', requestPayload);
+      const response = await axiosInstance.post(API_CONFIG.ENDPOINTS.topup.request, requestPayload);
+      
+      // Log response for debugging
+      console.log('Top-up API response:', response.data);
+      
+      // Handle the API response format
+      // The API returns { msg: string, requested: { amount, request_id, requested_by } }
+      if (response.data && response.data.requested) {
         return {
           success: true,
-          request: response.data
-        };
-      } catch (networkError: any) {
-        // If we have a network error, log it and use the fallback
-        console.warn('Network error when requesting top-up, using fallback:', networkError);
-        
-        // In a real production app, we would retry or queue the request
-        // For now, we'll simulate a successful response for better UX
-        if (networkError.message === 'Network Error') {
-          console.info('Using fallback for top-up request');
-          
-          // Create a mock response that looks like what the API would return
-          const mockRequest: TopUpRequest = {
-            id: Math.floor(Math.random() * 1000),
-            user_id: 1, // This would normally be the current user's ID
-            amount: amount,
+          request: {
+            id: response.data.requested.request_id,
+            user_id: response.data.requested.requested_by,
+            amount: response.data.requested.amount,
             status: 'pending',
             created_at: new Date().toISOString(),
             updated_at: new Date().toISOString(),
             notes: notes
-          };
-          
-          return {
-            success: true,
-            request: mockRequest
-          };
-        } else {
-          // If it's not a network error, rethrow it to be caught by the outer catch
-          throw networkError;
-        }
+          },
+          msg: response.data.msg
+        };
+      } else {
+        // Direct API response handling
+        return {
+          success: true,
+          request: response.data
+        };
       }
     } catch (error: any) {
       console.error('Failed to request top-up:', error);

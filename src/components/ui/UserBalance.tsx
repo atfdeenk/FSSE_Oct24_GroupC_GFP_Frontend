@@ -117,7 +117,7 @@ const UserBalance: React.FC<UserBalanceProps> = ({ className = '' }) => {
                   <label htmlFor="topupAmount" className="block text-sm font-medium text-amber-700 mb-2">Top-up Amount</label>
                   <div className="relative rounded-md shadow-sm">
                     <div className="absolute inset-y-0 left-0 pl-4 flex items-center pointer-events-none">
-                      <span className="text-amber-600 font-medium">Rp</span>
+                      <span className="text-black font-medium">Rp</span>
                     </div>
                     <input
                       type="number"

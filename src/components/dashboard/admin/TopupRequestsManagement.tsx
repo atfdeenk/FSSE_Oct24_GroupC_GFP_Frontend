@@ -101,7 +101,7 @@ export default function TopupRequestsManagement() {
       request.user_name.toLowerCase().includes(searchTerm.toLowerCase()) : false;
     const userEmailMatch = request.user_email ? 
       request.user_email.toLowerCase().includes(searchTerm.toLowerCase()) : false;
-    const statusMatch = request.status.toLowerCase().includes(searchTerm.toLowerCase());
+    const statusMatch = request.status ? request.status.toLowerCase().includes(searchTerm.toLowerCase()) : false;
     
     return userNameMatch || userEmailMatch || statusMatch;
   });
@@ -341,7 +341,7 @@ export default function TopupRequestsManagement() {
                             <button
                               type="button"
                               className="inline-flex justify-center rounded-md border border-transparent bg-red-100 px-4 py-2 text-sm font-medium text-red-900 hover:bg-red-200 focus:outline-none focus-visible:ring-2 focus-visible:ring-red-500 focus-visible:ring-offset-2"
-                              onClick={() => handleRejectRequest(currentRequest.id)}
+                              onClick={() => currentRequest.id ? handleRejectRequest(currentRequest.id) : null}
                               disabled={processingAction}
                             >
                               <FaTimes className="mr-2 h-4 w-4" />
@@ -350,7 +350,7 @@ export default function TopupRequestsManagement() {
                             <button
                               type="button"
                               className="inline-flex justify-center rounded-md border border-transparent bg-green-100 px-4 py-2 text-sm font-medium text-green-900 hover:bg-green-200 focus:outline-none focus-visible:ring-2 focus-visible:ring-green-500 focus-visible:ring-offset-2"
-                              onClick={() => handleApproveRequest(currentRequest.id)}
+                              onClick={() => currentRequest.id ? handleApproveRequest(currentRequest.id) : null}
                               disabled={processingAction}
                             >
                               <FaCheck className="mr-2 h-4 w-4" />
