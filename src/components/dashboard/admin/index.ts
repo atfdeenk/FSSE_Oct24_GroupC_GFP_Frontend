@@ -2,7 +2,6 @@
 export { default as DashboardOverview } from './DashboardOverview';
 export { default as UserManagement } from './UserManagement';
 export { default as ProductApproval } from './ProductApproval';
-export { default as BalanceManagement } from './BalanceManagement';
 
 // We no longer need AdminDashboardTabs as we've moved to a sidebar layout
 // export { default as AdminDashboardTabs } from './AdminDashboardTabs';

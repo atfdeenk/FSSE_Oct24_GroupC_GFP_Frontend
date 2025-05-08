@@ -5,7 +5,6 @@ import { Tab } from '@headlessui/react';
 import UserManagement from './UserManagement';
 import AdminManagement from './AdminManagement';
 import ProductApproval from './ProductApproval';
-import BalanceManagement from './BalanceManagement';
 import DashboardOverview from './DashboardOverview';
 
 function classNames(...classes: string[]) {
@@ -19,7 +18,6 @@ export default function AdminDashboardTabs() {
     'User Management': () => <UserManagement />,
     'Admin Management': () => <AdminManagement />,
     'Product Approval': () => <ProductApproval />,
-    'Balance Management': () => <BalanceManagement />,
   });
 
   // Check for selected tab in sessionStorage on component mount

@@ -22,7 +22,6 @@ import { UserProfile } from '@/types/apiResponses';
 import DashboardOverview from '@/components/dashboard/admin/DashboardOverview';
 import UserManagement from '@/components/dashboard/admin/UserManagement';
 import ProductApproval from '@/components/dashboard/admin/ProductApproval';
-import BalanceManagement from '@/components/dashboard/admin/BalanceManagement';
 import TopupRequestsManagement from '@/components/dashboard/admin/TopupRequestsManagement';
 
 export default function AdminDashboardPage() {
@@ -65,14 +64,14 @@ export default function AdminDashboardPage() {
   useEffect(() => {
     if (typeof window !== 'undefined') {
       const hash = window.location.hash.replace('#', '');
-      if (hash && ['overview', 'users', 'products', 'balance', 'topup-requests'].includes(hash)) {
+      if (hash && ['overview', 'users', 'products', 'topup-requests'].includes(hash)) {
         setActiveSection(hash);
       }
 
       // Listen for hash changes
       const handleHashChange = () => {
         const newHash = window.location.hash.replace('#', '');
-        if (newHash && ['overview', 'users', 'products', 'balance', 'topup-requests'].includes(newHash)) {
+        if (newHash && ['overview', 'users', 'products', 'topup-requests'].includes(newHash)) {
           setActiveSection(newHash);
         }
       };
@@ -103,8 +102,6 @@ export default function AdminDashboardPage() {
         return <UserManagement />;
       case 'products':
         return <ProductApproval />;
-      case 'balance':
-        return <BalanceManagement />;
       case 'topup-requests':
         return <TopupRequestsManagement />;
       default:
@@ -196,17 +193,7 @@ export default function AdminDashboardPage() {
             Product Approval
           </Link>
 
-          <Link
-            href="#balance"
-            className={`${activeSection === 'balance'
-                ? 'bg-amber-700 text-white'
-                : 'text-white/70 hover:bg-neutral-700 hover:text-white'
-              } group flex items-center px-4 py-3 text-sm font-medium rounded-md`}
-            onClick={() => setActiveSection('balance')}
-          >
-            <FaMoneyBillWave className={`mr-3 h-5 w-5 ${activeSection === 'balance' ? 'text-amber-100' : 'text-white/60'}`} />
-            Balance Management
-          </Link>
+
 
           <Link
             href="#topup-requests"
@@ -241,7 +228,7 @@ export default function AdminDashboardPage() {
               {activeSection === 'overview' && 'Dashboard Overview'}
               {activeSection === 'users' && 'User Management'}
               {activeSection === 'products' && 'Product Approval'}
-              {activeSection === 'balance' && 'Balance Management'}
+
               {activeSection === 'topup-requests' && 'Top-up Requests Management'}
             </h1>
             <div className="flex items-center space-x-4">
