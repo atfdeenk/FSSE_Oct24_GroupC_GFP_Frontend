@@ -8,11 +8,14 @@ import {
   FaTimes, 
   FaUserCircle, 
   FaCalendarAlt,
-  FaInfoCircle
+  FaInfoCircle,
+  FaMapMarkerAlt
 } from 'react-icons/fa';
 import { toast } from 'react-hot-toast';
 import { Dialog, Transition } from '@headlessui/react';
 import topupService, { TopUpRequest } from '@/services/api/topup';
+import usersService, { User } from '@/services/api/users';
+import Image from 'next/image';
 import { formatCurrency } from '@/utils/format';
 import { adminService } from '@/services/api/admin';
 
@@ -23,10 +26,35 @@ export default function TopupRequestsManagement() {
   const [isDetailsModalOpen, setIsDetailsModalOpen] = useState(false);
   const [currentRequest, setCurrentRequest] = useState<TopUpRequest | null>(null);
   const [processingAction, setProcessingAction] = useState(false);
+  const [usersMap, setUsersMap] = useState<Map<string | number, User>>(new Map());
 
   useEffect(() => {
+    fetchUsers();
     fetchRequests();
   }, []);
+  
+  const fetchUsers = async () => {
+    try {
+      const response = await usersService.getUsers();
+      
+      if (response.success && response.data) {
+        // Create a map of user_id to user information for quick lookup
+        const newUsersMap = new Map<string | number, User>();
+        response.data.forEach(user => {
+          if (user && user.id) {
+            newUsersMap.set(Number(user.id), user);
+            newUsersMap.set(String(user.id), user);
+            console.log(`Added user to map: ID=${user.id}, username=${user.username}`);
+          }
+        });
+        
+        setUsersMap(newUsersMap);
+        console.log(`Loaded information for ${newUsersMap.size / 2} users`);
+      }
+    } catch (error) {
+      console.error('Failed to fetch users:', error);
+    }
+  };
 
   const fetchRequests = async () => {
     try {
@@ -183,83 +211,104 @@ export default function TopupRequestsManagement() {
             </div>
           ) : (
             <div className="overflow-x-auto bg-white rounded-lg shadow-md border border-amber-100">
-              <table className="min-w-full divide-y divide-amber-100">
+              <table className="min-w-full divide-y divide-amber-100 table-fixed">
                 <thead className="bg-amber-50">
                   <tr>
-                    <th scope="col" className="px-6 py-3.5 text-left text-xs font-medium text-amber-700 uppercase tracking-wider">
+                    <th scope="col" className="px-6 py-3.5 text-center text-xs font-medium text-amber-700 uppercase tracking-wider w-[10%]">
                       ID
                     </th>
-                    <th scope="col" className="px-6 py-3.5 text-left text-xs font-medium text-amber-700 uppercase tracking-wider">
+                    <th scope="col" className="px-6 py-3.5 text-center text-xs font-medium text-amber-700 uppercase tracking-wider w-[30%]">
                       User
                     </th>
-                    <th scope="col" className="px-6 py-3.5 text-left text-xs font-medium text-amber-700 uppercase tracking-wider">
+                    <th scope="col" className="px-6 py-3.5 text-center text-xs font-medium text-amber-700 uppercase tracking-wider w-[15%]">
                       Amount
                     </th>
-                    <th scope="col" className="px-6 py-3.5 text-left text-xs font-medium text-amber-700 uppercase tracking-wider">
+                    <th scope="col" className="px-6 py-3.5 text-center text-xs font-medium text-amber-700 uppercase tracking-wider w-[10%]">
                       Status
                     </th>
-                    <th scope="col" className="px-6 py-3.5 text-left text-xs font-medium text-amber-700 uppercase tracking-wider">
+                    <th scope="col" className="px-6 py-3.5 text-center text-xs font-medium text-amber-700 uppercase tracking-wider w-[15%]">
                       Date
                     </th>
-                    <th scope="col" className="px-6 py-3.5 text-left text-xs font-medium text-amber-700 uppercase tracking-wider">
+                    <th scope="col" className="px-6 py-3.5 text-center text-xs font-medium text-amber-700 uppercase tracking-wider w-[20%]">
                       Actions
                     </th>
                   </tr>
                 </thead>
                 <tbody className="bg-white divide-y divide-amber-50">
                   {filteredRequests.map((request, index) => (
-                    <tr key={request.id || `request-${index}`} className="hover:bg-gray-50 transition-colors duration-150">
-                      <td className="px-6 py-4 whitespace-nowrap text-sm font-medium text-gray-900">
-                        <span className="bg-amber-50 px-2 py-1 rounded-md font-mono">#{request.id || 'N/A'}</span>
+                    <tr key={request.request_id || request.id || `request-${index}`} className="hover:bg-gray-50 transition-colors duration-150">
+                      <td className="px-6 py-4 whitespace-nowrap text-sm font-medium text-gray-900 text-center">
+                        <span className="bg-amber-50 px-2 py-1 rounded-md font-mono inline-block">#{request.request_id !== undefined ? request.request_id : 'N/A'}</span>
                       </td>
-                      <td className="px-6 py-4 whitespace-nowrap">
-                        <div className="flex items-center">
-                          <div className="flex-shrink-0 h-10 w-10 rounded-full bg-gradient-to-br from-amber-100 to-amber-200 flex items-center justify-center shadow-inner">
-                            <FaUserCircle className="h-6 w-6 text-amber-600" />
+                      <td className="px-6 py-4 whitespace-nowrap text-center">
+                        <div className="flex items-center justify-center">
+                          <div className="flex-shrink-0 h-10 w-10 rounded-full bg-gradient-to-br from-amber-100 to-amber-200 flex items-center justify-center shadow-inner overflow-hidden">
+                            {usersMap.get(request.user_id)?.image_url ? (
+                              <Image 
+                                src={usersMap.get(request.user_id)?.image_url || ''} 
+                                alt={usersMap.get(request.user_id)?.username || `User #${request.user_id}`}
+                                width={40}
+                                height={40}
+                                className="object-cover w-full h-full"
+                                onError={(e) => {
+                                  const target = e.target as HTMLImageElement;
+                                  target.src = `https://via.placeholder.com/40?text=${(usersMap.get(request.user_id)?.username || '').charAt(0).toUpperCase()}`;
+                                }}
+                              />
+                            ) : (
+                              <FaUserCircle className="h-6 w-6 text-amber-600" />
+                            )}
                           </div>
-                          <div className="ml-4">
+                          <div className="ml-3 text-left">
                             <div className="text-sm font-medium text-gray-900">
-                              {request.user_name || `User #${request.user_id}`}
+                              {usersMap.get(request.user_id)?.username || `User #${request.user_id}`}
                             </div>
-                            <div className="text-sm text-gray-500">
-                              {request.user_email || 'No email available'}
+                            <div className="flex items-center gap-1 mt-0.5">
+                              {usersMap.get(request.user_id)?.role && (
+                                <span className="inline-flex items-center px-2 py-0.5 rounded text-xs font-medium bg-amber-100 text-amber-800">
+                                  {(usersMap.get(request.user_id)?.role || '').charAt(0).toUpperCase() + (usersMap.get(request.user_id)?.role || '').slice(1)}
+                                </span>
+                              )}
+                              {usersMap.get(request.user_id)?.city && (
+                                <span className="text-xs text-gray-500 ml-1">
+                                  <FaMapMarkerAlt className="inline mr-1 h-3 w-3" />
+                                  {usersMap.get(request.user_id)?.city}
+                                </span>
+                              )}
+                            </div>
+                            <div className="text-xs text-gray-500 mt-0.5">
+                              ID: {request.user_id}
                             </div>
                           </div>
                         </div>
                       </td>
-                      <td className="px-6 py-4 whitespace-nowrap">
+                      <td className="px-6 py-4 whitespace-nowrap text-center">
                         <div className="text-sm font-medium text-amber-600 bg-amber-50 px-3 py-1 rounded-md inline-block">
                           {typeof request.amount === 'number' ? formatCurrency(request.amount, 'IDR', 'id-ID') : 'N/A'}
                         </div>
                       </td>
-                      <td className="px-6 py-4 whitespace-nowrap">
-                        <span className={`px-3 py-1.5 inline-flex text-xs leading-5 font-semibold rounded-full ${
-                          request.status === 'pending' ? 'bg-yellow-100 text-yellow-800' : 
-                          request.status === 'approved' ? 'bg-green-100 text-green-800' : 
-                          'bg-red-100 text-red-800'
-                        }`}>
+                      <td className="px-6 py-4 whitespace-nowrap text-sm text-gray-500 text-center">
+                        <span className={`px-2 py-1 inline-flex text-xs leading-5 font-semibold rounded-full ${request.status === 'pending' ? 'bg-yellow-100 text-yellow-800' : request.status === 'approved' ? 'bg-green-100 text-green-800' : 'bg-red-100 text-red-800'} justify-center mx-auto`}>
                           {request.status ? request.status.charAt(0).toUpperCase() + request.status.slice(1) : 'Unknown'}
                         </span>
                       </td>
-                      <td className="px-6 py-4 whitespace-nowrap text-sm text-gray-500">
-                        <div className="flex items-center">
+                      <td className="px-6 py-4 whitespace-nowrap text-sm text-gray-500 text-center">
+                        <div className="flex items-center justify-center">
                           <FaCalendarAlt className="mr-1 h-3 w-3 text-gray-400" />
                           {request.timestamp ? new Date(request.timestamp).toLocaleDateString() : 'N/A'}
                         </div>
                       </td>
-                      <td className="px-6 py-4 whitespace-nowrap text-sm font-medium">
+                      <td className="px-6 py-4 whitespace-nowrap text-sm font-medium text-center">
                         {request.status === 'pending' ? (
-                          <div className="flex space-x-2">
-                            <button
-                              onClick={() => handleViewDetails(request)}
-                              className="text-amber-600 hover:text-amber-900 focus:outline-none"
-                            >
-                              View Details
-                            </button>
-                          </div>
+                          <button
+                            onClick={() => handleViewDetails(request)}
+                            className="text-amber-600 hover:text-amber-900 bg-amber-50 px-3 py-1 rounded-md transition-colors duration-200"
+                          >
+                            View Details
+                          </button>
                         ) : (
-                          <span className="text-gray-500">
-                            {request.status === 'approved' ? 'Approved' : 'Rejected'}
+                          <span className="text-gray-500 bg-gray-50 px-3 py-1 rounded-md inline-block">
+                            {request.status.charAt(0).toUpperCase() + request.status.slice(1)}
                           </span>
                         )}
                       </td>
@@ -354,7 +403,7 @@ export default function TopupRequestsManagement() {
                             <button
                               type="button"
                               className="inline-flex justify-center rounded-md border border-transparent bg-red-100 px-4 py-2 text-sm font-medium text-red-900 hover:bg-red-200 focus:outline-none focus-visible:ring-2 focus-visible:ring-red-500 focus-visible:ring-offset-2"
-                              onClick={() => currentRequest.request_id ? handleRejectRequest(currentRequest.request_id) : (currentRequest.id ? handleRejectRequest(currentRequest.id) : null)}
+                              onClick={() => currentRequest && handleRejectRequest(Number(currentRequest.request_id))}
                               disabled={processingAction}
                             >
                               <FaTimes className="mr-2 h-4 w-4" />
@@ -363,7 +412,7 @@ export default function TopupRequestsManagement() {
                             <button
                               type="button"
                               className="inline-flex justify-center rounded-md border border-transparent bg-green-100 px-4 py-2 text-sm font-medium text-green-900 hover:bg-green-200 focus:outline-none focus-visible:ring-2 focus-visible:ring-green-500 focus-visible:ring-offset-2"
-                              onClick={() => currentRequest.request_id ? handleApproveRequest(currentRequest.request_id) : (currentRequest.id ? handleApproveRequest(currentRequest.id) : null)}
+                              onClick={() => currentRequest && handleApproveRequest(Number(currentRequest.request_id))}
                               disabled={processingAction}
                             >
                               <FaCheck className="mr-2 h-4 w-4" />
