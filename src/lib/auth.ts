@@ -27,7 +27,7 @@ export const isAuthenticated = (): boolean => {
   if (typeof window === 'undefined') return false;
   
   // Check if token exists in localStorage and cookies
-  const token = localStorage.getItem('token') || getCookie('token');
+  const token = localStorage.getItem(TOKEN_KEY) || getCookie(TOKEN_KEY);
   return !!token;
 };
 

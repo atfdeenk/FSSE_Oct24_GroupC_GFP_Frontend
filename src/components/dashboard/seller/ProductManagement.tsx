@@ -11,15 +11,39 @@ import { usePolling } from '@/hooks/usePolling';
 import { Category as ApiCategory, Product as ApiProduct, BaseResponse } from '@/types/apiResponses';
 
 // Define product interface for local use, extending the API type
-interface Product extends Omit<ApiProduct, 'id'> {
+interface Product {
   id: number; // Ensure id is always number for consistency
-  category_id?: number; // Add category_id for form handling
-  is_approved?: boolean; // Add is_approved field for UI
-  rejected?: boolean; // Add rejected field for UI
+  name: string;
+  description: string;
+  price: number;
+  stock_quantity: number;
+  currency: string;
+  image_url: string;
+  location?: string;
+  vendor_id?: number | string;
+  slug?: string;
+  unit_quantity: string;
+  discount_percentage?: number;
+  featured?: boolean;
+  flash_sale?: boolean;
+  created_at?: string;
+  updated_at?: string;
+  categories?: ApiCategory[];
+  category_ids?: number[]; // Use category_ids array format as required by the API
+  category_id?: number; // Keep for backward compatibility with existing code
+  is_approved?: boolean;
+  rejected?: boolean | null;
+  vendor_name?: string;
 }
 
 // Define category interface for local use
 type Category = ApiCategory;
+
+// Helper function to generate a unique slug with timestamp suffix
+const generateUniqueSlug = (name: string) => {
+  const baseSlug = name.toLowerCase().replace(/[^a-z0-9]+/g, '-').replace(/(^-|-$)/g, '');
+  return `${baseSlug}-${Date.now().toString().slice(-6)}`;
+};
 
 export default function ProductManagement() {
   const { user } = useAuthUser();
@@ -39,12 +63,13 @@ export default function ProductManagement() {
     description: '',
     price: 0,
     image_url: '',
-    category_id: 0,
+    category_ids: [], // Changed from category_id to category_ids array
     stock_quantity: 0,
     is_approved: true,
     rejected: false,
     currency: 'IDR',
-    unit_quantity: 'piece'
+    unit_quantity: 'g', // Default to grams
+    slug: '' // Added slug field
   });
 
   // Category form state
@@ -196,8 +221,10 @@ export default function ProductManagement() {
         return;
       }
 
-      // Handle image upload if there's a new image
+      // Handle image - could be a file upload or direct URL
       let imageUrl = formData.image_url;
+      
+      // If there's a file upload, process it
       if (imageFile) {
         try {
           const uploadResponse = await productService.uploadProductImage(imageFile);
@@ -208,6 +235,12 @@ export default function ProductManagement() {
           console.error('Error uploading image:', imageError);
           toast.error('Failed to upload image, but continuing with product save');
         }
+      } 
+      // If there's a direct URL input but no file upload, use that
+      else if (formData.image_url && formData.image_url.trim() !== '') {
+        // Use the URL directly
+        imageUrl = formData.image_url.trim();
+        console.log('Using direct image URL:', imageUrl);
       }
 
       if (editingProduct) {
@@ -215,19 +248,29 @@ export default function ProductManagement() {
         const updateData: UpdateProductData = {
           name: formData.name,
           description: formData.description,
-          price: formData.price,
-          stock_quantity: formData.stock_quantity || 0,
+          price: typeof formData.price === 'string' ? parseFloat(formData.price) : formData.price,
+          stock_quantity: typeof formData.stock_quantity === 'string' ? parseInt(formData.stock_quantity) : formData.stock_quantity || 0,
           currency: formData.currency || 'IDR',
           unit_quantity: formData.unit_quantity || 'piece',
-          is_approved: formData.is_approved,
-          rejected: formData.rejected
+          is_approved: formData.is_approved !== undefined ? formData.is_approved : true,
+          rejected: formData.rejected !== undefined ? formData.rejected : false,
+          // Generate a slug from the product name
+          slug: formData.name?.toLowerCase().replace(/[^a-z0-9]+/g, '-').replace(/(^-|-$)/g, '') || ''
         };
 
-        // Only include image_url if we have one
-        if (imageUrl) {
-          updateData.image_url = imageUrl;
+        // Only include image_url if we have one and it's not empty
+        if (imageUrl && imageUrl.trim() !== '') {
+          updateData.image_url = imageUrl.trim();
+        }
+        
+        // Add category if selected - use category_ids array format as required by the API
+        if (formData.category_id && formData.category_id !== 0) {
+          updateData.category_ids = [Number(formData.category_id)];
+        } else if (formData.category_ids && formData.category_ids.length > 0) {
+          updateData.category_ids = formData.category_ids.map(id => Number(id));
         }
 
+        console.log('Updating product with data:', updateData);
         const response = await productService.updateProduct(editingProduct.id, updateData);
 
         if (response) {
@@ -263,45 +306,70 @@ export default function ProductManagement() {
         const createData: CreateProductData = {
           name: formData.name || '',
           description: formData.description || '',
-          price: formData.price || 0,
-          stock_quantity: formData.stock_quantity || 0,
+          price: typeof formData.price === 'string' ? parseFloat(formData.price) : formData.price || 0,
+          stock_quantity: typeof formData.stock_quantity === 'string' ? parseInt(formData.stock_quantity) : formData.stock_quantity || 0,
           currency: formData.currency || 'IDR',
-          unit_quantity: formData.unit_quantity || 'piece'
+          unit_quantity: formData.unit_quantity || 'piece',
+          // Generate a slug from the product name
+          slug: formData.name?.toLowerCase().replace(/[^a-z0-9]+/g, '-').replace(/(^-|-$)/g, '') || ''
         };
 
-        // Only include image_url if we have one
-        if (imageUrl) {
-          createData.image_url = imageUrl;
+        // Only include image_url if we have one and it's not empty
+        if (imageUrl && imageUrl.trim() !== '') {
+          createData.image_url = imageUrl.trim();
         }
 
-        // Add category if selected
+        // Add category if selected - use category_ids array format as required by the API
         if (formData.category_id && formData.category_id !== 0) {
-          createData.categories = [formData.category_id as number];
+          createData.category_ids = [Number(formData.category_id)];
+        } else if (formData.category_ids && formData.category_ids.length > 0) {
+          createData.category_ids = formData.category_ids.map(id => Number(id));
         }
+        
+        // Remove any undefined or null values to keep the request clean
+        Object.keys(createData).forEach(key => {
+          if (createData[key as keyof CreateProductData] === undefined || 
+              createData[key as keyof CreateProductData] === null) {
+            delete createData[key as keyof CreateProductData];
+          }
+        });
+        
+        // Log the data being sent to help debug the 400 error
+        console.log('Sending product data to API:', JSON.stringify(createData, null, 2));
 
+        console.log('Creating product with data:', createData);
         const response = await productService.createProduct(createData);
 
         if (response && response.id) {
-          // Get the full product details
-          const newProductDetails = await productService.getProduct(response.id);
-          if (newProductDetails) {
-            // Format the new product to match our local Product type
-            const newProduct = {
-              ...newProductDetails,
-              id: typeof newProductDetails.id === 'string' ?
-                parseInt(newProductDetails.id) : newProductDetails.id as number
-            };
-            setProducts([...products, newProduct as Product]);
-            toast.success('Product created successfully');
-          }
+          // Use the response data directly instead of fetching the product again
+          // This avoids the 404 error if the product is not immediately available
+          const newProduct = {
+            ...response,
+            id: typeof response.id === 'string' ?
+              parseInt(response.id) : response.id as number,
+            // Include any other fields that might be needed
+            category_ids: createData.category_ids || [],
+            unit_quantity: createData.unit_quantity || 'piece',
+            currency: createData.currency || 'IDR',
+            image_url: imageUrl || ''
+          };
+          
+          setProducts([...products, newProduct as Product]);
+          toast.success('Product created successfully');
+          
+          // Refresh the product list to get the latest data
+          setTimeout(() => {
+            fetchData();
+          }, 1000); // Wait a second before refreshing to allow the server to process
         }
       }
 
-      // Reset form
+      // Reset form and hide it
       resetForm();
+      setShowForm(false);
     } catch (error) {
       console.error('Error saving product:', error);
-      toast.error('Failed to save product');
+      toast.error('Failed to save product: ' + (error instanceof Error ? error.message : 'Unknown error'));
     } finally {
       setIsSubmitting(false);
     }
@@ -310,20 +378,28 @@ export default function ProductManagement() {
   // Handle product edit
   const handleEdit = (product: Product) => {
     setEditingProduct(product);
+    
+    // Extract category IDs from the product's categories array
+    const categoryIds = product.categories ? 
+      product.categories.map(cat => typeof cat.id === 'string' ? parseInt(cat.id) : cat.id as number) : 
+      [];
+    
+    // Set the first category as the selected category_id for the dropdown (for backward compatibility)
+    const firstCategoryId = categoryIds.length > 0 ? categoryIds[0] : 0;
+    
     setFormData({
       name: product.name,
       description: product.description,
       price: product.price,
       image_url: product.image_url,
-      category_id: product.categories && product.categories.length > 0 ?
-        (typeof product.categories[0].id === 'string' ?
-          parseInt(product.categories[0].id as string) :
-          product.categories[0].id as number) : 0,
+      category_id: firstCategoryId,
+      category_ids: categoryIds, // Set all categories in the category_ids array
       stock_quantity: product.stock_quantity,
       is_approved: product.is_approved !== undefined ? product.is_approved : true,
       rejected: product.rejected !== undefined ? product.rejected : false,
       currency: product.currency || 'IDR',
-      unit_quantity: product.unit_quantity || 'piece'
+      unit_quantity: product.unit_quantity || 'piece',
+      slug: product.slug || ''
     });
     setImageFile(null); // Reset image file when editing
     setShowForm(true);
@@ -362,15 +438,18 @@ export default function ProductManagement() {
       price: 0,
       image_url: '',
       category_id: 0,
+      category_ids: [], // Reset category_ids array
       stock_quantity: 0,
       is_approved: true,
       rejected: false,
       currency: 'IDR',
-      unit_quantity: 'piece'
+      unit_quantity: 'g', // Default to grams
+      slug: '' // Reset slug
     });
-    setEditingProduct(null);
     setImageFile(null);
-    setShowForm(false);
+    setEditingProduct(null);
+    // Don't hide the form when resetting if we're adding a new product
+    // Only hide it after successful submission
   };
 
   // Reset category form
@@ -644,15 +723,15 @@ export default function ProductManagement() {
               </div>
 
               <div>
-                <label htmlFor="category_id" className="block text-sm font-medium text-white/70 mb-1">
-                  Category*
+                <label htmlFor="category_ids" className="block text-sm font-medium text-white/70 mb-1">
+                  Categories*
                 </label>
                 <select
                   id="category_id"
                   name="category_id"
-                  value={formData.category_id}
+                  value={formData.category_id || ''}
                   onChange={handleInputChange}
-                  className="w-full bg-neutral-800 border border-white/10 rounded-md px-4 py-2 text-white focus:outline-none focus:ring-2 focus:ring-amber-500/50"
+                  className="w-full bg-neutral-800 border border-white/10 rounded-md px-4 py-2 text-white focus:outline-none focus:ring-2 focus:ring-amber-500/50 mb-2"
                   required
                 >
                   <option value="">Select a category</option>
@@ -662,6 +741,58 @@ export default function ProductManagement() {
                     </option>
                   ))}
                 </select>
+                <p className="text-xs text-white/50 mb-1">Selected categories:</p>
+                <div className="flex flex-wrap gap-2 mb-2">
+                  {formData.category_ids && formData.category_ids.length > 0 ? (
+                    formData.category_ids.map((catId) => {
+                      const category = categories.find(c => Number(c.id) === Number(catId));
+                      return category ? (
+                        <div key={catId} className="bg-amber-500/20 text-amber-300 px-2 py-1 rounded-md text-sm flex items-center">
+                          {category.name}
+                          <button 
+                            type="button"
+                            onClick={() => {
+                              setFormData({
+                                ...formData,
+                                category_ids: formData.category_ids?.filter(id => id !== catId)
+                              });
+                            }}
+                            className="ml-2 text-amber-300 hover:text-amber-100"
+                          >
+                            <svg className="w-4 h-4" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                              <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M6 18L18 6M6 6l12 12" />
+                            </svg>
+                          </button>
+                        </div>
+                      ) : null;
+                    })
+                  ) : (
+                    <div className="text-white/50 text-sm">No categories selected</div>
+                  )}
+                </div>
+                <button
+                  type="button"
+                  onClick={() => {
+                    if (formData.category_id && formData.category_id !== 0) {
+                      // Add the selected category to the category_ids array if it's not already there
+                      const categoryId = Number(formData.category_id);
+                      if (!formData.category_ids?.includes(categoryId)) {
+                        setFormData({
+                          ...formData,
+                          category_ids: [...(formData.category_ids || []), categoryId],
+                          category_id: 0 // Reset the dropdown
+                        });
+                      }
+                    }
+                  }}
+                  className="text-sm text-amber-500 hover:text-amber-400 flex items-center"
+                  disabled={!formData.category_id || formData.category_id === 0}
+                >
+                  <svg className="w-4 h-4 mr-1" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                    <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M12 6v6m0 0v6m0-6h6m-6 0H6" />
+                  </svg>
+                  Add Category
+                </button>
               </div>
 
               <div className="md:col-span-2">
@@ -695,20 +826,41 @@ export default function ProductManagement() {
                 />
               </div>
 
-              <div>
-                <label htmlFor="stock_quantity" className="block text-sm font-medium text-white/70 mb-1">
-                  Stock*
-                </label>
-                <input
-                  type="number"
-                  id="stock_quantity"
-                  name="stock_quantity"
-                  value={formData.stock_quantity || 0}
-                  onChange={handleInputChange}
-                  min="0"
-                  className="w-full bg-neutral-800 border border-white/10 rounded-md px-4 py-2 text-white focus:outline-none focus:ring-2 focus:ring-amber-500/50"
-                  required
-                />
+              <div className="flex gap-2">
+                <div className="flex-1">
+                  <label htmlFor="stock_quantity" className="block text-sm font-medium text-white/70 mb-1">
+                    Stock*
+                  </label>
+                  <input
+                    type="number"
+                    id="stock_quantity"
+                    name="stock_quantity"
+                    value={formData.stock_quantity || 0}
+                    onChange={handleInputChange}
+                    min="0"
+                    className="w-full bg-neutral-800 border border-white/10 rounded-md px-4 py-2 text-white focus:outline-none focus:ring-2 focus:ring-amber-500/50"
+                    required
+                  />
+                </div>
+                <div className="w-1/3">
+                  <label htmlFor="unit_quantity" className="block text-sm font-medium text-white/70 mb-1">
+                    Unit*
+                  </label>
+                  <select
+                    id="unit_quantity"
+                    name="unit_quantity"
+                    value={formData.unit_quantity || 'g'}
+                    onChange={handleInputChange}
+                    className="w-full bg-neutral-800 border border-white/10 rounded-md px-4 py-2 text-white focus:outline-none focus:ring-2 focus:ring-amber-500/50"
+                    required
+                  >
+                    <option value="g">g (gram)</option>
+                    <option value="kg">kg (kilogram)</option>
+                    <option value="piece">piece</option>
+                    <option value="pack">pack</option>
+                    <option value="box">box</option>
+                  </select>
+                </div>
               </div>
 
               <div>
@@ -727,14 +879,29 @@ export default function ProductManagement() {
                     />
                   </div>
                 )}
-                <input
-                  type="file"
-                  id="image"
-                  name="image"
-                  accept="image/*"
-                  onChange={handleInputChange}
-                  className="w-full bg-neutral-800 border border-white/10 rounded-md px-4 py-2 text-white focus:outline-none focus:ring-2 focus:ring-amber-500/50"
-                />
+                <div className="mb-2">
+                  <p className="text-xs text-white/50 mb-1">Upload an image file:</p>
+                  <input
+                    type="file"
+                    id="image"
+                    name="image"
+                    accept="image/*"
+                    onChange={handleInputChange}
+                    className="w-full bg-neutral-800 border border-white/10 rounded-md px-4 py-2 text-white focus:outline-none focus:ring-2 focus:ring-amber-500/50"
+                  />
+                </div>
+                <div>
+                  <p className="text-xs text-white/50 mb-1">OR enter an image URL:</p>
+                  <input
+                    type="text"
+                    id="image_url"
+                    name="image_url"
+                    value={formData.image_url || ''}
+                    onChange={handleInputChange}
+                    placeholder="https://example.com/image.jpg"
+                    className="w-full bg-neutral-800 border border-white/10 rounded-md px-4 py-2 text-white focus:outline-none focus:ring-2 focus:ring-amber-500/50"
+                  />
+                </div>
               </div>
               
               <div>

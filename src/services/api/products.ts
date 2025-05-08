@@ -1,6 +1,7 @@
 // src/services/api/products.ts
 import axiosInstance from './axios';
 import { API_CONFIG } from './config';
+import { toast } from 'react-hot-toast';
 import { 
   Product, 
   ProductResponse, 
@@ -34,10 +35,13 @@ export interface CreateProductData {
   image_url?: string;
   location?: string;
   unit_quantity: string;
+  slug?: string; // Added based on API requirements
   discount_percentage?: number;
   featured?: boolean;
   flash_sale?: boolean;
-  categories?: (number | string)[];
+  category_ids?: number[]; // Changed to match API format
+  is_approved?: boolean;
+  rejected?: boolean | null;
 }
 
 export interface UpdateProductData {
@@ -49,9 +53,11 @@ export interface UpdateProductData {
   image_url?: string;
   location?: string;
   unit_quantity?: string;
+  slug?: string; // Added based on API requirements
   discount_percentage?: number;
   featured?: boolean;
   flash_sale?: boolean;
+  category_ids?: number[]; // Added to match API format
   is_approved?: boolean;
   rejected?: boolean | null;
 }
@@ -95,9 +101,16 @@ const productService = {
     }
   },
 
+  // Helper function to generate a unique slug with timestamp suffix
+  generateUniqueSlug: (name: string) => {
+    const baseSlug = name.toLowerCase().replace(/[^a-z0-9]+/g, '-').replace(/(^-|-$)/g, '');
+    return `${baseSlug}-${Date.now().toString().slice(-6)}`;
+  },
+
   // Create a new product
-  createProduct: async (productData: CreateProductData) => {
+  createProduct: async (productData: CreateProductData): Promise<ProductResponse> => {
     try {
+      console.log('Creating product with data:', JSON.stringify(productData, null, 2));
       const response = await axiosInstance.post<ProductResponse>(
         API_CONFIG.ENDPOINTS.products.list,
         productData
@@ -110,8 +123,51 @@ const productService = {
       }
       
       return response.data;
-    } catch (error) {
+    } catch (error: any) {
       console.error('Create product error:', error);
+      
+      // Handle 409 Conflict error (likely due to duplicate slug)
+      if (error.response && error.response.status === 409) {
+        console.log('Conflict detected, retrying with unique slug...');
+        
+        // Generate a new unique slug with timestamp
+        if (productData.name) {
+          const uniqueSlug = `${productData.name.toLowerCase().replace(/[^a-z0-9]+/g, '-').replace(/(^-|-$)/g, '')}-${Date.now().toString().slice(-6)}`;
+          
+          // Update the product data with the new slug
+          const updatedProductData = {
+            ...productData,
+            slug: uniqueSlug
+          };
+          
+          console.log('Retrying with updated data:', JSON.stringify(updatedProductData, null, 2));
+          
+          // Retry the request with the new slug
+          return productService.createProduct(updatedProductData);
+        }
+      }
+      
+      // Log detailed error information
+      if (error.response) {
+        // The request was made and the server responded with a status code
+        // that falls out of the range of 2xx
+        console.error('Error response data:', error.response.data);
+        console.error('Error response status:', error.response.status);
+        console.error('Error response headers:', error.response.headers);
+        
+        // Show more specific error message to the user
+        if (error.response.data && error.response.data.message) {
+          toast.error(`Failed to create product: ${error.response.data.message}`);
+        }
+      } else if (error.request) {
+        // The request was made but no response was received
+        console.error('Error request:', error.request);
+        toast.error('Network error: Please check your connection');
+      } else {
+        // Something happened in setting up the request that triggered an Error
+        console.error('Error message:', error.message);
+        toast.error(`Error: ${error.message}`);
+      }
       throw error;
     }
   },
@@ -278,7 +334,7 @@ const productService = {
     try {
       const response = await axiosInstance.get<ProductsResponse>(
         API_CONFIG.ENDPOINTS.products.list,
-        { params: { vendor_id: vendorId, limit: 10000 } } // Use a higher limit to ensure all vendor products are returned
+        { params: { vendor_id: vendorId, limit: 1000000 } } // Use a higher limit to ensure all vendor products are returned
       );
       return response.data;
     } catch (error) {
