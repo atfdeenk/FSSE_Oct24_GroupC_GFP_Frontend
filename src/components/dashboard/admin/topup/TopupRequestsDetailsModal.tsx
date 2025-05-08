@@ -1,8 +1,9 @@
 import { Fragment } from 'react';
 import { Dialog, Transition } from '@headlessui/react';
 import { TopUpRequest } from '@/services/api/topup';
+import { formatApiTimestamp } from '@/utils/date';
 import { formatCurrency } from '@/utils/format';
-import { FaCheck, FaTimes } from 'react-icons/fa';
+import { FaCheck, FaTimes, FaCalendarAlt, FaClock } from 'react-icons/fa';
 
 interface TopupRequestsDetailsModalProps {
   isOpen: boolean;
@@ -79,10 +80,18 @@ export default function TopupRequestsDetailsModal({
                         {request.status ? request.status.charAt(0).toUpperCase() + request.status.slice(1) : 'Unknown'}
                       </span>
                     </div>
-                    <div className="flex justify-between items-center">
+                    <div className="flex justify-between items-center mb-2">
                       <span className="text-sm text-gray-500">Date:</span>
-                      <span className="text-sm font-medium text-gray-900">
-                        {request.timestamp ? new Date(request.timestamp).toLocaleString() : 'N/A'}
+                      <span className="text-sm font-medium text-gray-900 flex items-center">
+                        <FaCalendarAlt className="mr-1 h-3 w-3 text-gray-400" />
+                        {request.timestamp ? formatApiTimestamp(request.timestamp).dateString : 'N/A'}
+                      </span>
+                    </div>
+                    <div className="flex justify-between items-center">
+                      <span className="text-sm text-gray-500">Time:</span>
+                      <span className="text-sm font-medium text-gray-900 flex items-center">
+                        <FaClock className="mr-1 h-3 w-3 text-gray-400" />
+                        {request.timestamp ? formatApiTimestamp(request.timestamp).timeString : 'N/A'}
                       </span>
                     </div>
                     {request.notes && (

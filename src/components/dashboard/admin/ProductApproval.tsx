@@ -12,13 +12,15 @@ import {
   FaInfoCircle,
   FaCalendarAlt,
   FaTag,
-  FaExclamationTriangle
+  FaExclamationTriangle,
+  FaClock
 } from 'react-icons/fa';
 import { toast } from 'react-hot-toast';
 import { Dialog, Transition } from '@headlessui/react';
 import Image from 'next/image';
 import { adminService, ProductApprovalItem } from '@/services/api/admin';
 import { API_CONFIG } from '@/services/api/config';
+import { formatApiTimestamp } from '@/utils/date';
 
 export default function ProductApproval() {
   const [products, setProducts] = useState<ProductApprovalItem[]>([]);
@@ -476,7 +478,7 @@ export default function ProductApproval() {
                             : product.description}
                         </div>
                         <div className="text-xs text-amber-600 mt-1">
-                          ID: #{product.id} • Submitted {new Date(product.created_at).toLocaleDateString('en-US', {month: 'short', day: 'numeric'})}
+                          ID: #{product.id} • Submitted {formatApiTimestamp(product.created_at).dateString}
                         </div>
                       </div>
                     </div>
@@ -497,11 +499,14 @@ export default function ProductApproval() {
                   </td>
                   <td className="px-6 py-4 whitespace-nowrap">
                     <span className="text-sm text-gray-500">
-                      {new Date(product.created_at).toLocaleDateString('en-US', {
-                        year: 'numeric',
-                        month: 'short',
-                        day: 'numeric'
-                      })}
+                      <div className="flex items-center">
+                        <FaCalendarAlt className="mr-1 h-3 w-3 text-gray-400" />
+                        {formatApiTimestamp(product.created_at).dateString}
+                      </div>
+                      <div className="flex items-center mt-1 text-xs text-gray-400">
+                        <FaClock className="mr-1 h-2.5 w-2.5" />
+                        {formatApiTimestamp(product.created_at).timeString}
+                      </div>
                     </span>
                   </td>
                   <td className="px-6 py-4 whitespace-nowrap text-right text-sm font-medium">
@@ -793,13 +798,16 @@ export default function ProductApproval() {
                             <h4 className="text-xs font-medium text-gray-500 uppercase tracking-wider">Submission Details</h4>
                             <div className="mt-2 flex items-center text-sm text-gray-700">
                               <FaCalendarAlt className="mr-2 text-gray-400" />
-                              <span>Submitted on {new Date(currentProduct.created_at).toLocaleDateString('en-US', {
-                                year: 'numeric',
-                                month: 'long',
-                                day: 'numeric',
-                                hour: '2-digit',
-                                minute: '2-digit'
-                              })}</span>
+                              <div>
+                                <div className="flex items-center">
+                                  <FaCalendarAlt className="mr-1 h-3 w-3 text-gray-400" />
+                                  <span>Submitted on {formatApiTimestamp(currentProduct.created_at).dateString}</span>
+                                </div>
+                                <div className="flex items-center mt-1 text-xs text-gray-400">
+                                  <FaClock className="mr-1 h-2.5 w-2.5" />
+                                  <span>at {formatApiTimestamp(currentProduct.created_at).timeString}</span>
+                                </div>
+                              </div>  
                             </div>
                             <div className="mt-1 flex items-center text-sm text-gray-700">
                               <FaTag className="mr-2 text-gray-400" />

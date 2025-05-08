@@ -10,12 +10,14 @@ import {
   FaCalendarAlt,
   FaInfoCircle,
   FaTimes,
-  FaCheck
+  FaCheck,
+  FaClock
 } from 'react-icons/fa';
 import { toast } from 'react-hot-toast';
 import { Dialog, Transition } from '@headlessui/react';
 import { adminService, Transaction } from '@/services/api/admin';
 import { UserProfile } from '@/types/apiResponses';
+import { formatApiTimestamp } from '@/utils/date';
 
 export default function BalanceManagement() {
   const [users, setUsers] = useState<UserProfile[]>([]);
@@ -482,9 +484,17 @@ export default function BalanceManagement() {
                               {userTransactions.map((transaction) => (
                                 <tr key={transaction.id} className="hover:bg-gray-50 transition-colors duration-150">
                                   <td className="px-6 py-4 whitespace-nowrap text-sm font-medium text-gray-900">#{transaction.id}</td>
-                                  <td className="px-6 py-4 whitespace-nowrap text-sm text-gray-500 flex items-center">
-                                    <FaCalendarAlt className="mr-1 h-3 w-3 text-gray-400" />
-                                    {transaction.date}
+                                  <td className="px-6 py-4 whitespace-nowrap text-sm text-gray-500">
+                                    <div className="flex flex-col">
+                                      <div className="flex items-center">
+                                        <FaCalendarAlt className="mr-1 h-3 w-3 text-gray-400" />
+                                        {formatApiTimestamp(transaction.date).dateString}
+                                      </div>
+                                      <div className="flex items-center mt-1 text-xs text-gray-400">
+                                        <FaClock className="mr-1 h-2.5 w-2.5" />
+                                        {formatApiTimestamp(transaction.date).timeString}
+                                      </div>
+                                    </div>
                                   </td>
                                   <td className="px-6 py-4 whitespace-nowrap">
                                     <span className={`px-2 py-1 inline-flex text-xs leading-5 font-semibold rounded-full ${
