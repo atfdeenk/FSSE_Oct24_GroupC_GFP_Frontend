@@ -4,147 +4,163 @@ import { useState, useEffect } from 'react';
 import { toast } from 'react-hot-toast';
 import { formatCurrency } from '@/utils/format';
 import LoadingOverlay from '@/components/ui/LoadingOverlay';
+import productService, { CreateProductData, UpdateProductData } from '@/services/api/products';
+import categoryService from '@/services/api/categories';
+import { useAuthUser } from '@/hooks/useAuthUser';
+import { Category as ApiCategory, Product as ApiProduct, BaseResponse } from '@/types/apiResponses';
 
-// Define product interface
-interface Product {
-  id: number;
-  name: string;
-  description: string;
-  price: number;
-  image: string;
-  category_id: number;
-  category_name?: string;
-  stock: number;
-  status: 'active' | 'inactive';
+// Define product interface for local use, extending the API type
+interface Product extends Omit<ApiProduct, 'id'> {
+  id: number; // Override id to be strictly number for local use
+  category_id?: number; // Add category_id for form handling
+  status?: 'active' | 'inactive'; // Add status field for UI
 }
 
-// Define category interface
-interface Category {
-  id: number;
-  name: string;
-}
+// Define category interface for local use
+type Category = ApiCategory;
 
 export default function ProductManagement() {
+  const { user } = useAuthUser();
+  const [activeTab, setActiveTab] = useState('products');
   const [products, setProducts] = useState<Product[]>([]);
   const [categories, setCategories] = useState<Category[]>([]);
   const [loading, setLoading] = useState(true);
   const [showForm, setShowForm] = useState(false);
   const [editingProduct, setEditingProduct] = useState<Product | null>(null);
+  const [editingCategory, setEditingCategory] = useState<Category | null>(null);
   const [isSubmitting, setIsSubmitting] = useState(false);
   const [searchTerm, setSearchTerm] = useState('');
   const [selectedCategory, setSelectedCategory] = useState<number | 'all'>('all');
-  
-  // Form state
+  const [imageFile, setImageFile] = useState<File | null>(null);
   const [formData, setFormData] = useState<Partial<Product>>({
     name: '',
     description: '',
     price: 0,
-    image: '',
+    image_url: '',
     category_id: 0,
-    stock: 0,
-    status: 'active'
+    stock_quantity: 0,
+    status: 'active',
+    currency: 'IDR',
+    unit_quantity: 'piece'
   });
+  
+  // Category form state
+  const [categoryFormData, setCategoryFormData] = useState({
+    name: '',
+    description: '',
+    parent_id: null as number | null,
+    image_url: ''
+  });
+  const [categoryImageFile, setCategoryImageFile] = useState<File | null>(null);
 
   // Fetch products and categories
   useEffect(() => {
     const fetchData = async () => {
       setLoading(true);
       try {
-        // In a real application, you would fetch this data from your API
-        // For now, we'll use mock data
-        await new Promise(resolve => setTimeout(resolve, 500));
+        // Fetch categories from API
+        try {
+          const categoriesResponse = await categoryService.getCategories();
+          
+          // Based on the actual API response format which has a categories array property
+          if (categoriesResponse && 
+              typeof categoriesResponse === 'object' && 
+              'categories' in categoriesResponse && 
+              Array.isArray((categoriesResponse as any).categories)) {
+            // Get categories from the categories property
+            const categoriesArray = (categoriesResponse as any).categories;
+            
+            // Filter categories by the current seller's vendor_id if user is logged in
+            if (user && user.id) {
+              const filteredCategories = categoriesArray.filter((category: any) => {
+                const categoryVendorId = typeof category.vendor_id === 'string' ? 
+                  parseInt(category.vendor_id) : category.vendor_id;
+                return categoryVendorId === user.id;
+              });
+              setCategories(filteredCategories as Category[]);
+              console.log(`Loaded ${filteredCategories.length} categories for vendor ${user.id}`);
+            } else {
+              // If no user, show all categories (should not happen in seller dashboard)
+              setCategories(categoriesArray as Category[]);
+              console.log(`Loaded ${categoriesArray.length} categories (no user filter)`);
+            }
+          } else if (Array.isArray(categoriesResponse)) {
+            // Handle direct array response (fallback)
+            setCategories(categoriesResponse as Category[]);
+            console.log(`Loaded ${categoriesResponse.length} categories (array format)`);
+          } else {
+            // Fallback to empty array
+            setCategories([]);
+            console.warn('Categories response format not recognized, using empty array');
+          }
+        } catch (categoryError) {
+          console.error('Error fetching categories:', categoryError);
+          setCategories([]);
+          toast.error('Failed to load categories');
+        }
         
-        // Mock categories
-        const mockCategories = [
-          { id: 1, name: 'Coffee Beans' },
-          { id: 2, name: 'Brewing Equipment' },
-          { id: 3, name: 'Accessories' },
-          { id: 4, name: 'Gift Sets' },
-          { id: 5, name: 'Specialty Drinks' }
-        ];
+        // Fetch products from API - always filter by the current seller's vendor_id
+        let productsResponse;
+        if (user && user.id) {
+          // Use the getProductsByVendor method to get only this seller's products
+          productsResponse = await productService.getProductsByVendor(user.id);
+          console.log(`Fetching products for vendor ID: ${user.id}`);
+        } else {
+          // Fallback - should not happen in seller dashboard
+          console.warn('No user ID found, fetching all products');
+          productsResponse = await productService.getProducts();
+        }
         
-        // Mock products
-        const mockProducts = [
-          { 
-            id: 1, 
-            name: 'Arabica Premium Blend', 
-            description: 'A smooth, well-balanced coffee with mild acidity and complex flavors.',
-            price: 89000,
-            image: 'https://via.placeholder.com/150?text=Coffee',
-            category_id: 1,
-            category_name: 'Coffee Beans',
-            stock: 25,
-            status: 'active' as const
-          },
-          { 
-            id: 2, 
-            name: 'Pour-Over Coffee Maker', 
-            description: 'Elegant glass pour-over coffee maker for a clean, flavorful brew.',
-            price: 350000,
-            image: 'https://via.placeholder.com/150?text=Brewer',
-            category_id: 2,
-            category_name: 'Brewing Equipment',
-            stock: 10,
-            status: 'active' as const
-          },
-          { 
-            id: 3, 
-            name: 'Coffee Grinder', 
-            description: 'Adjustable ceramic burr grinder for the perfect grind every time.',
-            price: 450000,
-            image: 'https://via.placeholder.com/150?text=Grinder',
-            category_id: 2,
-            category_name: 'Brewing Equipment',
-            stock: 8,
-            status: 'active' as const
-          },
-          { 
-            id: 4, 
-            name: 'Coffee Mug Set', 
-            description: 'Set of 4 handcrafted ceramic mugs in earthy tones.',
-            price: 120000,
-            image: 'https://via.placeholder.com/150?text=Mugs',
-            category_id: 3,
-            category_name: 'Accessories',
-            stock: 15,
-            status: 'active' as const
-          },
-          { 
-            id: 5, 
-            name: 'Coffee Lover Gift Box', 
-            description: 'Complete gift set with premium coffee, mug, and brewing accessories.',
-            price: 250000,
-            image: 'https://via.placeholder.com/150?text=GiftBox',
-            category_id: 4,
-            category_name: 'Gift Sets',
-            stock: 5,
-            status: 'active' as const
-          },
-        ];
-        
-        setCategories(mockCategories);
-        setProducts(mockProducts);
+        if (productsResponse && Array.isArray(productsResponse.products)) {
+          // Convert API products to our local Product type
+          const formattedProducts = productsResponse.products.map(p => ({
+            ...p,
+            id: typeof p.id === 'string' ? parseInt(p.id) : p.id as number
+          }));
+          
+          // Additional filter to ensure we only show this seller's products
+          // This is a safety measure in case the API doesn't filter correctly
+          const filteredProducts = user && user.id ? 
+            formattedProducts.filter(product => {
+              const productVendorId = typeof product.vendor_id === 'string' ? 
+                parseInt(product.vendor_id) : product.vendor_id;
+              return productVendorId === user.id;
+            }) : 
+            formattedProducts;
+          
+          setProducts(filteredProducts as Product[]);
+          console.log(`Loaded ${filteredProducts.length} products for this seller`);
+        } else {
+          setProducts([]);
+          console.error('Invalid products response:', productsResponse);
+        }
       } catch (error) {
-        console.error('Error fetching products:', error);
-        toast.error('Failed to load products');
+        console.error('Error fetching data:', error);
+        toast.error('Failed to load data');
       } finally {
         setLoading(false);
       }
     };
-
+    
     fetchData();
-  }, []);
+  }, [user]);  // Re-fetch when user changes
 
   // Handle form input changes
   const handleInputChange = (e: React.ChangeEvent<HTMLInputElement | HTMLTextAreaElement | HTMLSelectElement>) => {
     const { name, value, type } = e.target;
     
-    // Handle numeric values
+    // Handle numeric inputs
     if (type === 'number') {
       setFormData({
         ...formData,
-        [name]: value === '' ? '' : parseFloat(value)
+        [name]: parseFloat(value) || 0
       });
+    } else if (type === 'file' && e.target instanceof HTMLInputElement && e.target.files) {
+      // Handle file input separately
+      const file = e.target.files[0];
+      if (file) {
+        setImageFile(file);
+      }
     } else {
       setFormData({
         ...formData,
@@ -159,35 +175,110 @@ export default function ProductManagement() {
     setIsSubmitting(true);
     
     try {
-      // Validate form data
-      if (!formData.name || !formData.price || !formData.category_id) {
+      // Validate form
+      if (!formData.name || !formData.description || !formData.price) {
         toast.error('Please fill in all required fields');
         setIsSubmitting(false);
         return;
       }
       
-      // In a real application, you would send this data to your API
-      await new Promise(resolve => setTimeout(resolve, 500));
+      // Handle image upload if there's a new image
+      let imageUrl = formData.image_url;
+      if (imageFile) {
+        try {
+          const uploadResponse = await productService.uploadProductImage(imageFile);
+          if (uploadResponse && uploadResponse.image_url) {
+            imageUrl = uploadResponse.image_url;
+          }
+        } catch (imageError) {
+          console.error('Error uploading image:', imageError);
+          toast.error('Failed to upload image, but continuing with product save');
+        }
+      }
       
       if (editingProduct) {
         // Update existing product
-        const updatedProducts = products.map(product => 
-          product.id === editingProduct.id 
-            ? { ...product, ...formData, id: editingProduct.id } as Product
-            : product
-        );
-        setProducts(updatedProducts);
-        toast.success('Product updated successfully');
+        const updateData: UpdateProductData = {
+          name: formData.name,
+          description: formData.description,
+          price: formData.price,
+          stock_quantity: formData.stock_quantity || 0,
+          currency: formData.currency || 'IDR',
+          unit_quantity: formData.unit_quantity || 'piece'
+        };
+        
+        // Only include image_url if we have one
+        if (imageUrl) {
+          updateData.image_url = imageUrl;
+        }
+        
+        const response = await productService.updateProduct(editingProduct.id, updateData);
+        
+        if (response) {
+          // Update local state
+          const updatedProducts = products.map(product => 
+            product.id === editingProduct.id 
+              ? { ...product, ...updateData, image_url: imageUrl || product.image_url } as Product
+              : product
+          );
+          setProducts(updatedProducts);
+          toast.success('Product updated successfully');
+          
+          // If category changed, handle that separately
+          if (formData.category_id && formData.category_id !== editingProduct.category_id) {
+            try {
+              // First remove existing categories if any
+              if (editingProduct.categories && editingProduct.categories.length > 0) {
+                await Promise.all(editingProduct.categories.map(cat => 
+                  productService.removeCategoryFromProduct(editingProduct.id, cat.id)
+                ));
+              }
+              
+              // Then add the new category
+              await productService.addCategoryToProduct(editingProduct.id, formData.category_id);
+            } catch (categoryError) {
+              console.error('Error updating product category:', categoryError);
+              toast.error('Product updated but category assignment failed');
+            }
+          }
+        }
       } else {
         // Create new product
-        const newProduct = {
-          ...formData,
-          id: Math.max(0, ...products.map(p => p.id)) + 1,
-          category_name: categories.find(c => c.id === Number(formData.category_id))?.name
-        } as Product;
+        const createData: CreateProductData = {
+          name: formData.name || '',
+          description: formData.description || '',
+          price: formData.price || 0,
+          stock_quantity: formData.stock_quantity || 0,
+          currency: formData.currency || 'IDR',
+          unit_quantity: formData.unit_quantity || 'piece'
+        };
         
-        setProducts([...products, newProduct]);
-        toast.success('Product created successfully');
+        // Only include image_url if we have one
+        if (imageUrl) {
+          createData.image_url = imageUrl;
+        }
+        
+        // Add category if selected
+        if (formData.category_id && formData.category_id !== 0) {
+          createData.categories = [formData.category_id as number];
+        }
+        
+        const response = await productService.createProduct(createData);
+        
+        if (response && response.id) {
+          // Get the full product details
+          const newProductDetails = await productService.getProduct(response.id);
+          if (newProductDetails) {
+            // Format the new product to match our local Product type
+            const newProduct = {
+              ...newProductDetails,
+              id: typeof newProductDetails.id === 'string' ? 
+                parseInt(newProductDetails.id) : newProductDetails.id as number
+            };
+            setProducts([...products, newProduct as Product]);
+            toast.success('Product created successfully');
+          }
+        }
       }
       
       // Reset form
@@ -207,56 +298,219 @@ export default function ProductManagement() {
       name: product.name,
       description: product.description,
       price: product.price,
-      image: product.image,
-      category_id: product.category_id,
-      stock: product.stock,
-      status: product.status
+      image_url: product.image_url,
+      category_id: product.categories && product.categories.length > 0 ? 
+        (typeof product.categories[0].id === 'string' ? 
+          parseInt(product.categories[0].id as string) : 
+          product.categories[0].id as number) : 0,
+      stock_quantity: product.stock_quantity,
+      status: product.status || 'active',
+      currency: product.currency || 'IDR',
+      unit_quantity: product.unit_quantity || 'piece'
     });
+    setImageFile(null); // Reset image file when editing
     setShowForm(true);
   };
 
   // Handle product delete
   const handleDelete = async (productId: number) => {
-    if (!confirm('Are you sure you want to delete this product?')) {
-      return;
-    }
-    
-    setLoading(true);
-    try {
-      // In a real application, you would send this request to your API
-      await new Promise(resolve => setTimeout(resolve, 500));
-      
-      // Remove product from state
-      setProducts(products.filter(product => product.id !== productId));
-      toast.success('Product deleted successfully');
-    } catch (error) {
-      console.error('Error deleting product:', error);
-      toast.error('Failed to delete product');
-    } finally {
-      setLoading(false);
+    if (window.confirm('Are you sure you want to delete this product?')) {
+      try {
+        // Call API to delete the product
+        const response = await productService.deleteProduct(productId);
+        
+        if (response) {
+          // Update local state
+          const updatedProducts = products.filter(product => product.id !== productId);
+          setProducts(updatedProducts);
+          toast.success('Product deleted successfully');
+          
+          // If we're editing this product, reset the form
+          if (editingProduct && editingProduct.id === productId) {
+            resetForm();
+          }
+        }
+      } catch (error) {
+        console.error('Error deleting product:', error);
+        toast.error('Failed to delete product');
+      }
     }
   };
 
-  // Reset form
+  // Reset product form
   const resetForm = () => {
     setFormData({
       name: '',
       description: '',
       price: 0,
-      image: '',
+      image_url: '',
       category_id: 0,
-      stock: 0,
-      status: 'active'
+      stock_quantity: 0,
+      status: 'active',
+      currency: 'IDR',
+      unit_quantity: 'piece'
     });
     setEditingProduct(null);
+    setImageFile(null);
     setShowForm(false);
   };
+  
+  // Reset category form
+  const resetCategoryForm = () => {
+    setCategoryFormData({
+      name: '',
+      description: '',
+      parent_id: null,
+      image_url: ''
+    });
+    setEditingCategory(null);
+    setCategoryImageFile(null);
+    setShowForm(false);
+  };
+  
+  // Handle category form input change
+  const handleCategoryInputChange = (e: React.ChangeEvent<HTMLInputElement | HTMLTextAreaElement | HTMLSelectElement>) => {
+    const { name, value } = e.target;
+    setCategoryFormData(prev => ({
+      ...prev,
+      [name]: name === 'parent_id' ? (value === '' ? null : parseInt(value)) : value
+    }));
+  };
+  
+  // Handle category image upload
+  const handleCategoryImageChange = (e: React.ChangeEvent<HTMLInputElement>) => {
+    if (e.target.files && e.target.files[0]) {
+      setCategoryImageFile(e.target.files[0]);
+    }
+  };
+  
+  // Handle category form submission
+  const handleCategorySubmit = async (e: React.FormEvent) => {
+    e.preventDefault();
+    setIsSubmitting(true);
+    
+    try {
+      let response;
+      
+      // Upload image if provided
+      if (categoryImageFile) {
+        try {
+          // Use the same image upload endpoint as products
+          // Pass the file directly to the upload function
+          const uploadResponse = await productService.uploadProductImage(categoryImageFile);
+          if (uploadResponse && uploadResponse.image_url) {
+            setCategoryFormData(prev => ({ ...prev, image_url: uploadResponse.image_url }));
+          }
+        } catch (error) {
+          console.error('Error uploading category image:', error);
+          toast.error('Failed to upload image');
+          // Continue without image
+        }
+      }
+      
+      if (editingCategory) {
+        // Update existing category
+        response = await categoryService.updateCategory(editingCategory.id, categoryFormData);
+        if (response) {
+          // Check if response is CategoryResponse (has id) or BaseResponse (has success)
+          if ('id' in response) {
+            // Refresh categories list
+            const updatedCategories = categories.map(cat => 
+              cat.id === editingCategory.id ? { ...cat, ...categoryFormData } : cat
+            );
+            setCategories(updatedCategories);
+            toast.success('Category updated successfully');
+            resetCategoryForm();
+          } else if (response.success) {
+            // Handle success response without category data
+            toast.success('Category updated successfully');
+            // Refresh categories from API
+            const refreshedCategories = await categoryService.getCategories();
+            if (Array.isArray(refreshedCategories)) {
+              setCategories(refreshedCategories as Category[]);
+            }
+            resetCategoryForm();
+          } else {
+            toast.error(response.message || 'Failed to update category');
+          }
+        }
+      } else {
+        // Create new category
+        response = await categoryService.createCategory(categoryFormData);
+        // Check if response is CategoryResponse (has id) or BaseResponse (has success)
+        if (response && 'id' in response) {
+          // Add the new category to the list
+          const newCategory = {
+            ...response,
+            id: typeof response.id === 'string' ? parseInt(response.id) : response.id as number
+          };
+          setCategories([...categories, newCategory as Category]);
+          toast.success('Category created successfully');
+          resetCategoryForm();
+        } else if (response && response.success) {
+          toast.success('Category created successfully');
+          // Refresh categories from API
+          const refreshedCategories = await categoryService.getCategories();
+          if (Array.isArray(refreshedCategories)) {
+            setCategories(refreshedCategories as Category[]);
+          }
+          resetCategoryForm();
+        } else {
+          toast.error((response as BaseResponse)?.message || 'Failed to create category');
+        }
+      }
+    } catch (error) {
+      console.error('Error saving category:', error);
+      toast.error('Failed to save category');
+    } finally {
+      setIsSubmitting(false);
+    }
+  };
+  
+  // Handle category edit
+  const handleEditCategory = (category: Category) => {
+    setEditingCategory(category);
+    setCategoryFormData({
+      name: category.name,
+      description: category.description || '',
+      parent_id: typeof category.parent_id === 'string' ? 
+        parseInt(category.parent_id) : category.parent_id,
+      image_url: category.image_url || ''
+    });
+    setCategoryImageFile(null);
+    setShowForm(true);
+  };
+  
+  // Handle category delete
+  const handleDeleteCategory = async (categoryId: number | string) => {
+    if (window.confirm('Are you sure you want to delete this category?')) {
+      try {
+        const response = await categoryService.deleteCategory(categoryId);
+        if (response && response.success) {
+          // Remove the category from the list
+          const idToDelete = typeof categoryId === 'string' ? parseInt(categoryId) : categoryId;
+          setCategories(categories.filter(cat => {
+            const catId = typeof cat.id === 'string' ? parseInt(cat.id) : cat.id as number;
+            return catId !== idToDelete;
+          }));
+          toast.success('Category deleted successfully');
+        } else {
+          toast.error(response?.message || 'Failed to delete category');
+        }
+      } catch (error) {
+        console.error('Error deleting category:', error);
+        toast.error('Failed to delete category');
+      }
+    }
+  };
 
-  // Filter products based on search term and selected category
+  // Filter products based on search term and category
   const filteredProducts = products.filter(product => {
-    const matchesSearch = product.name.toLowerCase().includes(searchTerm.toLowerCase()) ||
+    const matchesSearch = product.name.toLowerCase().includes(searchTerm.toLowerCase()) || 
                          product.description.toLowerCase().includes(searchTerm.toLowerCase());
-    const matchesCategory = selectedCategory === 'all' || product.category_id === selectedCategory;
+    
+    const matchesCategory = selectedCategory === 'all' || 
+                          (product.categories && product.categories.some(cat => cat.id === selectedCategory));
     
     return matchesSearch && matchesCategory;
   });
@@ -268,9 +522,17 @@ export default function ProductManagement() {
   return (
     <div>
       <div className="flex justify-between items-center mb-6">
-        <h2 className="text-2xl font-bold text-white">Product Management</h2>
+        <h2 className="text-2xl font-bold text-white">Inventory Management</h2>
         <button
-          onClick={() => setShowForm(!showForm)}
+          onClick={() => {
+            setShowForm(!showForm);
+            // Reset appropriate form based on active tab
+            if (activeTab === 'products') {
+              resetForm();
+            } else {
+              resetCategoryForm();
+            }
+          }}
           className="bg-amber-500 text-black px-4 py-2 rounded-md font-medium hover:bg-amber-400 transition-all flex items-center gap-2"
         >
           {showForm ? (
@@ -285,14 +547,36 @@ export default function ProductManagement() {
               <svg className="w-5 h-5" fill="none" viewBox="0 0 24 24" stroke="currentColor">
                 <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M12 6v6m0 0v6m0-6h6m-6 0H6" />
               </svg>
-              Add Product
+              {activeTab === 'products' ? 'Add Product' : 'Add Category'}
             </>
           )}
         </button>
       </div>
+      
+      {/* Tab Navigation */}
+      <div className="flex border-b border-white/10 mb-6">
+        <button
+          className={`px-4 py-2 font-medium ${activeTab === 'products' ? 'text-amber-500 border-b-2 border-amber-500' : 'text-white/70 hover:text-white'}`}
+          onClick={() => {
+            setActiveTab('products');
+            setShowForm(false);
+          }}
+        >
+          Products
+        </button>
+        <button
+          className={`px-4 py-2 font-medium ${activeTab === 'categories' ? 'text-amber-500 border-b-2 border-amber-500' : 'text-white/70 hover:text-white'}`}
+          onClick={() => {
+            setActiveTab('categories');
+            setShowForm(false);
+          }}
+        >
+          Categories
+        </button>
+      </div>
 
       {/* Product Form */}
-      {showForm && (
+      {showForm && activeTab === 'products' && (
         <div className="bg-neutral-900/50 rounded-lg border border-white/10 p-6 mb-8">
           <h3 className="text-xl font-bold text-white mb-4">
             {editingProduct ? 'Edit Product' : 'Create New Product'}
@@ -368,33 +652,44 @@ export default function ProductManagement() {
               </div>
               
               <div>
-                <label htmlFor="stock" className="block text-sm font-medium text-white/70 mb-1">
+                <label htmlFor="stock_quantity" className="block text-sm font-medium text-white/70 mb-1">
                   Stock*
                 </label>
                 <input
                   type="number"
-                  id="stock"
-                  name="stock"
-                  value={formData.stock}
+                  id="stock_quantity"
+                  name="stock_quantity"
+                  value={formData.stock_quantity || 0}
                   onChange={handleInputChange}
-                  className="w-full bg-neutral-800 border border-white/10 rounded-md px-4 py-2 text-white focus:outline-none focus:ring-2 focus:ring-amber-500/50"
                   min="0"
+                  className="w-full bg-neutral-800 border border-white/10 rounded-md px-4 py-2 text-white focus:outline-none focus:ring-2 focus:ring-amber-500/50"
                   required
                 />
               </div>
               
               <div>
                 <label htmlFor="image" className="block text-sm font-medium text-white/70 mb-1">
-                  Image URL
+                  Product Image
                 </label>
+                {formData.image_url && (
+                  <div className="mb-2">
+                    <img 
+                      src={formData.image_url} 
+                      alt="Product preview" 
+                      className="h-20 w-20 object-cover rounded-md"
+                      onError={(e) => {
+                        (e.target as HTMLImageElement).src = 'https://via.placeholder.com/80?text=Preview';
+                      }}
+                    />
+                  </div>
+                )}
                 <input
-                  type="text"
+                  type="file"
                   id="image"
                   name="image"
-                  value={formData.image}
+                  accept="image/*"
                   onChange={handleInputChange}
                   className="w-full bg-neutral-800 border border-white/10 rounded-md px-4 py-2 text-white focus:outline-none focus:ring-2 focus:ring-amber-500/50"
-                  placeholder="https://example.com/image.jpg"
                 />
               </div>
               
@@ -451,150 +746,359 @@ export default function ProductManagement() {
         </div>
       )}
 
-      {/* Filters */}
-      <div className="flex flex-col md:flex-row gap-4 mb-6">
-        <div className="flex-1">
-          <div className="relative">
-            <input
-              type="text"
-              placeholder="Search products..."
-              value={searchTerm}
-              onChange={(e) => setSearchTerm(e.target.value)}
-              className="w-full bg-neutral-800 border border-white/10 rounded-md pl-10 pr-4 py-2 text-white focus:outline-none focus:ring-2 focus:ring-amber-500/50"
-            />
-            <svg className="w-5 h-5 text-white/50 absolute left-3 top-2.5" fill="none" viewBox="0 0 24 24" stroke="currentColor">
-              <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M21 21l-6-6m2-5a7 7 0 11-14 0 7 7 0 0114 0z" />
-            </svg>
+      {/* Category Form */}
+      {showForm && activeTab === 'categories' && (
+        <div className="bg-neutral-900/50 rounded-lg border border-white/10 p-6 mb-8">
+          <h3 className="text-xl font-bold text-white mb-4">
+            {editingCategory ? 'Edit Category' : 'Create New Category'}
+          </h3>
+          <form onSubmit={handleCategorySubmit} className="space-y-6">
+            <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
+              <div>
+                <label htmlFor="name" className="block text-sm font-medium text-white/70 mb-1">
+                  Category Name*
+                </label>
+                <input
+                  type="text"
+                  id="name"
+                  name="name"
+                  value={categoryFormData.name}
+                  onChange={handleCategoryInputChange}
+                  className="w-full bg-neutral-800 border border-white/10 rounded-md px-4 py-2 text-white focus:outline-none focus:ring-2 focus:ring-amber-500/50"
+                  required
+                />
+              </div>
+              
+              <div>
+                <label htmlFor="parent_id" className="block text-sm font-medium text-white/70 mb-1">
+                  Parent Category
+                </label>
+                <select
+                  id="parent_id"
+                  name="parent_id"
+                  value={categoryFormData.parent_id === null ? '' : categoryFormData.parent_id}
+                  onChange={handleCategoryInputChange}
+                  className="w-full bg-neutral-800 border border-white/10 rounded-md px-4 py-2 text-white focus:outline-none focus:ring-2 focus:ring-amber-500/50"
+                >
+                  <option value="">None (Top Level)</option>
+                  {categories.filter(cat => !editingCategory || cat.id !== editingCategory.id).map(category => (
+                    <option key={category.id} value={category.id}>
+                      {category.name}
+                    </option>
+                  ))}
+                </select>
+              </div>
+              
+              <div className="md:col-span-2">
+                <label htmlFor="description" className="block text-sm font-medium text-white/70 mb-1">
+                  Description
+                </label>
+                <textarea
+                  id="description"
+                  name="description"
+                  value={categoryFormData.description}
+                  onChange={handleCategoryInputChange}
+                  rows={3}
+                  className="w-full bg-neutral-800 border border-white/10 rounded-md px-4 py-2 text-white focus:outline-none focus:ring-2 focus:ring-amber-500/50"
+                />
+              </div>
+              
+              <div className="md:col-span-2">
+                <label htmlFor="category_image" className="block text-sm font-medium text-white/70 mb-1">
+                  Category Image
+                </label>
+                <input
+                  type="file"
+                  id="category_image"
+                  onChange={handleCategoryImageChange}
+                  accept="image/*"
+                  className="w-full bg-neutral-800 border border-white/10 rounded-md px-4 py-2 text-white focus:outline-none focus:ring-2 focus:ring-amber-500/50"
+                />
+                {(categoryFormData.image_url || (editingCategory && editingCategory.image_url)) && (
+                  <div className="mt-2">
+                    <p className="text-sm text-white/70 mb-1">Current Image:</p>
+                    <img 
+                      src={categoryFormData.image_url || (editingCategory ? editingCategory.image_url || '' : '')} 
+                      alt="Category Preview" 
+                      className="h-20 w-auto object-contain rounded-md border border-white/10"
+                      onError={(e) => {
+                        (e.target as HTMLImageElement).src = '/images/placeholder.png';
+                      }}
+                    />
+                  </div>
+                )}
+              </div>
+            </div>
+            
+            <div className="flex justify-end space-x-3 pt-4">
+              <button
+                type="button"
+                onClick={resetCategoryForm}
+                className="px-4 py-2 bg-neutral-700 text-white rounded-md hover:bg-neutral-600 transition-colors"
+                disabled={isSubmitting}
+              >
+                Cancel
+              </button>
+              <button
+                type="submit"
+                className="px-4 py-2 bg-amber-500 text-black rounded-md font-medium hover:bg-amber-400 transition-colors flex items-center gap-2"
+                disabled={isSubmitting}
+              >
+                {isSubmitting ? (
+                  <>
+                    <svg className="animate-spin h-5 w-5 text-black" xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24">
+                      <circle className="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" strokeWidth="4"></circle>
+                      <path className="opacity-75" fill="currentColor" d="M4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4zm2 5.291A7.962 7.962 0 014 12H0c0 3.042 1.135 5.824 3 7.938l3-2.647z"></path>
+                    </svg>
+                    Saving...
+                  </>
+                ) : (
+                  <>
+                    <svg className="w-5 h-5" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                      <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M5 13l4 4L19 7" />
+                    </svg>
+                    {editingCategory ? 'Update Category' : 'Create Category'}
+                  </>
+                )}
+              </button>
+            </div>
+          </form>
+        </div>
+      )}
+      
+      {/* Filters - Only show in Products tab */}
+      {activeTab === 'products' && (
+        <div className="flex flex-col md:flex-row gap-4 mb-6">
+          <div className="flex-1">
+            <div className="relative">
+              <input
+                type="text"
+                placeholder="Search products..."
+                value={searchTerm}
+                onChange={(e) => setSearchTerm(e.target.value)}
+                className="w-full bg-neutral-800 border border-white/10 rounded-md pl-10 pr-4 py-2 text-white focus:outline-none focus:ring-2 focus:ring-amber-500/50"
+              />
+              <svg className="w-5 h-5 text-white/50 absolute left-3 top-2.5" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M21 21l-6-6m2-5a7 7 0 11-14 0 7 7 0 0114 0z" />
+              </svg>
+            </div>
+          </div>
+          
+          <div className="w-full md:w-64">
+            <select
+              value={selectedCategory === 'all' ? 'all' : selectedCategory}
+              onChange={(e) => setSelectedCategory(e.target.value === 'all' ? 'all' : parseInt(e.target.value))}
+              className="w-full bg-neutral-800 border border-white/10 rounded-md px-4 py-2 text-white focus:outline-none focus:ring-2 focus:ring-amber-500/50"
+            >
+              <option value="all">All Categories</option>
+              {categories.map(category => (
+                <option key={category.id} value={category.id}>
+                  {category.name}
+                </option>
+              ))}
+            </select>
           </div>
         </div>
-        
-        <div className="w-full md:w-64">
-          <select
-            value={selectedCategory === 'all' ? 'all' : selectedCategory}
-            onChange={(e) => setSelectedCategory(e.target.value === 'all' ? 'all' : parseInt(e.target.value))}
-            className="w-full bg-neutral-800 border border-white/10 rounded-md px-4 py-2 text-white focus:outline-none focus:ring-2 focus:ring-amber-500/50"
-          >
-            <option value="all">All Categories</option>
-            {categories.map(category => (
-              <option key={category.id} value={category.id}>
-                {category.name}
-              </option>
-            ))}
-          </select>
-        </div>
-      </div>
+      )}
 
-      {/* Products Table */}
-      <div className="bg-neutral-900/50 rounded-lg border border-white/10 overflow-hidden">
-        <div className="overflow-x-auto">
-          <table className="min-w-full divide-y divide-white/10">
-            <thead className="bg-neutral-800/30">
-              <tr>
-                <th scope="col" className="px-6 py-3 text-left text-xs font-medium text-white/70 uppercase tracking-wider">
-                  Product
-                </th>
-                <th scope="col" className="px-6 py-3 text-left text-xs font-medium text-white/70 uppercase tracking-wider">
-                  Category
-                </th>
-                <th scope="col" className="px-6 py-3 text-left text-xs font-medium text-white/70 uppercase tracking-wider">
-                  Price
-                </th>
-                <th scope="col" className="px-6 py-3 text-left text-xs font-medium text-white/70 uppercase tracking-wider">
-                  Stock
-                </th>
-                <th scope="col" className="px-6 py-3 text-left text-xs font-medium text-white/70 uppercase tracking-wider">
-                  Status
-                </th>
-                <th scope="col" className="px-6 py-3 text-right text-xs font-medium text-white/70 uppercase tracking-wider">
-                  Actions
-                </th>
-              </tr>
-            </thead>
-            <tbody className="bg-neutral-900/30 divide-y divide-white/10">
-              {loading ? (
+      {/* Products Table - Only show in Products tab */}
+      {activeTab === 'products' && (
+        <div className="bg-neutral-900/50 rounded-lg border border-white/10 overflow-hidden">
+          <div className="overflow-x-auto">
+            <table className="min-w-full divide-y divide-white/10">
+              <thead className="bg-neutral-800/30">
                 <tr>
-                  <td colSpan={6} className="px-6 py-4 text-center text-white/50">
-                    Loading products...
-                  </td>
+                  <th scope="col" className="px-6 py-3 text-left text-xs font-medium text-white/70 uppercase tracking-wider">
+                    Product
+                  </th>
+                  <th scope="col" className="px-6 py-3 text-left text-xs font-medium text-white/70 uppercase tracking-wider">
+                    Category
+                  </th>
+                  <th scope="col" className="px-6 py-3 text-left text-xs font-medium text-white/70 uppercase tracking-wider">
+                    Price
+                  </th>
+                  <th scope="col" className="px-6 py-3 text-left text-xs font-medium text-white/70 uppercase tracking-wider">
+                    Stock
+                  </th>
+                  <th scope="col" className="px-6 py-3 text-left text-xs font-medium text-white/70 uppercase tracking-wider">
+                    Status
+                  </th>
+                  <th scope="col" className="px-6 py-3 text-right text-xs font-medium text-white/70 uppercase tracking-wider">
+                    Actions
+                  </th>
                 </tr>
-              ) : filteredProducts.length === 0 ? (
-                <tr>
-                  <td colSpan={6} className="px-6 py-4 text-center text-white/50">
-                    No products found
-                  </td>
-                </tr>
-              ) : (
-                filteredProducts.map(product => (
-                  <tr key={product.id}>
-                    <td className="px-6 py-4 whitespace-nowrap">
-                      <div className="flex items-center">
-                        <div className="h-10 w-10 flex-shrink-0 rounded bg-neutral-800 overflow-hidden">
-                          {product.image ? (
-                            <img 
-                              src={product.image} 
-                              alt={product.name} 
-                              className="h-10 w-10 object-cover"
-                              onError={(e) => {
-                                (e.target as HTMLImageElement).src = 'https://via.placeholder.com/40?text=Product';
-                              }}
-                            />
-                          ) : (
-                            <div className="h-10 w-10 flex items-center justify-center text-white/30 text-xs">
-                              No image
-                            </div>
-                          )}
+              </thead>
+              <tbody className="divide-y divide-white/10">
+                {filteredProducts.length > 0 ? (
+                  filteredProducts.map(product => (
+                    <tr key={product.id} className="hover:bg-neutral-800/30 transition-colors">
+                      <td className="px-6 py-4 whitespace-nowrap">
+                        <div className="flex items-center">
+                          <div className="h-10 w-10 flex-shrink-0 rounded-md overflow-hidden bg-neutral-800">
+                            {product.image_url ? (
+                              <img 
+                                src={product.image_url} 
+                                alt={product.name} 
+                                className="h-10 w-10 object-cover"
+                                onError={(e) => {
+                                  (e.target as HTMLImageElement).src = '/images/placeholder.png';
+                                }}
+                              />
+                            ) : (
+                              <div className="h-10 w-10 flex items-center justify-center bg-neutral-700 text-white/50">
+                                <svg className="w-6 h-6" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                                  <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M4 16l4.586-4.586a2 2 0 012.828 0L16 16m-2-2l1.586-1.586a2 2 0 012.828 0L20 14m-6-6h.01M6 20h12a2 2 0 002-2V6a2 2 0 00-2-2H6a2 2 0 00-2 2v12a2 2 0 002 2z" />
+                                </svg>
+                              </div>
+                            )}
+                          </div>
+                          <div className="ml-4">
+                            <div className="text-sm font-medium text-white">{product.name}</div>
+                            <div className="text-xs text-white/50 truncate max-w-xs">{product.description}</div>
+                          </div>
                         </div>
-                        <div className="ml-4">
-                          <div className="text-sm font-medium text-white">{product.name}</div>
-                          <div className="text-xs text-white/50 truncate max-w-xs">{product.description}</div>
+                      </td>
+                      <td className="px-6 py-4 whitespace-nowrap">
+                        <div className="text-sm text-white">
+                          {product.categories && product.categories.length > 0 
+                            ? product.categories.map(cat => cat.name).join(', ')
+                            : 'Uncategorized'}
                         </div>
-                      </div>
-                    </td>
-                    <td className="px-6 py-4 whitespace-nowrap">
-                      <div className="text-sm text-white">{product.category_name}</div>
-                    </td>
-                    <td className="px-6 py-4 whitespace-nowrap">
-                      <div className="text-sm text-amber-500 font-medium">{formatCurrency(product.price)}</div>
-                    </td>
-                    <td className="px-6 py-4 whitespace-nowrap">
-                      <div className="text-sm text-white">{product.stock}</div>
-                    </td>
-                    <td className="px-6 py-4 whitespace-nowrap">
-                      <span className={`px-2 inline-flex text-xs leading-5 font-semibold rounded-full ${
-                        product.status === 'active' 
-                          ? 'bg-green-100 text-green-800' 
-                          : 'bg-red-100 text-red-800'
-                      }`}>
-                        {product.status}
-                      </span>
-                    </td>
-                    <td className="px-6 py-4 whitespace-nowrap text-right text-sm font-medium">
-                      <div className="flex justify-end space-x-2">
-                        <button
+                      </td>
+                      <td className="px-6 py-4 whitespace-nowrap">
+                        <div className="text-sm text-white">{formatCurrency(product.price, product.currency || 'IDR')}</div>
+                      </td>
+                      <td className="px-6 py-4 whitespace-nowrap">
+                        <div className="text-sm text-white">{product.stock_quantity} {product.unit_quantity || 'piece'}</div>
+                      </td>
+                      <td className="px-6 py-4 whitespace-nowrap">
+                        <span className={`px-2 inline-flex text-xs leading-5 font-semibold rounded-full ${product.status === 'active' ? 'bg-green-100 text-green-800' : 'bg-red-100 text-red-800'}`}>
+                          {product.status === 'active' ? 'Active' : 'Inactive'}
+                        </span>
+                      </td>
+                      <td className="px-6 py-4 whitespace-nowrap text-right text-sm font-medium">
+                        <button 
                           onClick={() => handleEdit(product)}
-                          className="text-amber-500 hover:text-amber-400 transition-colors"
+                          className="text-amber-500 hover:text-amber-400 mr-3"
                         >
-                          <svg className="w-5 h-5" fill="none" viewBox="0 0 24 24" stroke="currentColor">
-                            <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={1.5} d="M11 5H6a2 2 0 00-2 2v11a2 2 0 002 2h11a2 2 0 002-2v-5m-1.414-9.414a2 2 0 112.828 2.828L11.828 15H9v-2.828l8.586-8.586z" />
-                          </svg>
+                          Edit
                         </button>
-                        <button
+                        <button 
                           onClick={() => handleDelete(product.id)}
-                          className="text-red-500 hover:text-red-400 transition-colors"
+                          className="text-red-500 hover:text-red-400"
                         >
-                          <svg className="w-5 h-5" fill="none" viewBox="0 0 24 24" stroke="currentColor">
-                            <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={1.5} d="M19 7l-.867 12.142A2 2 0 0116.138 21H7.862a2 2 0 01-1.995-1.858L5 7m5 4v6m4-6v6m1-10V4a1 1 0 00-1-1h-4a1 1 0 00-1 1v3M4 7h16" />
-                          </svg>
+                          Delete
                         </button>
-                      </div>
+                      </td>
+                    </tr>
+                  ))
+                ) : (
+                  <tr>
+                    <td colSpan={6} className="px-6 py-4 text-center text-sm text-white/50">
+                      {loading ? 'Loading products...' : 'No products found'}
                     </td>
                   </tr>
-                ))
-              )}
-            </tbody>
-          </table>
+                )}
+              </tbody>
+            </table>
+          </div>
         </div>
-      </div>
+      )}
+      
+      {/* Categories Table - Only show in Categories tab */}
+      {activeTab === 'categories' && (
+        <div className="bg-neutral-900/50 rounded-lg border border-white/10 overflow-hidden">
+          <div className="overflow-x-auto">
+            <table className="min-w-full divide-y divide-white/10">
+              <thead className="bg-neutral-800/30">
+                <tr>
+                  <th scope="col" className="px-6 py-3 text-left text-xs font-medium text-white/70 uppercase tracking-wider">
+                    Category
+                  </th>
+                  <th scope="col" className="px-6 py-3 text-left text-xs font-medium text-white/70 uppercase tracking-wider">
+                    Parent
+                  </th>
+                  <th scope="col" className="px-6 py-3 text-left text-xs font-medium text-white/70 uppercase tracking-wider">
+                    Description
+                  </th>
+                  <th scope="col" className="px-6 py-3 text-right text-xs font-medium text-white/70 uppercase tracking-wider">
+                    Actions
+                  </th>
+                </tr>
+              </thead>
+              <tbody className="divide-y divide-white/10">
+                {categories.length > 0 ? (
+                  categories.map(category => (
+                    <tr key={category.id} className="hover:bg-neutral-800/30 transition-colors">
+                      <td className="px-6 py-4 whitespace-nowrap">
+                        <div className="flex items-center">
+                          <div className="h-10 w-10 flex-shrink-0 rounded-md overflow-hidden bg-neutral-800">
+                            {category.image_url ? (
+                              <img 
+                                src={category.image_url} 
+                                alt={category.name} 
+                                className="h-10 w-10 object-cover"
+                                onError={(e) => {
+                                  (e.target as HTMLImageElement).src = '/images/placeholder.png';
+                                }}
+                              />
+                            ) : (
+                              <div className="h-10 w-10 flex items-center justify-center bg-neutral-700 text-white/50">
+                                <svg className="w-6 h-6" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                                  <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M4 16l4.586-4.586a2 2 0 012.828 0L16 16m-2-2l1.586-1.586a2 2 0 012.828 0L20 14m-6-6h.01M6 20h12a2 2 0 002-2V6a2 2 0 00-2-2H6a2 2 0 00-2 2v12a2 2 0 002 2z" />
+                                </svg>
+                              </div>
+                            )}
+                          </div>
+                          <div className="ml-4">
+                            <div className="text-sm font-medium text-white">{category.name}</div>
+                          </div>
+                        </div>
+                      </td>
+                      <td className="px-6 py-4 whitespace-nowrap">
+                        <div className="text-sm text-white">
+                          {category.parent_id ? 
+                            categories.find(c => {
+                              const parentId = typeof category.parent_id === 'string' ? 
+                                parseInt(category.parent_id) : category.parent_id;
+                              const categoryId = typeof c.id === 'string' ? 
+                                parseInt(c.id) : c.id as number;
+                              return categoryId === parentId;
+                            })?.name || 'Unknown' 
+                            : 'None (Top Level)'}
+                        </div>
+                      </td>
+                      <td className="px-6 py-4">
+                        <div className="text-sm text-white truncate max-w-xs">{category.description || 'No description'}</div>
+                      </td>
+                      <td className="px-6 py-4 whitespace-nowrap text-right text-sm font-medium">
+                        <button 
+                          onClick={() => handleEditCategory(category)}
+                          className="text-amber-500 hover:text-amber-400 mr-3"
+                        >
+                          Edit
+                        </button>
+                        <button 
+                          onClick={() => handleDeleteCategory(category.id)}
+                          className="text-red-500 hover:text-red-400"
+                        >
+                          Delete
+                        </button>
+                      </td>
+                    </tr>
+                  ))
+                ) : (
+                  <tr>
+                    <td colSpan={4} className="px-6 py-4 text-center text-sm text-white/50">
+                      {loading ? 'Loading categories...' : 'No categories found'}
+                    </td>
+                  </tr>
+                )}
+              </tbody>
+            </table>
+          </div>
+        </div>
+      )}
     </div>
   );
 }
