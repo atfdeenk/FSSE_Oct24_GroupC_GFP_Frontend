@@ -12,9 +12,10 @@ import { Category as ApiCategory, Product as ApiProduct, BaseResponse } from '@/
 
 // Define product interface for local use, extending the API type
 interface Product extends Omit<ApiProduct, 'id'> {
-  id: number; // Override id to be strictly number for local use
+  id: number; // Ensure id is always number for consistency
   category_id?: number; // Add category_id for form handling
-  status?: 'active' | 'inactive'; // Add status field for UI
+  is_approved?: boolean; // Add is_approved field for UI
+  rejected?: boolean; // Add rejected field for UI
 }
 
 // Define category interface for local use
@@ -40,7 +41,8 @@ export default function ProductManagement() {
     image_url: '',
     category_id: 0,
     stock_quantity: 0,
-    status: 'active',
+    is_approved: true,
+    rejected: false,
     currency: 'IDR',
     unit_quantity: 'piece'
   });
@@ -216,7 +218,9 @@ export default function ProductManagement() {
           price: formData.price,
           stock_quantity: formData.stock_quantity || 0,
           currency: formData.currency || 'IDR',
-          unit_quantity: formData.unit_quantity || 'piece'
+          unit_quantity: formData.unit_quantity || 'piece',
+          is_approved: formData.is_approved,
+          rejected: formData.rejected
         };
 
         // Only include image_url if we have one
@@ -316,7 +320,8 @@ export default function ProductManagement() {
           parseInt(product.categories[0].id as string) :
           product.categories[0].id as number) : 0,
       stock_quantity: product.stock_quantity,
-      status: product.status || 'active',
+      is_approved: product.is_approved !== undefined ? product.is_approved : true,
+      rejected: product.rejected !== undefined ? product.rejected : false,
       currency: product.currency || 'IDR',
       unit_quantity: product.unit_quantity || 'piece'
     });
@@ -358,7 +363,8 @@ export default function ProductManagement() {
       image_url: '',
       category_id: 0,
       stock_quantity: 0,
-      status: 'active',
+      is_approved: true,
+      rejected: false,
       currency: 'IDR',
       unit_quantity: 'piece'
     });
@@ -730,24 +736,31 @@ export default function ProductManagement() {
                   className="w-full bg-neutral-800 border border-white/10 rounded-md px-4 py-2 text-white focus:outline-none focus:ring-2 focus:ring-amber-500/50"
                 />
               </div>
-
+              
               <div>
-                <label htmlFor="status" className="block text-sm font-medium text-white/70 mb-1">
+                <label htmlFor="is_approved" className="block text-sm font-medium text-white/70 mb-1">
                   Status
                 </label>
                 <select
-                  id="status"
-                  name="status"
-                  value={formData.status}
-                  onChange={handleInputChange}
+                  id="is_approved"
+                  name="is_approved"
+                  value={formData.is_approved ? 'true' : 'false'}
+                  onChange={(e) => {
+                    const isApproved = e.target.value === 'true';
+                    setFormData(prev => ({
+                      ...prev,
+                      is_approved: isApproved,
+                      rejected: !isApproved
+                    }));
+                  }}
                   className="w-full bg-neutral-800 border border-white/10 rounded-md px-4 py-2 text-white focus:outline-none focus:ring-2 focus:ring-amber-500/50"
                 >
-                  <option value="active">Active</option>
-                  <option value="inactive">Inactive</option>
+                  <option value="true">Active</option>
+                  <option value="false">Inactive</option>
                 </select>
               </div>
             </div>
-
+            
             <div className="flex justify-end space-x-3 pt-4">
               <button
                 type="button"
@@ -1010,8 +1023,8 @@ export default function ProductManagement() {
                         <div className="text-sm text-white">{product.stock_quantity} {product.unit_quantity || 'piece'}</div>
                       </td>
                       <td className="px-6 py-4 whitespace-nowrap">
-                        <span className={`px-2 inline-flex text-xs leading-5 font-semibold rounded-full ${product.status === 'active' ? 'bg-green-100 text-green-800' : 'bg-red-100 text-red-800'}`}>
-                          {product.status === 'active' ? 'Active' : 'Inactive'}
+                        <span className={`px-2 inline-flex text-xs leading-5 font-semibold rounded-full ${product.is_approved ? 'bg-green-100 text-green-800' : 'bg-red-100 text-red-800'}`}>
+                          {product.is_approved ? 'Active' : 'Inactive'}
                         </span>
                       </td>
                       <td className="px-6 py-4 whitespace-nowrap text-right text-sm font-medium">

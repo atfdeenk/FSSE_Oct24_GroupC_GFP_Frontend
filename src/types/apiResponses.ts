@@ -123,6 +123,9 @@ export interface Product {
   created_at: string;
   updated_at: string;
   categories?: Category[];
+  is_approved?: boolean;
+  rejected?: boolean | null;
+  vendor_name?: string;
 }
 
 export interface ProductResponse extends Product {

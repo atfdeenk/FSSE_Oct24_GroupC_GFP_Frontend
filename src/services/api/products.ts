@@ -52,6 +52,8 @@ export interface UpdateProductData {
   discount_percentage?: number;
   featured?: boolean;
   flash_sale?: boolean;
+  is_approved?: boolean;
+  rejected?: boolean | null;
 }
 
 // Product service with Axios
@@ -117,7 +119,7 @@ const productService = {
   // Update a product
   updateProduct: async (id: number | string, productData: UpdateProductData) => {
     try {
-      const response = await axiosInstance.patch<ProductResponse>(
+      const response = await axiosInstance.put<ProductResponse>(
         API_CONFIG.ENDPOINTS.products.detail(id),
         productData
       );
@@ -127,6 +129,7 @@ const productService = {
       refreshProductDetail(id, { source: 'update' });
       
       return response.data;
+      
     } catch (error) {
       console.error(`Update product ${id} error:`, error);
       throw error;
