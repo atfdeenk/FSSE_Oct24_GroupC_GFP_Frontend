@@ -4,10 +4,14 @@ import { useState, useEffect } from 'react';
 import { toast } from 'react-hot-toast';
 import { formatCurrency } from '@/utils/format';
 import LoadingOverlay from '@/components/ui/LoadingOverlay';
+import { useAuthUser } from '@/hooks/useAuthUser';
+import voucherService, { Voucher as VoucherType } from '@/services/vouchers';
+import productService from '@/services/api/products';
+import { Product } from '@/types';
 
-// Define voucher interface
+// Define voucher interface for the component
 interface Voucher {
-  id: number;
+  id: string;
   code: string;
   discount_type: 'percentage' | 'fixed';
   discount_value: number;
@@ -15,9 +19,12 @@ interface Voucher {
   max_discount?: number;
   valid_from: string;
   valid_until: string;
-  usage_limit: number;
-  usage_count: number;
+  usage_limit?: number;
+  usage_count?: number;
   status: 'active' | 'expired' | 'used';
+  productIds?: number[];
+  productNames?: string[];
+  vendorId: number | string;
 }
 
 export default function VoucherManagement() {
@@ -39,110 +46,110 @@ export default function VoucherManagement() {
     valid_from: new Date().toISOString().split('T')[0],
     valid_until: new Date(Date.now() + 30 * 24 * 60 * 60 * 1000).toISOString().split('T')[0],
     usage_limit: 100,
-    status: 'active'
+    status: 'active',
+    productIds: [],
+    vendorId: 0
   });
 
-  // Fetch vouchers
+  const { user } = useAuthUser();
+  const [products, setProducts] = useState<Product[]>([]);
+  const [selectedProductIds, setSelectedProductIds] = useState<number[]>([]);
+  
+  // Fetch vouchers and products
   useEffect(() => {
-    const fetchVouchers = async () => {
+    const fetchData = async () => {
       setLoading(true);
       try {
-        // In a real application, you would fetch this data from your API
-        // For now, we'll use mock data
-        await new Promise(resolve => setTimeout(resolve, 500));
-        
-        // Mock vouchers
-        const mockVouchers = [
-          { 
-            id: 1, 
-            code: 'WELCOME10', 
-            discount_type: 'percentage' as const,
-            discount_value: 10,
-            min_purchase: 50000,
-            max_discount: 20000,
-            valid_from: '2025-05-01',
-            valid_until: '2025-06-30',
-            usage_limit: 100,
-            usage_count: 23,
-            status: 'active' as const
-          },
-          { 
-            id: 2, 
-            code: 'SUMMER25', 
-            discount_type: 'percentage' as const,
-            discount_value: 25,
-            min_purchase: 100000,
-            max_discount: 50000,
-            valid_from: '2025-06-01',
-            valid_until: '2025-08-31',
-            usage_limit: 50,
-            usage_count: 0,
-            status: 'active' as const
-          },
-          { 
-            id: 3, 
-            code: 'FREESHIP', 
-            discount_type: 'fixed' as const,
-            discount_value: 15000,
-            min_purchase: 75000,
-            max_discount: undefined,
-            valid_from: '2025-04-01',
-            valid_until: '2025-04-30',
-            usage_limit: 200,
-            usage_count: 200,
-            status: 'used' as const
-          },
-          { 
-            id: 4, 
-            code: 'FLASH50', 
-            discount_type: 'percentage' as const,
-            discount_value: 50,
-            min_purchase: 200000,
-            max_discount: 100000,
-            valid_from: '2025-03-15',
-            valid_until: '2025-03-16',
-            usage_limit: 30,
-            usage_count: 30,
-            status: 'expired' as const
-          },
-          { 
-            id: 5, 
-            code: 'NEWCUSTOMER', 
-            discount_type: 'percentage' as const,
-            discount_value: 15,
-            min_purchase: 0,
-            max_discount: 30000,
-            valid_from: '2025-05-01',
-            valid_until: '2025-12-31',
-            usage_limit: 1000,
-            usage_count: 145,
-            status: 'active' as const
+        // Fetch products for this vendor
+        if (user && user.id) {
+          const productsResponse = await productService.getProductsByVendor(user.id);
+          if (productsResponse && Array.isArray(productsResponse.products)) {
+            // Double-check that we only have products from this vendor
+            const vendorId = typeof user.id === 'string' ? parseInt(user.id) : user.id;
+            const filteredProducts = productsResponse.products.filter(product => {
+              const productVendorId = typeof product.vendor_id === 'string' ? 
+                parseInt(product.vendor_id) : product.vendor_id;
+              return productVendorId === vendorId;
+            });
+            
+            setProducts(filteredProducts);
+            console.log(`Loaded ${filteredProducts.length} products for voucher selection (vendor ID: ${vendorId})`);
+            
+            // Log for debugging
+            if (filteredProducts.length !== productsResponse.products.length) {
+              console.warn(`Filtered out ${productsResponse.products.length - filteredProducts.length} products that didn't belong to vendor ${vendorId}`);
+            }
           }
-        ];
+        }
         
-        setVouchers(mockVouchers);
+        // Fetch vouchers from localStorage
+        const storedVouchers = voucherService.getVendorVouchers(user?.id || 0);
+        
+        // Map vouchers to our component format
+        const formattedVouchers = storedVouchers.map(v => {
+          // Determine status based on expiry date
+          const now = new Date();
+          const expiryDate = new Date(v.expiryDate);
+          let status: 'active' | 'expired' | 'used' = 'active';
+          
+          if (expiryDate < now) {
+            status = 'expired';
+          }
+          
+          // Format dates for form inputs
+          const validFrom = new Date(v.createdAt).toISOString().split('T')[0];
+          const validUntil = expiryDate.toISOString().split('T')[0];
+          
+          // Get product names if product IDs are specified
+          let productNames: string[] = [];
+          if (v.productIds && v.productIds.length > 0) {
+            productNames = products
+              .filter(p => {
+                const productId = typeof p.id === 'string' ? parseInt(p.id) : p.id;
+                return v.productIds?.includes(productId);
+              })
+              .map(p => p.name);
+          }
+          
+          return {
+            id: v.id,
+            code: v.code,
+            discount_type: 'percentage' as const, // Our service only supports percentage for now
+            discount_value: v.discountPercentage,
+            min_purchase: v.minPurchase || 0,
+            max_discount: v.maxDiscount,
+            valid_from: validFrom,
+            valid_until: validUntil,
+            status,
+            productIds: v.productIds,
+            productNames,
+            vendorId: v.vendorId
+          };
+        });
+        
+        setVouchers(formattedVouchers);
+        console.log(`Loaded ${formattedVouchers.length} vouchers`);
       } catch (error) {
-        console.error('Error fetching vouchers:', error);
-        toast.error('Failed to load vouchers');
+        console.error('Error fetching data:', error);
+        toast.error('Failed to load data');
       } finally {
         setLoading(false);
       }
     };
 
-    fetchVouchers();
-  }, []);
+    fetchData();
+  }, [user]);
 
   // Generate random voucher code
   const generateVoucherCode = () => {
-    const characters = 'ABCDEFGHIJKLMNOPQRSTUVWXYZ0123456789';
-    let result = '';
-    for (let i = 0; i < 8; i++) {
-      result += characters.charAt(Math.floor(Math.random() * characters.length));
-    }
-    setFormData({
-      ...formData,
-      code: result
-    });
+    const code = voucherService.generateVoucherCode();
+    
+    setFormData(prev => ({
+      ...prev,
+      code
+    }));
+    
+    return code;
   };
 
   // Handle form input changes
@@ -151,15 +158,15 @@ export default function VoucherManagement() {
     
     // Handle numeric values
     if (type === 'number') {
-      setFormData({
-        ...formData,
+      setFormData(prev => ({
+        ...prev,
         [name]: value === '' ? '' : parseFloat(value)
-      });
+      }));
     } else {
-      setFormData({
-        ...formData,
+      setFormData(prev => ({
+        ...prev,
         [name]: value
-      });
+      }));
     }
   };
 
@@ -175,11 +182,30 @@ export default function VoucherManagement() {
       discountValue = 10000;
     }
     
-    setFormData({
-      ...formData,
+    setFormData(prev => ({
+      ...prev,
       discount_type: discountType,
       discount_value: discountValue
+    }));
+  };
+  
+  // Handle product selection
+  const handleProductSelection = (productId: number) => {
+    setSelectedProductIds(prev => {
+      if (prev.includes(productId)) {
+        return prev.filter(id => id !== productId);
+      } else {
+        return [...prev, productId];
+      }
     });
+    
+    // Update form data with selected product IDs
+    setFormData(prev => ({
+      ...prev,
+      productIds: selectedProductIds.includes(productId) 
+        ? prev.productIds?.filter(id => id !== productId) 
+        : [...(prev.productIds || []), productId]
+    }));
   };
 
   // Handle form submission
@@ -188,58 +214,100 @@ export default function VoucherManagement() {
     setIsSubmitting(true);
     
     try {
-      // Validate form data
+      // Validate form
       if (!formData.code || !formData.discount_value || !formData.valid_from || !formData.valid_until) {
         toast.error('Please fill in all required fields');
         setIsSubmitting(false);
         return;
       }
       
-      // Validate dates
-      const validFrom = new Date(formData.valid_from as string);
-      const validUntil = new Date(formData.valid_until as string);
+      // Check if dates are valid
+      const validFrom = new Date(formData.valid_from);
+      const validUntil = new Date(formData.valid_until);
+      const now = new Date();
       
-      if (validUntil < validFrom) {
-        toast.error('End date must be after start date');
+      if (validFrom > validUntil) {
+        toast.error('Start date must be before end date');
         setIsSubmitting(false);
         return;
       }
       
-      // Validate discount value
-      if (formData.discount_type === 'percentage' && (formData.discount_value as number) > 100) {
-        toast.error('Percentage discount cannot exceed 100%');
+      // Ensure vendor ID is set
+      if (!user || !user.id) {
+        toast.error('User information is missing');
         setIsSubmitting(false);
         return;
       }
       
-      // In a real application, you would send this data to your API
-      await new Promise(resolve => setTimeout(resolve, 500));
+      // Convert form data to voucher service format
+      const voucherData = {
+        code: formData.code || '',
+        vendorId: user.id,
+        discountPercentage: formData.discount_value || 0,
+        maxDiscount: formData.max_discount,
+        minPurchase: formData.min_purchase,
+        productIds: formData.productIds,
+        expiryDate: new Date(formData.valid_until || ''),
+        isActive: true,
+        description: `${formData.discount_value}% off voucher` + 
+          (formData.productIds && formData.productIds.length > 0 ? ' for selected products' : '')
+      };
       
       if (editingVoucher) {
         // Update existing voucher
-        const updatedVouchers = vouchers.map(voucher => 
-          voucher.id === editingVoucher.id 
-            ? { ...voucher, ...formData, id: editingVoucher.id } as Voucher
-            : voucher
-        );
-        setVouchers(updatedVouchers);
-        toast.success('Voucher updated successfully');
+        const updatedVoucher = voucherService.updateVoucher(editingVoucher.id, voucherData);
+        
+        if (updatedVoucher) {
+          toast.success('Voucher updated successfully');
+          
+          // Refresh vouchers list
+          const storedVouchers = voucherService.getVendorVouchers(user.id);
+          setVouchers(storedVouchers.map(v => ({
+            id: v.id,
+            code: v.code,
+            discount_type: 'percentage' as const,
+            discount_value: v.discountPercentage,
+            min_purchase: v.minPurchase || 0,
+            max_discount: v.maxDiscount,
+            valid_from: new Date(v.createdAt).toISOString().split('T')[0],
+            valid_until: new Date(v.expiryDate).toISOString().split('T')[0],
+            status: new Date(v.expiryDate) > new Date() ? 'active' as const : 'expired' as const,
+            productIds: v.productIds,
+            vendorId: v.vendorId
+          })));
+        } else {
+          toast.error('Failed to update voucher');
+        }
       } else {
         // Create new voucher
-        const newVoucher = {
-          ...formData,
-          id: Math.max(0, ...vouchers.map(v => v.id)) + 1,
-          usage_count: 0
-        } as Voucher;
+        const newVoucher = voucherService.createVoucher(voucherData);
         
-        setVouchers([...vouchers, newVoucher]);
         toast.success('Voucher created successfully');
+        
+        // Refresh vouchers list
+        const storedVouchers = voucherService.getVendorVouchers(user.id);
+        setVouchers(storedVouchers.map(v => ({
+          id: v.id,
+          code: v.code,
+          discount_type: 'percentage' as const,
+          discount_value: v.discountPercentage,
+          min_purchase: v.minPurchase || 0,
+          max_discount: v.maxDiscount,
+          valid_from: new Date(v.createdAt).toISOString().split('T')[0],
+          valid_until: new Date(v.expiryDate).toISOString().split('T')[0],
+          status: new Date(v.expiryDate) > new Date() ? 'active' as const : 'expired' as const,
+          productIds: v.productIds,
+          vendorId: v.vendorId
+        })));
       }
       
-      // Reset form
+      // Reset form and state
       resetForm();
+      setShowForm(false);
+      setEditingVoucher(null);
+      setSelectedProductIds([]);
     } catch (error) {
-      console.error('Error saving voucher:', error);
+      console.error('Error submitting voucher:', error);
       toast.error('Failed to save voucher');
     } finally {
       setIsSubmitting(false);
@@ -250,38 +318,47 @@ export default function VoucherManagement() {
   const handleEdit = (voucher: Voucher) => {
     setEditingVoucher(voucher);
     setFormData({
-      code: voucher.code,
-      discount_type: voucher.discount_type,
-      discount_value: voucher.discount_value,
-      min_purchase: voucher.min_purchase,
-      max_discount: voucher.max_discount,
-      valid_from: voucher.valid_from,
-      valid_until: voucher.valid_until,
-      usage_limit: voucher.usage_limit,
-      status: voucher.status
+      ...voucher
     });
+    
+    // Set selected product IDs
+    if (voucher.productIds && voucher.productIds.length > 0) {
+      setSelectedProductIds(voucher.productIds);
+    } else {
+      setSelectedProductIds([]);
+    }
+    
     setShowForm(true);
+    
+    // Scroll to form
+    window.scrollTo({
+      top: 0,
+      behavior: 'smooth'
+    });
   };
 
   // Handle voucher delete
-  const handleDelete = async (voucherId: number) => {
-    if (!confirm('Are you sure you want to delete this voucher?')) {
-      return;
-    }
-    
-    setLoading(true);
-    try {
-      // In a real application, you would send this request to your API
-      await new Promise(resolve => setTimeout(resolve, 500));
+  const handleDelete = (voucherId: string) => {
+    if (window.confirm('Are you sure you want to delete this voucher?')) {
+      setLoading(true);
       
-      // Remove voucher from state
-      setVouchers(vouchers.filter(voucher => voucher.id !== voucherId));
-      toast.success('Voucher deleted successfully');
-    } catch (error) {
-      console.error('Error deleting voucher:', error);
-      toast.error('Failed to delete voucher');
-    } finally {
-      setLoading(false);
+      try {
+        // Delete voucher using the service
+        const deleted = voucherService.deleteVoucher(voucherId);
+        
+        if (deleted) {
+          // Update local state
+          setVouchers(vouchers.filter(v => v.id !== voucherId));
+          toast.success('Voucher deleted successfully');
+        } else {
+          toast.error('Failed to delete voucher');
+        }
+      } catch (error) {
+        console.error('Error deleting voucher:', error);
+        toast.error('Failed to delete voucher');
+      } finally {
+        setLoading(false);
+      }
     }
   };
 
@@ -296,10 +373,12 @@ export default function VoucherManagement() {
       valid_from: new Date().toISOString().split('T')[0],
       valid_until: new Date(Date.now() + 30 * 24 * 60 * 60 * 1000).toISOString().split('T')[0],
       usage_limit: 100,
-      status: 'active'
+      status: 'active',
+      productIds: [],
+      vendorId: user?.id || 0
     });
     setEditingVoucher(null);
-    setShowForm(false);
+    setSelectedProductIds([]);
   };
 
   // Filter vouchers based on search term and status
@@ -506,6 +585,55 @@ export default function VoucherManagement() {
                 />
               </div>
             </div>
+
+            {/* Product Selection Section */}
+            <div className="mt-6">
+              <h4 className="text-lg font-medium text-white mb-3">Apply Voucher to Specific Products</h4>
+              <p className="text-sm text-white/70 mb-4">
+                Select products this voucher can be applied to. If none are selected, the voucher will apply to all your products.  
+              </p>
+              
+              {products.length === 0 ? (
+                <div className="bg-neutral-800/50 p-4 rounded-md text-white/70 text-sm">
+                  No products found. Add products first to apply vouchers to them.
+                </div>
+              ) : (
+                <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-3 max-h-60 overflow-y-auto p-2">
+                  {products.map(product => {
+                    const productId = typeof product.id === 'string' ? parseInt(product.id) : product.id;
+                    const isSelected = selectedProductIds.includes(productId);
+                    
+                    return (
+                      <div 
+                        key={product.id}
+                        onClick={() => handleProductSelection(productId)}
+                        className={`p-3 rounded-md cursor-pointer border transition-colors ${isSelected 
+                          ? 'border-amber-500 bg-amber-500/10' 
+                          : 'border-white/10 hover:border-white/30 bg-neutral-800/50'}`}
+                      >
+                        <div className="flex items-center gap-2">
+                          <div className={`w-4 h-4 rounded-sm flex items-center justify-center ${isSelected ? 'bg-amber-500' : 'border border-white/30'}`}>
+                            {isSelected && (
+                              <svg className="w-3 h-3 text-black" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                                <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={3} d="M5 13l4 4L19 7" />
+                              </svg>
+                            )}
+                          </div>
+                          <div className="text-sm text-white truncate">{product.name}</div>
+                        </div>
+                        <div className="text-xs text-white/50 mt-1 pl-6">{formatCurrency(product.price || 0)}</div>
+                      </div>
+                    );
+                  })}
+                </div>
+              )}
+              
+              <div className="mt-3 text-sm text-amber-500">
+                {selectedProductIds.length > 0 
+                  ? `Selected ${selectedProductIds.length} product${selectedProductIds.length > 1 ? 's' : ''}` 
+                  : 'No products selected - voucher will apply to all your products'}
+              </div>
+            </div>
             
             <div className="flex justify-end space-x-3 pt-4">
               <button
@@ -593,6 +721,9 @@ export default function VoucherManagement() {
                   Validity
                 </th>
                 <th scope="col" className="px-6 py-3 text-left text-xs font-medium text-white/70 uppercase tracking-wider">
+                  Products
+                </th>
+                <th scope="col" className="px-6 py-3 text-left text-xs font-medium text-white/70 uppercase tracking-wider">
                   Usage
                 </th>
                 <th scope="col" className="px-6 py-3 text-left text-xs font-medium text-white/70 uppercase tracking-wider">
@@ -606,13 +737,13 @@ export default function VoucherManagement() {
             <tbody className="bg-neutral-900/30 divide-y divide-white/10">
               {loading ? (
                 <tr>
-                  <td colSpan={7} className="px-6 py-4 text-center text-white/50">
+                  <td colSpan={8} className="px-6 py-4 text-center text-white/50">
                     Loading vouchers...
                   </td>
                 </tr>
               ) : filteredVouchers.length === 0 ? (
                 <tr>
-                  <td colSpan={7} className="px-6 py-4 text-center text-white/50">
+                  <td colSpan={8} className="px-6 py-4 text-center text-white/50">
                     No vouchers found
                   </td>
                 </tr>
@@ -646,6 +777,25 @@ export default function VoucherManagement() {
                     <td className="px-6 py-4 whitespace-nowrap">
                       <div className="text-sm text-white">
                         {voucher.valid_from} to {voucher.valid_until}
+                      </div>
+                    </td>
+                    <td className="px-6 py-4 whitespace-nowrap">
+                      <div className="text-sm text-white">
+                        {voucher.productIds && voucher.productIds.length > 0 ? (
+                          <div>
+                            <span className="text-amber-500 text-xs font-medium px-2 py-1 bg-amber-500/10 rounded-full">
+                              {voucher.productIds.length} specific product{voucher.productIds.length > 1 ? 's' : ''}
+                            </span>
+                            {voucher.productNames && voucher.productNames.length > 0 && (
+                              <div className="mt-1 text-xs text-white/60 max-w-xs truncate">
+                                {voucher.productNames.slice(0, 2).join(', ')}
+                                {voucher.productNames.length > 2 && ` +${voucher.productNames.length - 2} more`}
+                              </div>
+                            )}
+                          </div>
+                        ) : (
+                          <span className="text-xs text-white/60">All products</span>
+                        )}
                       </div>
                     </td>
                     <td className="px-6 py-4 whitespace-nowrap">
