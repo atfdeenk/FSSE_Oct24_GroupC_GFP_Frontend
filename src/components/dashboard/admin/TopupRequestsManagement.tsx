@@ -9,7 +9,8 @@ import {
   FaUserCircle, 
   FaCalendarAlt,
   FaInfoCircle,
-  FaMapMarkerAlt
+  FaMapMarkerAlt,
+  FaSync
 } from 'react-icons/fa';
 import { toast } from 'react-hot-toast';
 import { Dialog, Transition } from '@headlessui/react';
@@ -29,10 +30,20 @@ export default function TopupRequestsManagement() {
   const [usersMap, setUsersMap] = useState<Map<string | number, User>>(new Map());
   const [activeTab, setActiveTab] = useState<'all' | 'pending' | 'approved' | 'rejected'>('all');
   const [sortConfig, setSortConfig] = useState<{ key: string; direction: 'ascending' | 'descending' } | null>(null);
+  const [newRequestsDetected, setNewRequestsDetected] = useState(false);
+  const [lastRequestCount, setLastRequestCount] = useState(0);
 
   useEffect(() => {
     fetchUsers();
     fetchRequests();
+    
+    // Set up polling interval to check for new requests every 30 seconds
+    const pollingInterval = setInterval(() => {
+      fetchRequests(false); // Pass false to avoid showing loading state during polling
+    }, 30000);
+    
+    // Clean up interval on component unmount
+    return () => clearInterval(pollingInterval);
   }, []);
   
   const fetchUsers = async () => {
@@ -58,19 +69,24 @@ export default function TopupRequestsManagement() {
     }
   };
 
-  const fetchRequests = async () => {
+  const fetchRequests = async (showLoading = true) => {
     try {
-      setLoading(true);
+      if (showLoading) {
+        setLoading(true);
+      }
       const response = await topupService.getAllRequests();
       
       if (response.success && response.requests) {
-        // Ensure requests is always an array
-        const requestsArray = Array.isArray(response.requests) ? response.requests : [];
-        console.log('Received top-up requests:', requestsArray);
-        setRequests(requestsArray);
+        // Check if there are new requests
+        if (lastRequestCount > 0 && response.requests.length > lastRequestCount) {
+          setNewRequestsDetected(true);
+        }
+        
+        // Update the request count for next comparison
+        setLastRequestCount(response.requests.length);
+        setRequests(response.requests);
       } else {
-        toast.error(response.error || 'Failed to fetch top-up requests');
-        setRequests([]);
+        console.error('Failed to fetch top-up requests:', response.error || response.msg);
       }
     } catch (error) {
       console.error('Error fetching top-up requests:', error);
@@ -212,6 +228,32 @@ export default function TopupRequestsManagement() {
 
   return (
     <div className="space-y-6">
+      {newRequestsDetected && (
+        <div className="bg-green-50 border-l-4 border-green-400 p-4 mb-4 rounded shadow-sm flex justify-between items-center">
+          <div className="flex items-center">
+            <div className="flex-shrink-0">
+              <svg className="h-5 w-5 text-green-400" xmlns="http://www.w3.org/2000/svg" viewBox="0 0 20 20" fill="currentColor">
+                <path fillRule="evenodd" d="M10 18a8 8 0 100-16 8 8 0 000 16zm3.707-9.293a1 1 0 00-1.414-1.414L9 10.586 7.707 9.293a1 1 0 00-1.414 1.414l2 2a1 1 0 001.414 0l4-4z" clipRule="evenodd" />
+              </svg>
+            </div>
+            <div className="ml-3">
+              <p className="text-sm text-green-700">
+                New top-up requests have been detected!
+              </p>
+            </div>
+          </div>
+          <button 
+            onClick={() => {
+              setNewRequestsDetected(false);
+              fetchRequests();
+            }}
+            className="bg-green-100 hover:bg-green-200 text-green-800 px-3 py-1 rounded-md text-sm font-medium transition-colors duration-200"
+          >
+            View new requests
+          </button>
+        </div>
+      )}
+      
       <div className="bg-white p-6 rounded-lg shadow-sm border border-amber-100 mb-6">
         <div className="flex items-center mb-4">
           <div className="bg-amber-100 p-2 rounded-full mr-3">
@@ -236,8 +278,21 @@ export default function TopupRequestsManagement() {
             />
           </div>
           
-          <div className="bg-amber-50 px-4 py-2 rounded-md text-sm text-amber-700 font-medium">
-            {sortedRequests.length} {sortedRequests.length === 1 ? 'request' : 'requests'} found
+          <div className="flex items-center gap-3">
+            <div className="bg-amber-50 px-4 py-2 rounded-md text-sm text-amber-700 font-medium">
+              {sortedRequests.length} {sortedRequests.length === 1 ? 'request' : 'requests'} found
+            </div>
+            <button 
+              onClick={() => {
+                setNewRequestsDetected(false);
+                fetchRequests();
+              }}
+              className="flex items-center gap-1 bg-white border border-amber-200 hover:bg-amber-50 text-amber-700 px-3 py-2 rounded-md text-sm font-medium transition-colors duration-200"
+              title="Refresh requests"
+            >
+              <FaSync className="h-3 w-3" />
+              <span>Refresh</span>
+            </button>
           </div>
         </div>
         
