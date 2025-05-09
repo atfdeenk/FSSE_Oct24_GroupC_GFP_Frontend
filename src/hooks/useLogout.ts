@@ -1,6 +1,7 @@
 import { useCallback } from "react";
 import { useRouter } from "next/navigation";
 import { logout } from "@/lib/auth";
+import { toast } from "react-hot-toast";
 
 /**
  * Provides a logout function that handles state reset and redirect.
@@ -29,6 +30,9 @@ export function useLogout({
       setCartCount(0);
       setWishlistCount(0);
       setShowUserMenu(false);
+      
+      // Show success notification
+      toast.success('You have been signed out');
 
       const isExpired = typeof isExpiredOrEvent === "boolean" && isExpiredOrEvent;
       if (isExpired) {

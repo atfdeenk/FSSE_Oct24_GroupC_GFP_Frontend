@@ -137,8 +137,10 @@ export default function AdminDashboardPage() {
   const handleLogout = () => {
     // Properly clear localStorage and cookies
     logout();
+    // Show success notification
+    toast.success('You have been signed out');
     // Redirect to login page
-    router.push('/login');
+    router.push('/');
   };
 
   if (loading) {
