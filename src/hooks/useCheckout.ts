@@ -12,6 +12,7 @@ import { roleBasedBalanceService as balanceService } from '@/services/roleBasedB
 import { refreshCart, refreshBalance } from '@/utils/events';
 import { CheckoutFormData } from '@/components/checkout/CheckoutForm';
 import voucherService from '@/services/vouchers';
+import { saveCartCalculations, getCartCalculations, savePromoCode, getPromoCode, savePromoDiscount, getPromoDiscount, STORAGE_KEYS } from '@/utils/localStorage';
 
 export interface Address {
   id: number;
@@ -71,8 +72,22 @@ export function useCheckout(): UseCheckoutReturn {
   const { cartItems, selectedItems, loading: cartLoading, setSelectedItems } = useCart();
   const { user } = useAuthUser();
   const [isSubmitting, setIsSubmitting] = useState(false);
-  const [promoCode, setPromoCode] = useState('');
-  const [promoDiscount, setPromoDiscount] = useState(0);
+  
+  // Initialize from localStorage if available
+  const [promoCode, setPromoCode] = useState(() => {
+    if (typeof window !== 'undefined') {
+      return getPromoCode();
+    }
+    return '';
+  });
+  
+  const [promoDiscount, setPromoDiscount] = useState(() => {
+    if (typeof window !== 'undefined') {
+      return getPromoDiscount();
+    }
+    return 0;
+  });
+  
   const [promoError, setPromoError] = useState('');
   const [useSellerVouchers, setUseSellerVouchers] = useState(false);
   const [voucherDiscount, setVoucherDiscount] = useState(0);
@@ -186,9 +201,9 @@ export function useCheckout(): UseCheckoutReturn {
   const handlePromoCodeChange = (code: string) => {
     setPromoCode(code);
     if (code) {
-      localStorage.setItem('promoCode', code);
+      savePromoCode(code);
     } else {
-      localStorage.removeItem('promoCode');
+      localStorage.removeItem(STORAGE_KEYS.PROMO_CODE);
     }
   };
 
@@ -196,12 +211,12 @@ export function useCheckout(): UseCheckoutReturn {
   const handlePromoDiscountChange = (amount: number) => {
     setPromoDiscount(amount);
     if (amount > 0) {
-      localStorage.setItem('promoDiscount', amount.toString());
+      savePromoDiscount(amount);
       // When setting a promo discount, ensure we're in promo code mode
       setUseSellerVouchers(false);
       localStorage.setItem('useSellerVouchers', 'false');
     } else {
-      localStorage.removeItem('promoDiscount');
+      localStorage.removeItem(STORAGE_KEYS.PROMO_DISCOUNT);
     }
   };
 
@@ -384,6 +399,21 @@ export function useCheckout(): UseCheckoutReturn {
     carbonOffsetCost,
     total
   });
+  
+  // Save all calculations to localStorage whenever they change
+  useEffect(() => {
+    if (typeof window !== 'undefined' && selectedCartItems.length > 0) {
+      saveCartCalculations({
+        subtotal,
+        discount,
+        promoDiscount,
+        voucherDiscount,
+        ecoPackagingCost,
+        carbonOffsetCost,
+        total
+      });
+    }
+  }, [subtotal, discount, promoDiscount, voucherDiscount, ecoPackagingCost, carbonOffsetCost, total, selectedCartItems.length]);
   
   // Handle changes to the new address form
   const handleAddressChange = (e: React.ChangeEvent<HTMLInputElement | HTMLTextAreaElement>) => {

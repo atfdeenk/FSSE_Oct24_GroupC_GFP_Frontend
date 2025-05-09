@@ -43,6 +43,14 @@ module.exports = {
         protocol: 'https',
         hostname: 'ui-avatars.com',
       },
+      {
+        protocol: 'https',
+        hostname: 'www.markuscoffee.com',
+      },
+      {
+        protocol: 'https',
+        hostname: 'wallaceacoffee.com',
+      },
       // Add more as needed
     ],
   },
