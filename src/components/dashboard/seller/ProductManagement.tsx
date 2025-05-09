@@ -740,17 +740,17 @@ export default function ProductManagement() {
 
   return (
     <div>
-      <div className="flex justify-between items-center mb-6">
-        <div className="flex items-center gap-4">
+      <div className="flex flex-col sm:flex-row justify-between items-start sm:items-center gap-4 sm:gap-0 mb-6">
+        <div className="flex flex-col sm:flex-row items-start sm:items-center gap-2 sm:gap-4 w-full sm:w-auto">
           <div>
-            <h2 className="text-2xl font-bold text-white">
+            <h2 className="text-xl sm:text-2xl font-bold text-white">
               {activeTab === 'products' ? 'Product Management' : 'Category Management'}
             </h2>
           </div>
           {/* Manual Refresh Button */}
           <button
             onClick={handleManualRefresh}
-            className="bg-blue-600 text-white px-3 py-1 rounded-md font-medium hover:bg-blue-500 transition-all flex items-center gap-1 text-sm"
+            className="bg-blue-600 text-white px-3 py-1 rounded-md font-medium hover:bg-blue-500 transition-all flex items-center gap-1 text-sm w-full sm:w-auto justify-center sm:justify-start"
             title="Manually refresh data"
           >
             <svg className="w-4 h-4" fill="none" viewBox="0 0 24 24" stroke="currentColor">
@@ -771,7 +771,7 @@ export default function ProductManagement() {
             }
             setShowForm(!showForm);
           }}
-          className="bg-amber-500 text-black px-4 py-2 rounded-md font-medium hover:bg-amber-400 transition-all flex items-center gap-2"
+          className="bg-amber-500 text-black px-4 py-2 rounded-md font-medium hover:bg-amber-400 transition-all flex items-center gap-2 w-full sm:w-auto justify-center"
         >
           {showForm ? (
             <>
@@ -792,7 +792,7 @@ export default function ProductManagement() {
       </div>
 
       {/* Tab Navigation */}
-      <div className="flex border-b border-white/10 mb-6">
+      <div className="flex border-b border-white/10 mb-6 overflow-x-auto">
         <button
           className={`px-4 py-2 font-medium ${activeTab === 'products' ? 'text-amber-500 border-b-2 border-amber-500' : 'text-white/70 hover:text-white'}`}
           onClick={() => {
@@ -820,8 +820,8 @@ export default function ProductManagement() {
             {editingProduct ? 'Edit Product' : 'Create New Product'}
           </h3>
 
-          <form onSubmit={handleSubmit} className="space-y-4">
-            <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+          <form onSubmit={handleSubmit} className="space-y-6">
+            <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
               <div>
                 <label htmlFor="name" className="block text-sm font-medium text-white/70 mb-1">
                   Product Name*
@@ -857,7 +857,7 @@ export default function ProductManagement() {
                   ))}
                 </select>
                 <p className="text-xs text-white/50 mb-1">Selected categories:</p>
-                <div className="flex flex-wrap gap-2 mb-2">
+                <div className="flex flex-wrap gap-2 mb-2 max-w-full overflow-x-auto">
                   {formData.category_ids && formData.category_ids.length > 0 ? (
                     formData.category_ids.map((catId) => {
                       const category = categories.find(c => Number(c.id) === Number(catId));
@@ -1201,7 +1201,7 @@ export default function ProductManagement() {
 
       {/* Filters - Only show in Products tab */}
       {activeTab === 'products' && (
-        <div className="flex flex-col md:flex-row gap-4 mb-6">
+        <div className="flex flex-col sm:flex-row gap-4 mb-6">
           <div className="flex-1">
             <div className="relative">
               <input
@@ -1217,7 +1217,7 @@ export default function ProductManagement() {
             </div>
           </div>
 
-          <div className="w-full md:w-64">
+          <div className="w-full sm:w-64">
             <select
               value={selectedCategory === 'all' ? 'all' : selectedCategory}
               onChange={(e) => setSelectedCategory(e.target.value === 'all' ? 'all' : parseInt(e.target.value))}
@@ -1237,23 +1237,23 @@ export default function ProductManagement() {
       {/* Products Table - Only show in Products tab */}
       {activeTab === 'products' && (
         <div className="bg-neutral-900/50 rounded-lg border border-white/10 overflow-hidden">
-          <div className="overflow-x-auto">
-            <table className="min-w-full divide-y divide-white/10">
+          <div className="overflow-x-auto -mx-4 sm:mx-0">
+            <table className="min-w-full divide-y divide-white/10 table-fixed sm:table-auto">
               <thead className="bg-neutral-800/30">
                 <tr>
-                  <th scope="col" className="px-6 py-3 text-left text-xs font-medium text-white/70 uppercase tracking-wider">
+                  <th scope="col" className="px-3 sm:px-6 py-2 sm:py-3 text-left text-xs font-medium text-white/70 uppercase tracking-wider">
                     Product
                   </th>
-                  <th scope="col" className="px-6 py-3 text-left text-xs font-medium text-white/70 uppercase tracking-wider">
+                  <th scope="col" className="px-3 sm:px-6 py-2 sm:py-3 text-left text-xs font-medium text-white/70 uppercase tracking-wider">
                     Category
                   </th>
-                  <th scope="col" className="px-6 py-3 text-left text-xs font-medium text-white/70 uppercase tracking-wider">
+                  <th scope="col" className="px-3 sm:px-6 py-2 sm:py-3 text-left text-xs font-medium text-white/70 uppercase tracking-wider">
                     Price
                   </th>
-                  <th scope="col" className="px-6 py-3 text-left text-xs font-medium text-white/70 uppercase tracking-wider">
+                  <th scope="col" className="px-3 sm:px-6 py-2 sm:py-3 text-left text-xs font-medium text-white/70 uppercase tracking-wider">
                     Stock
                   </th>
-                  <th scope="col" className="px-6 py-3 text-left text-xs font-medium text-white/70 uppercase tracking-wider">
+                  <th scope="col" className="px-3 sm:px-6 py-2 sm:py-3 text-left text-xs font-medium text-white/70 uppercase tracking-wider">
                     Status
                   </th>
                   <th scope="col" className="px-6 py-3 text-right text-xs font-medium text-white/70 uppercase tracking-wider">
@@ -1265,7 +1265,7 @@ export default function ProductManagement() {
                 {filteredProducts.length > 0 ? (
                   filteredProducts.map(product => (
                     <tr key={product.id} className="hover:bg-neutral-800/30 transition-colors">
-                      <td className="px-6 py-4 whitespace-nowrap">
+                      <td className="px-3 sm:px-6 py-3 sm:py-4 whitespace-nowrap">
                         <div className="flex items-center">
                           <div className="h-10 w-10 flex-shrink-0 rounded-md overflow-hidden bg-neutral-800">
                             {product.image_url ? (
@@ -1288,28 +1288,28 @@ export default function ProductManagement() {
                           <div className="ml-4">
                             <div className="text-sm font-medium text-white">
                               {product.name} 
-                              <span className="text-xs text-amber-500 ml-1">
+                              <span className="text-xs text-amber-500 ml-1 hidden sm:inline">
                                 (Vendor ID: {product.vendor_id || 'N/A'})
                               </span>
                             </div>
-                            <div className="text-xs text-white/50 truncate max-w-xs">{product.description}</div>
+                            <div className="text-xs text-white/50 truncate max-w-[120px] sm:max-w-xs">{product.description}</div>
                           </div>
                         </div>
                       </td>
-                      <td className="px-6 py-4 whitespace-nowrap">
+                      <td className="px-3 sm:px-6 py-3 sm:py-4 whitespace-nowrap">
                         <div className="text-sm text-white">
                           {product.categories && product.categories.length > 0
                             ? product.categories.map(cat => cat.name).join(', ')
                             : 'Uncategorized'}
                         </div>
                       </td>
-                      <td className="px-6 py-4 whitespace-nowrap">
+                      <td className="px-3 sm:px-6 py-3 sm:py-4 whitespace-nowrap">
                         <div className="text-sm text-white">{formatCurrency(product.price, product.currency || 'IDR')}</div>
                       </td>
-                      <td className="px-6 py-4 whitespace-nowrap">
+                      <td className="px-3 sm:px-6 py-3 sm:py-4 whitespace-nowrap">
                         <div className="text-sm text-white">{product.stock_quantity} {product.unit_quantity || 'piece'}</div>
                       </td>
-                      <td className="px-6 py-4 whitespace-nowrap">
+                      <td className="px-3 sm:px-6 py-3 sm:py-4 whitespace-nowrap">
                         <span className={`px-2 inline-flex text-xs leading-5 font-semibold rounded-full ${product.is_approved ? 'bg-green-100 text-green-800' : 'bg-red-100 text-red-800'}`}>
                           {product.is_approved ? 'Active' : 'Inactive'}
                         </span>
@@ -1317,7 +1317,7 @@ export default function ProductManagement() {
                       <td className="px-6 py-4 whitespace-nowrap text-right text-sm font-medium">
                         <button
                           onClick={() => handleEdit(product)}
-                          className="text-amber-500 hover:text-amber-400 mr-3"
+                          className="text-amber-500 hover:text-amber-400 mr-1 sm:mr-3"
                         >
                           Edit
                         </button>
@@ -1332,7 +1332,7 @@ export default function ProductManagement() {
                   ))
                 ) : (
                   <tr>
-                    <td colSpan={6} className="px-6 py-4 text-center text-sm text-white/50">
+                    <td colSpan={6} className="px-3 sm:px-6 py-4 text-center text-sm text-white/50">
                       {loading ? 'Loading products...' : 'No products found'}
                     </td>
                   </tr>
@@ -1346,17 +1346,17 @@ export default function ProductManagement() {
       {/* Categories Table - Only show in Categories tab */}
       {activeTab === 'categories' && (
         <div className="bg-neutral-900/50 rounded-lg border border-white/10 overflow-hidden">
-          <div className="overflow-x-auto">
-            <table className="min-w-full divide-y divide-white/10">
+          <div className="overflow-x-auto -mx-4 sm:mx-0">
+            <table className="min-w-full divide-y divide-white/10 table-fixed sm:table-auto">
               <thead className="bg-neutral-800/30">
                 <tr>
-                  <th scope="col" className="px-6 py-3 text-left text-xs font-medium text-white/70 uppercase tracking-wider">
+                  <th scope="col" className="px-3 sm:px-6 py-2 sm:py-3 text-left text-xs font-medium text-white/70 uppercase tracking-wider">
                     Category
                   </th>
-                  <th scope="col" className="px-6 py-3 text-left text-xs font-medium text-white/70 uppercase tracking-wider">
+                  <th scope="col" className="px-3 sm:px-6 py-2 sm:py-3 text-left text-xs font-medium text-white/70 uppercase tracking-wider">
                     Parent
                   </th>
-                  <th scope="col" className="px-6 py-3 text-left text-xs font-medium text-white/70 uppercase tracking-wider">
+                  <th scope="col" className="px-3 sm:px-6 py-2 sm:py-3 text-left text-xs font-medium text-white/70 uppercase tracking-wider">
                     Description
                   </th>
                   <th scope="col" className="px-6 py-3 text-right text-xs font-medium text-white/70 uppercase tracking-wider">
@@ -1368,7 +1368,7 @@ export default function ProductManagement() {
                 {categories.length > 0 ? (
                   categories.map(category => (
                     <tr key={category.id} className="hover:bg-neutral-800/30 transition-colors">
-                      <td className="px-6 py-4 whitespace-nowrap">
+                      <td className="px-3 sm:px-6 py-3 sm:py-4 whitespace-nowrap">
                         <div className="flex items-center">
                           <div className="h-10 w-10 flex-shrink-0 rounded-md overflow-hidden bg-neutral-800">
                             {category.image_url ? (
@@ -1393,7 +1393,7 @@ export default function ProductManagement() {
                           </div>
                         </div>
                       </td>
-                      <td className="px-6 py-4 whitespace-nowrap">
+                      <td className="px-3 sm:px-6 py-3 sm:py-4 whitespace-nowrap">
                         <div className="text-sm text-white">
                           {category.parent_id ?
                             categories.find(c => {
@@ -1406,13 +1406,13 @@ export default function ProductManagement() {
                             : 'None (Top Level)'}
                         </div>
                       </td>
-                      <td className="px-6 py-4">
-                        <div className="text-sm text-white truncate max-w-xs">{category.description || 'No description'}</div>
+                      <td className="px-3 sm:px-6 py-3 sm:py-4">
+                        <div className="text-sm text-white truncate max-w-[120px] sm:max-w-xs">{category.description || 'No description'}</div>
                       </td>
-                      <td className="px-6 py-4 whitespace-nowrap text-right text-sm font-medium">
+                      <td className="px-3 sm:px-6 py-3 sm:py-4 whitespace-nowrap text-right text-sm font-medium">
                         <button
                           onClick={() => handleEditCategory(category)}
-                          className="text-amber-500 hover:text-amber-400 mr-3"
+                          className="text-amber-500 hover:text-amber-400 mr-1 sm:mr-3"
                         >
                           Edit
                         </button>
@@ -1427,7 +1427,7 @@ export default function ProductManagement() {
                   ))
                 ) : (
                   <tr>
-                    <td colSpan={4} className="px-6 py-4 text-center text-sm text-white/50">
+                    <td colSpan={4} className="px-3 sm:px-6 py-3 sm:py-4 text-center text-sm text-white/50">
                       {loading ? 'Loading categories...' : 'No categories found'}
                     </td>
                   </tr>
