@@ -17,6 +17,26 @@ export default function CheckoutPage() {
   const router = useRouter();
   const checkout = useCheckout();
   
+  // Force refresh discount when component mounts
+  React.useEffect(() => {
+    // Check if we're using seller vouchers
+    const useSellerVouchersStr = localStorage.getItem('useSellerVouchers');
+    const useVouchers = useSellerVouchersStr === 'true';
+    
+    if (useVouchers) {
+      // Get the saved voucher discount
+      const savedVoucherDiscount = localStorage.getItem('voucherDiscount');
+      if (savedVoucherDiscount) {
+        console.log('Checkout page: Found saved voucher discount', { 
+          discount: Number(savedVoucherDiscount) 
+        });
+        
+        // Force a vouchers applied event to ensure the discount is applied
+        window.dispatchEvent(new CustomEvent('vouchersApplied'));
+      }
+    }
+  }, []);
+  
   // Redirect to login if not authenticated
   React.useEffect(() => {
     const checkAuth = async () => {

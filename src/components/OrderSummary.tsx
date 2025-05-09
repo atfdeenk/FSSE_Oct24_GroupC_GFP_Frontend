@@ -98,6 +98,13 @@ const OrderSummary: React.FC<OrderSummaryProps> = ({
             </div>
           )}
           
+          {/* Show savings percentage if discount is applied */}
+          {discount > 0 && subtotal > 0 && (
+            <div className="text-xs text-green-400/80 text-right mt-1">
+              You saved {Math.round((discount / subtotal) * 100)}% on your purchase
+            </div>
+          )}
+          
           <div className="h-px bg-gradient-to-r from-transparent via-white/10 to-transparent my-2"></div>
           
           <div className="flex justify-between items-center">

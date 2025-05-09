@@ -1,6 +1,6 @@
 "use client";
 
-import { useState, useEffect } from 'react';
+import { useState, useEffect, useCallback } from 'react';
 import { Voucher } from '@/services/vouchers';
 import voucherService from '@/services/vouchers';
 import { formatCurrency } from '@/utils/format';
@@ -18,9 +18,12 @@ export default function SellerVouchers({ cartItems, onVouchersApplied }: SellerV
   const [voucherCodes, setVoucherCodes] = useState<{ [key: string]: string }>({});
   const [voucherErrors, setVoucherErrors] = useState<{ [key: string]: string }>({});
   const [appliedVouchers, setAppliedVouchers] = useState<{ [key: string]: string }>({});
+  const [isRefreshing, setIsRefreshing] = useState(false);
 
-  // Initialize seller groups and vouchers
-  useEffect(() => {
+  // Function to refresh voucher data
+  const refreshVoucherData = useCallback(() => {
+    setIsRefreshing(true);
+    
     // Group cart items by seller
     const groups: { [key: string]: any } = {};
     
@@ -64,7 +67,74 @@ export default function SellerVouchers({ cartItems, onVouchersApplied }: SellerV
     
     // Get currently applied vouchers
     setAppliedVouchers(voucherService.getAppliedVouchers());
+    
+    setIsRefreshing(false);
   }, [cartItems]);
+  
+  // Initialize seller groups and vouchers
+  useEffect(() => {
+    refreshVoucherData();
+    
+    // Listen for voucher changes
+    const handleVouchersChanged = () => {
+      refreshVoucherData();
+      onVouchersApplied();
+    };
+    
+    window.addEventListener('vouchersChanged', handleVouchersChanged);
+    
+    return () => {
+      window.removeEventListener('vouchersChanged', handleVouchersChanged);
+    };
+  }, [cartItems, refreshVoucherData, onVouchersApplied]);
+
+  // Handle voucher application
+  const handleApplyVoucher = (voucherCode: string, vendorId: string | number) => {
+    // Check if a voucher is already applied for this vendor
+    const appliedVouchers = voucherService.getAppliedVouchers();
+    if (appliedVouchers[vendorId]) {
+      // Check if it's the same voucher
+      const voucher = voucherService.getVoucherByCode(voucherCode);
+      if (voucher && appliedVouchers[vendorId] === voucher.id) {
+        toast.error('This voucher is already applied');
+        return;
+      }
+    }
+    
+    console.log('Applying voucher:', { voucherCode, vendorId });
+    
+    // Apply the voucher
+    const success = voucherService.applyVoucherForVendor(vendorId, voucherCode);
+    
+    if (success) {
+      // Get the voucher details for better feedback
+      const voucher = voucherService.getVoucherByCode(voucherCode);
+      const discountText = voucher ? `${voucher.discountPercentage}%` : '';
+      
+      toast.success(`Voucher ${voucherCode} applied successfully! ${discountText}`);
+      
+      // Force recalculation of the discount
+      const cartItems = JSON.parse(localStorage.getItem('cartItems') || '[]');
+      const discount = voucherService.calculateTotalVoucherDiscount(cartItems);
+      
+      console.log('Voucher applied with discount:', { discount, voucherCode });
+      
+      // Dispatch event to notify that vouchers are applied
+      if (typeof window !== 'undefined') {
+        window.dispatchEvent(new CustomEvent('vouchersApplied'));
+        
+        // Force a small delay to ensure the event is processed
+        setTimeout(() => {
+          // Dispatch another event to ensure all components are updated
+          window.dispatchEvent(new CustomEvent('voucherDiscountCalculated', {
+            detail: { amount: discount }
+          }));
+        }, 100);
+      }
+    } else {
+      toast.error(`Voucher ${voucherCode} is invalid or cannot be applied`);
+    }
+  };
 
   // Apply a voucher for a specific seller
   const applyVoucher = (vendorId: string) => {
@@ -74,7 +144,9 @@ export default function SellerVouchers({ cartItems, onVouchersApplied }: SellerV
       [vendorId]: ''
     }));
     
+    // Get voucher code for this seller
     const voucherCode = voucherCodes[vendorId];
+    
     if (!voucherCode) {
       setVoucherErrors(prev => ({
         ...prev,
@@ -83,60 +155,31 @@ export default function SellerVouchers({ cartItems, onVouchersApplied }: SellerV
       return;
     }
     
-    // Try to apply the voucher
-    const success = voucherService.applyVoucherForVendor(vendorId, voucherCode);
+    // Apply the voucher
+    handleApplyVoucher(voucherCode, vendorId);
     
-    if (success) {
-      // Get the applied voucher details
-      const voucher = voucherService.getVoucherByCode(voucherCode);
-      
-      // Update applied vouchers state
-      setAppliedVouchers(voucherService.getAppliedVouchers());
-      
-      // Clear voucher code input
-      setVoucherCodes(prev => ({
-        ...prev,
-        [vendorId]: ''
-      }));
-      
-      // Show success toast
-      toast.success(`Applied ${voucher?.discountPercentage}% discount for ${sellerGroups[vendorId]?.sellerName}`);
-      
-      // Notify parent component
-      onVouchersApplied();
-    } else {
-      // Show error
-      setVoucherErrors(prev => ({
-        ...prev,
-        [vendorId]: 'Invalid or expired voucher code'
-      }));
-      
-      toast.error('Invalid or expired voucher code');
-    }
+    // Clear voucher code input after applying
+    setVoucherCodes(prev => ({
+      ...prev,
+      [vendorId]: ''
+    }));
+    
+    // Update applied vouchers state
+    setAppliedVouchers(voucherService.getAppliedVouchers());
   };
-  
+
   // Remove an applied voucher
   const removeVoucher = (vendorId: string) => {
-    // Get the voucher ID before removing
-    const voucherId = appliedVouchers[vendorId];
-    const allVouchers = voucherService.getAllVouchers();
-    const voucher = allVouchers.find(v => v.id === voucherId);
-    
-    // Remove the voucher
+    // Remove the voucher - the service now handles all the side effects
     const success = voucherService.removeVoucherForVendor(vendorId);
     
-    if (success) {
-      // Update applied vouchers state
-      setAppliedVouchers(voucherService.getAppliedVouchers());
-      
-      // Show success toast
-      toast.success(`Removed discount for ${sellerGroups[vendorId]?.sellerName}`);
-      
-      // Notify parent component
-      onVouchersApplied();
+    if (!success) {
+      toast.error('Failed to remove voucher');
     }
+    
+    // The vouchersChanged event will trigger refreshVoucherData
   };
-  
+
   // Get available vouchers for a seller
   const getAvailableVouchers = (vendorId: string) => {
     return sellerVouchers[vendorId] || [];
@@ -282,28 +325,18 @@ export default function SellerVouchers({ cartItems, onVouchersApplied }: SellerV
                                 const success = voucherService.applyVoucherForVendor(vendorId, voucher.code);
                                 
                                 if (success) {
-                                  // Calculate the discount amount for this vendor's items
-                                  const itemsTotal = calculateSellerSubtotal(sellerGroups[vendorId]?.items || []);
-                                  const discountAmount = Math.round(itemsTotal * (voucher.discountPercentage / 100));
-                                  console.log(`Discount calculation: ${itemsTotal} * ${voucher.discountPercentage}% = ${discountAmount}`);
+                                  // Recalculate discount using the service
+                                  const cartItems = JSON.parse(localStorage.getItem('cartItems') || '[]');
+                                  voucherService.calculateTotalVoucherDiscount(cartItems);
                                   
                                   // Update applied vouchers state
                                   setAppliedVouchers(voucherService.getAppliedVouchers());
-                                  
-                                  // Store the calculated discount in localStorage
-                                  const currentDiscount = parseInt(localStorage.getItem('voucherDiscount') || '0');
-                                  const newTotalDiscount = currentDiscount + discountAmount;
-                                  localStorage.setItem('voucherDiscount', newTotalDiscount.toString());
-                                  localStorage.setItem('useSellerVouchers', 'true');
                                   
                                   // Show success toast
                                   toast.success(`Applied ${voucher.discountPercentage}% discount for ${sellerGroups[vendorId]?.sellerName}`);
                                   
                                   // Notify parent component
                                   onVouchersApplied();
-                                  
-                                  // Instead of forcing a page refresh, just update the state
-                                  // This ensures the discount persists and is properly displayed
                                 } else {
                                   toast.error('Failed to apply voucher');
                                 }

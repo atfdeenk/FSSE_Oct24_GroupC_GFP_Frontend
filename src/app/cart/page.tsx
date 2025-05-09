@@ -99,64 +99,65 @@ export default function CartPage() {
     // Load promo code from localStorage if it exists
     const savedPromoCode = localStorage.getItem('promoCode');
     const savedPromoDiscount = localStorage.getItem('promoDiscount');
+    const useSellerVouchersStr = localStorage.getItem('useSellerVouchers');
     
-    if (savedPromoCode) {
-      setPromoCode(savedPromoCode);
-    }
-    
-    if (savedPromoDiscount) {
-      setPromoDiscount(Number(savedPromoDiscount));
-    }
-    
-    // Check if there are any applied seller vouchers
-    const appliedVouchers = voucherService.getAppliedVouchers();
-    if (Object.keys(appliedVouchers).length > 0) {
-      setUseSellerVouchers(true);
-      // Calculate total voucher discount
-      updateVoucherDiscount();
-    }
-    
-    // Add event listener for vouchers applied from SellerGroup component
-    const handleVouchersApplied = (event: Event) => {
+    // Check which discount mode to use
+    if (useSellerVouchersStr === 'true') {
+      // Use seller vouchers mode
       setUseSellerVouchers(true);
       
-      // Store current selections before updating
-      const currentSelections = new Set(selectedItems);
+      // Check if there are any applied seller vouchers
+      const appliedVouchers = voucherService.getAppliedVouchers();
+      if (Object.keys(appliedVouchers).length > 0) {
+        // Get the saved voucher discount
+        const savedVoucherDiscount = localStorage.getItem('voucherDiscount');
+        if (savedVoucherDiscount) {
+          setVoucherDiscount(Number(savedVoucherDiscount));
+        } else {
+          // If no saved discount, calculate it
+          updateVoucherDiscount();
+        }
+      } else {
+        // No vouchers applied, reset discount mode
+        setUseSellerVouchers(false);
+        voucherService.resetVoucherDiscounts();
+      }
+    } else {
+      // Use promo code mode
+      setUseSellerVouchers(false);
       
-      // Update voucher discount
-      const totalVoucherDiscount = voucherService.calculateTotalVoucherDiscount(cartItems);
-      setVoucherDiscount(totalVoucherDiscount);
+      if (savedPromoCode) {
+        setPromoCode(savedPromoCode);
+      }
       
-      // Apply vouchers to cart items without losing selection state
-      const updatedItems = voucherService.applyAllVouchersToCartItems(cartItems);
-      
-      // Update cart items
-      setCartItems(updatedItems);
-      
-      // Restore selection state
-      setSelectedItems(currentSelections);
-      
-      // Store voucher discount in localStorage for checkout page
-      localStorage.setItem('voucherDiscount', totalVoucherDiscount.toString());
-      localStorage.setItem('useSellerVouchers', 'true');
-    };
+      if (savedPromoDiscount) {
+        setPromoDiscount(Number(savedPromoDiscount));
+      }
+    }
     
-    window.addEventListener('vouchersApplied', handleVouchersApplied);
+    // Create sample vouchers for testing if none exist
+    createSampleVouchers();
     
-    // Clean up event listener
+    // Add event listeners for voucher events
+    window.addEventListener('vouchersApplied', handleVouchersApplied as EventListener);
+    window.addEventListener('voucherDiscountCalculated', ((event: CustomEvent) => {
+      if (event.detail && typeof event.detail.amount === 'number') {
+        setVoucherDiscount(event.detail.amount);
+      }
+    }) as EventListener);
+    
     return () => {
-      window.removeEventListener('vouchersApplied', handleVouchersApplied);
+      window.removeEventListener('vouchersApplied', handleVouchersApplied as EventListener);
+      window.removeEventListener('voucherDiscountCalculated', (() => {}) as EventListener);
     };
-  }, [fetchCart]);
-  
-  // Create sample vouchers when cart items are loaded
+  }, [router]);
+
   useEffect(() => {
     if (cartItems.length > 0) {
       createSampleVouchers();
     }
   }, [cartItems.length]);
 
-  // Show selection bar when items are selected
   useEffect(() => {
     if (selectedItems.size > 0) {
       setShowSelectionBar(true);
@@ -304,77 +305,62 @@ export default function CartPage() {
   const clearPromoLocalStorage = () => {
     localStorage.removeItem('promoCode');
     localStorage.removeItem('promoDiscount');
-    localStorage.removeItem('promoType');
-    localStorage.removeItem('promoVoucherId');
-    localStorage.removeItem('promoVendorId');
+    setPromoCode("");
+    setPromoDiscount(0);
+    setPromoError("");
     
-    // Reset cart items to remove any applied discounts
-    const updatedCartItems = cartItems.map(item => ({
-      ...item,
-      discount_percentage: undefined
-    }));
+    // Clear any seller vouchers as well
+    voucherService.clearAppliedVouchers(); // This now handles all localStorage cleanup
+    setVoucherDiscount(0);
+    setUseSellerVouchers(false);
     
-    setCartItems(updatedCartItems);
+    toast.success('Discount cleared');
   };
 
   // Toggle between standard promo code and seller vouchers
   const toggleVoucherMode = () => {
-    if (useSellerVouchers) {
-      // Switching to standard promo code
-      // Clear all applied seller vouchers
-      voucherService.clearAppliedVouchers();
-      setVoucherDiscount(0);
-      
-      // Reset cart items to remove any applied discounts
-      const updatedCartItems = cartItems.map(item => ({
-        ...item,
-        discount_percentage: undefined
-      }));
-      
-      setCartItems(updatedCartItems);
-    } else {
-      // Switching to seller vouchers
-      // Clear standard promo code
+    // If switching from promo code to seller vouchers
+    if (!useSellerVouchers) {
+      // Clear promo code
       setPromoCode("");
       setPromoDiscount(0);
       setPromoError("");
-      clearPromoLocalStorage();
+      localStorage.removeItem('promoCode');
+      localStorage.removeItem('promoDiscount');
+      
+      // Enable seller vouchers
+      setUseSellerVouchers(true);
+      localStorage.setItem('useSellerVouchers', 'true');
+      
+      // Calculate voucher discount
+      const discount = voucherService.calculateTotalVoucherDiscount(cartItems);
+      setVoucherDiscount(discount);
+      
+      toast.success('Switched to seller vouchers mode');
+      console.log('Switched to seller vouchers mode', { discount });
+    } 
+    // If switching from seller vouchers to promo code
+    else {
+      // Clear seller vouchers
+      voucherService.clearAppliedVouchers(); // This now handles all localStorage cleanup
+      setVoucherDiscount(0);
+      
+      // Enable promo code
+      setUseSellerVouchers(false);
+      
+      toast.success('Switched to promo code mode');
+      console.log('Switched to promo code mode');
     }
-    
-    setUseSellerVouchers(!useSellerVouchers);
   };
 
   // Handle seller vouchers applied
   const handleVouchersApplied = () => {
-    console.log('Vouchers applied event received');
-    // Set flag to use seller vouchers
-    setUseSellerVouchers(true);
+    // Recalculate the voucher discount
+    const discount = voucherService.calculateTotalVoucherDiscount(cartItems);
+    console.log('Vouchers applied, new discount:', discount);
     
-    // Calculate and update voucher discount
-    const totalVoucherDiscount = voucherService.calculateTotalVoucherDiscount(cartItems);
-    setVoucherDiscount(totalVoucherDiscount);
-    
-    // Apply vouchers to cart items without losing selection state
-    const updatedItems = voucherService.applyAllVouchersToCartItems(cartItems);
-    
-    // Store current selection state
-    const currentSelections = new Set(selectedItems);
-    
-    // Update cart items while preserving selection state
-    setCartItems(updatedItems);
-    
-    // Restore selection state
-    setSelectedItems(currentSelections);
-    
-    // Store voucher discount in localStorage for checkout page
-    localStorage.setItem('voucherDiscount', totalVoucherDiscount.toString());
-    localStorage.setItem('useSellerVouchers', 'true');
-    
-    console.log('Updated cart with voucher discounts:', {
-      totalVoucherDiscount,
-      updatedItemsCount: updatedItems.length,
-      selectedItemsCount: currentSelections.size
-    });
+    // Update the discount state
+    setVoucherDiscount(discount);
   };
 
   // Group cart items by seller
@@ -420,10 +406,6 @@ export default function CartPage() {
   
     // Restore selection state
     setSelectedItems(currentSelections);
-  
-    // Store voucher discount in localStorage for checkout page
-    localStorage.setItem('voucherDiscount', totalVoucherDiscount.toString());
-    localStorage.setItem('useSellerVouchers', 'true');
   };
 
   // Calculate subtotal, discount, and total with memoization

@@ -1,4 +1,4 @@
-import { useState, useEffect } from 'react';
+import { useState, useEffect, useMemo } from 'react';
 import { useRouter } from 'next/navigation';
 import { useCart } from '@/hooks/useCart';
 import { useAuthUser } from '@/hooks/useAuthUser';
@@ -81,6 +81,60 @@ export function useCheckout(): UseCheckoutReturn {
   
 
   
+  // Listen for custom event to reset promo discount
+  const handleSetPromoDiscount = (event: CustomEvent) => {
+    if (event.detail && typeof event.detail.amount === 'number') {
+      setPromoDiscount(event.detail.amount);
+    }
+  };
+  
+  // Listen for vouchers applied event
+  const handleVouchersApplied = () => {
+    if (!useSellerVouchers) {
+      setUseSellerVouchers(true);
+    }
+    
+    // Update voucher discount
+    updateVoucherDiscount();
+  };
+  
+  // Listen for voucher changes event
+  const handleVouchersChanged = () => {
+    // Check if there are any applied vouchers
+    const appliedVouchers = voucherService.getAppliedVouchers();
+    if (Object.keys(appliedVouchers).length === 0) {
+      // No vouchers applied, reset to promo code mode
+      setUseSellerVouchers(false);
+      setVoucherDiscount(0);
+    } else {
+      // Update voucher discount
+      updateVoucherDiscount();
+    }
+  };
+  
+  // Add event listeners for voucher events
+  useEffect(() => {
+    if (typeof window !== 'undefined') {
+      window.addEventListener('vouchersApplied', handleVouchersApplied);
+      window.addEventListener('vouchersChanged', handleVouchersChanged);
+      window.addEventListener('setPromoDiscount', handleSetPromoDiscount as EventListener);
+      window.addEventListener('voucherDiscountCalculated', ((event: CustomEvent) => {
+        if (event.detail && typeof event.detail.amount === 'number') {
+          setVoucherDiscount(event.detail.amount);
+        }
+      }) as EventListener);
+    }
+    
+    return () => {
+      if (typeof window !== 'undefined') {
+        window.removeEventListener('vouchersApplied', handleVouchersApplied);
+        window.removeEventListener('vouchersChanged', handleVouchersChanged);
+        window.removeEventListener('setPromoDiscount', handleSetPromoDiscount as EventListener);
+        window.removeEventListener('voucherDiscountCalculated', (() => {}) as EventListener);
+      }
+    };
+  }, []);
+  
   // Load promo code and voucher settings from localStorage (synced with cart page)
   useEffect(() => {
     if (typeof window !== 'undefined') {
@@ -88,76 +142,46 @@ export function useCheckout(): UseCheckoutReturn {
       const useSellerVouchersStr = localStorage.getItem('useSellerVouchers');
       const useVouchers = useSellerVouchersStr === 'true';
       setUseSellerVouchers(useVouchers);
-      
-      console.log('Checkout: Loading discount settings from localStorage', {
-        useSellerVouchers: useVouchers
-      });
-      
       if (useVouchers) {
-        // Load voucher discount
-        const savedVoucherDiscount = localStorage.getItem('voucherDiscount');
-        if (savedVoucherDiscount) {
-          const discountAmount = Number(savedVoucherDiscount);
-          setVoucherDiscount(discountAmount);
-          console.log('Checkout: Loaded voucher discount', { discountAmount });
+        // Check if there are any applied vouchers
+        const appliedVouchers = voucherService.getAppliedVouchers();
+        if (Object.keys(appliedVouchers).length > 0) {
+          // Load voucher discount
+          const savedVoucherDiscount = localStorage.getItem('voucherDiscount');
+          if (savedVoucherDiscount) {
+            setVoucherDiscount(Number(savedVoucherDiscount));
+          } else {
+            // If no saved discount but vouchers are applied, recalculate
+            updateVoucherDiscount();
+          }
+        } else {
+          // No vouchers applied, reset to promo code mode
+          setUseSellerVouchers(false);
+          voucherService.resetVoucherDiscounts();
         }
       } else {
-        // Load standard promo code
+        // Load promo code and discount
         const savedPromoCode = localStorage.getItem('promoCode');
         const savedPromoDiscount = localStorage.getItem('promoDiscount');
-        
+
         if (savedPromoCode) {
           setPromoCode(savedPromoCode);
         }
-        
+
         if (savedPromoDiscount) {
-          const discountAmount = Number(savedPromoDiscount);
-          setPromoDiscount(discountAmount);
-          console.log('Checkout: Loaded promo discount', { discountAmount });
+          setPromoDiscount(Number(savedPromoDiscount));
         }
       }
-      
-      // Listen for custom event to reset promo discount
-      const handleSetPromoDiscount = (event: CustomEvent) => {
-        if (event.detail && typeof event.detail.amount === 'number') {
-          setPromoDiscount(event.detail.amount);
-        }
-      };
-      
-      // Listen for vouchers applied event
-      const handleVouchersApplied = () => {
-        setUseSellerVouchers(true);
-        const savedVoucherDiscount = localStorage.getItem('voucherDiscount');
-        if (savedVoucherDiscount) {
-          const discountAmount = Number(savedVoucherDiscount);
-          setVoucherDiscount(discountAmount);
-          console.log('Checkout: Updated voucher discount from event', { discountAmount });
-        }
-      };
-      
-      window.addEventListener('setPromoDiscount', handleSetPromoDiscount as EventListener);
-      window.addEventListener('vouchersApplied', handleVouchersApplied as EventListener);
-      
-      return () => {
-        window.removeEventListener('setPromoDiscount', handleSetPromoDiscount as EventListener);
-        window.removeEventListener('vouchersApplied', handleVouchersApplied as EventListener);
-      };
     }
   }, []);
-  
+
   // Update voucher discount based on applied vouchers
   const updateVoucherDiscount = () => {
-    // Calculate discount from applied vouchers
-    const discount = voucherService.calculateTotalVoucherDiscount(selectedCartItems);
-    setVoucherDiscount(discount);
-    
-    // Store in localStorage for synchronization with checkout
-    localStorage.setItem('voucherDiscount', discount.toString());
-    localStorage.setItem('useSellerVouchers', 'true');
+    const totalVoucherDiscount = voucherService.calculateTotalVoucherDiscount(selectedCartItems);
+    setVoucherDiscount(totalVoucherDiscount);
+    console.log('Updated voucher discount:', totalVoucherDiscount);
   };
-  
 
-  
   // Custom setPromoCode function that also updates localStorage
   const handlePromoCodeChange = (code: string) => {
     setPromoCode(code);
@@ -167,17 +191,20 @@ export function useCheckout(): UseCheckoutReturn {
       localStorage.removeItem('promoCode');
     }
   };
-  
+
   // Custom setPromoDiscount function that also updates localStorage
   const handlePromoDiscountChange = (amount: number) => {
     setPromoDiscount(amount);
     if (amount > 0) {
       localStorage.setItem('promoDiscount', amount.toString());
+      // When setting a promo discount, ensure we're in promo code mode
+      setUseSellerVouchers(false);
+      localStorage.setItem('useSellerVouchers', 'false');
     } else {
       localStorage.removeItem('promoDiscount');
     }
   };
-  
+
   // Create a default address from user profile
   const defaultAddress = {
     id: 0,
@@ -188,11 +215,11 @@ export function useCheckout(): UseCheckoutReturn {
     city: user?.city || 'Green District',
     postalCode: user?.zip_code || '12345'
   };
-  
+
   // Initialize saved addresses with the default address
   const [savedAddresses, setSavedAddresses] = useState([defaultAddress]);
   const [selectedAddress, setSelectedAddress] = useState(defaultAddress);
-  
+
   // State for new address form
   const [newAddress, setNewAddress] = useState({
     id: Date.now(),
@@ -203,15 +230,15 @@ export function useCheckout(): UseCheckoutReturn {
     city: user?.city || '',
     postalCode: user?.zip_code || ''
   });
-  
+
   // State for eco-friendly packaging options
   const [ecoPackaging, setEcoPackaging] = useState<Record<string | number, boolean>>({});
-  
+
   // State for product notes
   const [productNotes, setProductNotes] = useState<Record<string | number, string>>({});
   const [carbonOffset, setCarbonOffset] = useState(false);
   const [paymentMethod, setPaymentMethod] = useState<'balance' | 'cod'>('balance');
-  
+
   // Update default address and selected address when user data changes
   useEffect(() => {
     if (user) {
@@ -224,40 +251,40 @@ export function useCheckout(): UseCheckoutReturn {
         city: user.city,
         postalCode: user.zip_code
       };
-      
+
       // Update the default address in the saved addresses list
       setSavedAddresses(prev => {
         const filtered = prev.filter(addr => addr.id !== 0);
         return [updatedDefaultAddress, ...filtered];
       });
-      
+
       // If the currently selected address is the default address (id=0), update it
       if (selectedAddress.id === 0) {
         setSelectedAddress(updatedDefaultAddress);
       }
     }
   }, [user]);
-  
+
   // Filter cart items based on selected items
   const selectedCartItems = cartItems.filter(item => selectedItems.has(item.id));
-  
+
   // Recalculate voucher discount when selected cart items change
   useEffect(() => {
     if (useSellerVouchers && selectedCartItems.length > 0) {
       // Calculate discount from applied vouchers
       const discount = voucherService.calculateTotalVoucherDiscount(selectedCartItems);
-      
+
       // Only update if the discount has changed
       if (discount !== voucherDiscount) {
         setVoucherDiscount(discount);
-        
+
         // Apply vouchers to cart items
         const updatedItems = voucherService.applyAllVouchersToCartItems(selectedCartItems);
-        
+
         // Store in localStorage for synchronization with checkout
         localStorage.setItem('voucherDiscount', discount.toString());
         localStorage.setItem('useSellerVouchers', 'true');
-        
+
         // Log to verify discount is being calculated correctly
         console.log('Checkout: Voucher discount recalculated', {
           discount,
@@ -268,40 +295,40 @@ export function useCheckout(): UseCheckoutReturn {
       }
     }
   }, [selectedCartItems, useSellerVouchers, voucherDiscount]);
-  
+
   // Helper function to group cart items by seller
   const groupItemsBySeller = (items: CartItemWithDetails[]) => {
     const grouped: Record<string, CartItemWithDetails[]> = {};
-    
+
     items.forEach(item => {
       // Try to get seller ID from different possible locations
       // Using type assertions to handle potential missing properties
-      const sellerId = item.product?.vendor_id || 
-                       item.vendor_id || 
-                       (item.product && 'vendor_name' in item.product ? `vendor_${(item.product as any).vendor_name}` : null) ||
-                       ('vendor_name' in item ? `vendor_${(item as any).vendor_name}` : null) ||
-                       'unknown';
-      
+      const sellerId = item.product?.vendor_id ||
+        item.vendor_id ||
+        (item.product && 'vendor_name' in item.product ? `vendor_${(item.product as any).vendor_name}` : null) ||
+        ('vendor_name' in item ? `vendor_${(item as any).vendor_name}` : null) ||
+        'unknown';
+
       if (!grouped[sellerId]) {
         grouped[sellerId] = [];
       }
-      
+
       grouped[sellerId].push(item);
     });
-    
+
     return grouped;
   };
-  
+
   // Initialize eco-packaging state based on selected items grouped by seller
   useEffect(() => {
     if (selectedCartItems.length > 0) {
       // Group items by seller
       const grouped = groupItemsBySeller(selectedCartItems);
-      
+
       // Check if we need to update the eco-packaging state
       let needsUpdate = false;
       const newEcoPackaging = { ...ecoPackaging };
-      
+
       // Add missing sellers to eco-packaging state
       Object.keys(grouped).forEach(sellerId => {
         if (ecoPackaging[sellerId] === undefined) {
@@ -309,7 +336,7 @@ export function useCheckout(): UseCheckoutReturn {
           needsUpdate = true;
         }
       });
-      
+
       // Remove sellers that are no longer in the cart
       Object.keys(ecoPackaging).forEach(sellerId => {
         if (!grouped[sellerId]) {
@@ -317,7 +344,7 @@ export function useCheckout(): UseCheckoutReturn {
           needsUpdate = true;
         }
       });
-      
+
       // Only update state if needed to avoid infinite loops
       if (needsUpdate) {
         console.log('Updating eco-packaging state by seller:', newEcoPackaging);
@@ -328,21 +355,37 @@ export function useCheckout(): UseCheckoutReturn {
       setEcoPackaging({});
     }
   }, [selectedCartItems, ecoPackaging]);
-  
+
   // Calculate totals
   const subtotal = calculateSubtotal(selectedCartItems);
-  
+
   // Calculate subtotal and total
   const ecoPackagingCost = Object.values(ecoPackaging).filter(Boolean).length * 5000; // 5000 per item
   const carbonOffsetCost = carbonOffset ? 3800 : 0; // 3800 for carbon offset
-  
+
   // Determine which discount to apply (voucher or promo code)
-  const discount = useSellerVouchers ? voucherDiscount : promoDiscount;
-  
+  const discount = useMemo(() => {
+    // If using seller vouchers and there are applied vouchers, use voucher discount
+    if (useSellerVouchers) {
+      const appliedVouchers = voucherService.getAppliedVouchers();
+      if (Object.keys(appliedVouchers).length > 0) {
+        return voucherDiscount;
+      } else {
+        // No vouchers applied, reset to promo code mode
+        if (voucherDiscount > 0) {
+          setVoucherDiscount(0);
+        }
+        return promoDiscount;
+      }
+    } else {
+      return promoDiscount;
+    }
+  }, [useSellerVouchers, voucherDiscount, promoDiscount]);
+
   // Ensure discount is properly applied
   const discountedSubtotal = Math.max(0, subtotal - discount);
   const total = discountedSubtotal + ecoPackagingCost + carbonOffsetCost;
-  
+
   // Log the calculation for debugging
   console.log('Checkout calculation:', {
     subtotal,

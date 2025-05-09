@@ -6,9 +6,12 @@
  * to products from specific vendors.
  * 
  * Supports applying multiple vouchers from different sellers simultaneously.
+ * 
+ * IMPROVED VERSION: Fixed issues with voucher removal and price reset
  */
 
 import { Product } from '@/types';
+import { toast } from 'react-hot-toast';
 
 // Voucher types
 export interface Voucher {
@@ -28,6 +31,9 @@ export interface Voucher {
 // Storage keys for vouchers
 const VOUCHERS_STORAGE_KEY = 'bumibrew_vouchers';
 const APPLIED_VOUCHERS_KEY = 'bumibrew_applied_vouchers';
+const VOUCHER_DISCOUNT_KEY = 'voucherDiscount';
+const USE_SELLER_VOUCHERS_KEY = 'useSellerVouchers';
+const VOUCHER_DISCOUNT_DETAILS_KEY = 'voucherDiscountDetails';
 
 // Get all vouchers from localStorage
 export const getAllVouchers = (): Voucher[] => {
@@ -332,22 +338,71 @@ export const applyVoucherForVendor = (vendorId: string | number, voucherCode: st
 
 // Remove a voucher for a specific vendor
 export const removeVoucherForVendor = (vendorId: string | number): boolean => {
-  const normalizedVendorId = typeof vendorId === 'string' ? 
-    vendorId : vendorId.toString();
+  try {
+    const appliedVouchers = getAppliedVouchers();
+    
+    // Check if there's a voucher applied for this vendor
+    if (!appliedVouchers[vendorId]) {
+      return false;
+    }
+    
+    // Get the voucher that's being removed for logging
+    const voucherId = appliedVouchers[vendorId];
+    const allVouchers = getAllVouchers();
+    const voucher = allVouchers.find(v => v.id === voucherId);
+    
+    // Remove the voucher
+    delete appliedVouchers[vendorId];
+    
+    // Save to localStorage
+    localStorage.setItem(APPLIED_VOUCHERS_KEY, JSON.stringify(appliedVouchers));
+    
+    // Reset discount calculations if this was the last voucher
+    if (Object.keys(appliedVouchers).length === 0) {
+      resetVoucherDiscounts();
+    } else {
+      // Recalculate discounts with remaining vouchers
+      try {
+        const cartItems = JSON.parse(localStorage.getItem('cartItems') || '[]');
+        calculateTotalVoucherDiscount(cartItems);
+      } catch (e) {
+        console.error('Error recalculating voucher discounts:', e);
+        resetVoucherDiscounts();
+      }
+    }
+    
+    // Notify about voucher removal
+    if (voucher) {
+      toast.success(`Removed ${voucher.code} voucher`);
+    } else {
+      toast.success('Removed voucher');
+    }
+    
+    // Dispatch event to notify components that vouchers have changed
+    if (typeof window !== 'undefined') {
+      window.dispatchEvent(new CustomEvent('vouchersChanged'));
+    }
+    
+    return true;
+  } catch (error) {
+    console.error('Error removing voucher:', error);
+    resetVoucherDiscounts(); // Safety reset on error
+    return false;
+  }
+};
+
+// Reset all voucher discount data in localStorage
+export const resetVoucherDiscounts = (): void => {
+  localStorage.removeItem(VOUCHER_DISCOUNT_KEY);
+  localStorage.removeItem(USE_SELLER_VOUCHERS_KEY);
+  localStorage.removeItem(VOUCHER_DISCOUNT_DETAILS_KEY);
   
-  // Get current applied vouchers
-  const appliedVouchers = getAppliedVouchers();
-  
-  // Check if this vendor has an applied voucher
-  if (!appliedVouchers[normalizedVendorId]) return false;
-  
-  // Remove the voucher for this vendor
-  delete appliedVouchers[normalizedVendorId];
-  
-  // Save to localStorage
-  localStorage.setItem(APPLIED_VOUCHERS_KEY, JSON.stringify(appliedVouchers));
-  
-  return true;
+  // Dispatch event to notify components that voucher discounts have been reset
+  if (typeof window !== 'undefined') {
+    window.dispatchEvent(new CustomEvent('voucherDiscountCalculated', {
+      detail: { amount: 0, details: {} }
+    }));
+  }
 };
 
 // Clear all applied vouchers
@@ -428,45 +483,48 @@ export const applyAllVouchersToCartItems = (cartItems: any[]): any[] => {
   });
 };
 
-// Calculate total discount from all applied vouchers for cart items
+// Calculate total discount from all applied vouchers
 export const calculateTotalVoucherDiscount = (cartItems: any[]): number => {
   const appliedVouchers = getAppliedVouchers();
   const allVouchers = getAllVouchers();
   
-  // If no applied vouchers, return 0
-  if (Object.keys(appliedVouchers).length === 0) return 0;
+  // If no applied vouchers, reset all voucher data and return 0
+  if (Object.keys(appliedVouchers).length === 0) {
+    console.log('No applied vouchers found, resetting voucher data');
+    resetVoucherDiscounts();
+    return 0;
+  }
   
   // Group cart items by vendor
   const itemsByVendor: {[vendorId: string]: any[]} = {};
-  
   cartItems.forEach(item => {
     const vendorId = typeof item.vendor_id === 'string' ? 
       item.vendor_id : item.vendor_id?.toString();
-    
     if (!vendorId) return;
-    
     if (!itemsByVendor[vendorId]) {
       itemsByVendor[vendorId] = [];
     }
-    
     itemsByVendor[vendorId].push(item);
   });
   
-  let totalDiscount = 0;
-  let discountDetails: {[vendorId: string]: {subtotal: number, discount: number}} = {};
-  
   // Calculate discount for each vendor
+  let totalDiscount = 0;
+  let discountDetails: {[vendorId: string]: number} = {};
+  
   Object.entries(itemsByVendor).forEach(([vendorId, items]) => {
     if (!appliedVouchers[vendorId]) return;
     
     const voucherId = appliedVouchers[vendorId];
     const voucher = allVouchers.find(v => v.id === voucherId);
     
-    if (!voucher || !isVoucherValid(voucher)) return;
+    if (!voucher || !isVoucherValid(voucher)) {
+      // Remove invalid vouchers automatically
+      removeVoucherForVendor(vendorId);
+      return;
+    }
     
     // Calculate applicable subtotal for this vendor
     let applicableSubtotal = 0;
-    
     items.forEach(item => {
       // Check if product-specific voucher applies to this item
       if (voucher.productIds && voucher.productIds.length > 0) {
@@ -476,14 +534,20 @@ export const calculateTotalVoucherDiscount = (cartItems: any[]): number => {
         if (!voucher.productIds.includes(productId)) return;
       }
       
-      // Add to applicable subtotal
-      const price = item.price || 0;
-      const quantity = item.quantity || 1;
+      // Try to get price from different possible properties
+      const price = Number(item.price || 
+                        (item.product && item.product.price) || 
+                        item.unit_price || 0);
+      const quantity = Number(item.quantity || 1);
       applicableSubtotal += price * quantity;
     });
     
     // Check minimum purchase requirement
-    if (voucher.minPurchase && applicableSubtotal < voucher.minPurchase) return;
+    if (voucher.minPurchase && applicableSubtotal < voucher.minPurchase) {
+      console.log(`Minimum purchase requirement not met for voucher ${voucher.code}`);
+      discountDetails[vendorId] = 0;
+      return;
+    }
     
     // Calculate discount
     let discountAmount = Math.round(applicableSubtotal * (voucher.discountPercentage / 100));
@@ -493,26 +557,35 @@ export const calculateTotalVoucherDiscount = (cartItems: any[]): number => {
       discountAmount = voucher.maxDiscount;
     }
     
-    // Store discount details for logging
-    discountDetails[vendorId] = {
-      subtotal: applicableSubtotal,
-      discount: discountAmount
-    };
-    
     totalDiscount += discountAmount;
+    discountDetails[vendorId] = discountAmount;
   });
   
-  // Log detailed discount calculation for debugging
-  console.log('Voucher discount calculation:', {
-    appliedVouchers,
-    discountDetails,
-    totalDiscount
-  });
+  // Store the total discount in localStorage for persistence between pages
+  if (typeof window !== 'undefined') {
+    localStorage.setItem(VOUCHER_DISCOUNT_KEY, totalDiscount.toString());
+    localStorage.setItem(USE_SELLER_VOUCHERS_KEY, 'true');
+    localStorage.setItem(VOUCHER_DISCOUNT_DETAILS_KEY, JSON.stringify(discountDetails));
+    
+    // Log detailed discount calculation for debugging
+    console.log('Voucher discount calculation:', {
+      totalDiscount,
+      discountDetails,
+      appliedVouchers,
+      cartItemCount: cartItems.length,
+      vendorCount: Object.keys(itemsByVendor).length
+    });
+    
+    // Dispatch an event to notify that voucher discounts have been calculated
+    window.dispatchEvent(new CustomEvent('voucherDiscountCalculated', {
+      detail: { amount: totalDiscount, details: discountDetails }
+    }));
+  }
   
   return totalDiscount;
 };
 
-export default {
+const voucherService = {
   getAllVouchers,
   getVendorVouchers,
   createVoucher,
@@ -528,6 +601,9 @@ export default {
   applyVoucherForVendor,
   removeVoucherForVendor,
   clearAppliedVouchers,
+  resetVoucherDiscounts,
   applyAllVouchersToCartItems,
   calculateTotalVoucherDiscount
 };
+
+export default voucherService;
