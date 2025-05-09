@@ -8,6 +8,7 @@ import categoryService from './categories';
 import orderService from './orders';
 import cartService from './cart';
 import feedbackService from './feedback';
+import apiVoucherService from './vouchers';
 import { API_CONFIG } from './config';
 
 // Export all API services
@@ -19,6 +20,7 @@ export {
   orderService,
   cartService,
   feedbackService,
+  apiVoucherService,
   API_CONFIG
 };
 
@@ -30,6 +32,7 @@ export default {
   orders: orderService,
   cart: cartService,
   feedback: feedbackService,
+  vouchers: apiVoucherService,
   config: API_CONFIG,
   axios: axiosInstance
 };

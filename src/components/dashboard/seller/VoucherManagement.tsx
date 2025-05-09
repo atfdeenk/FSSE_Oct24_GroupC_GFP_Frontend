@@ -362,7 +362,7 @@ export default function VoucherManagement() {
     }
   };
 
-  // Reset form
+  // Reset form and close it
   const resetForm = () => {
     setFormData({
       code: '',
@@ -379,6 +379,7 @@ export default function VoucherManagement() {
     });
     setEditingVoucher(null);
     setSelectedProductIds([]);
+    setShowForm(false); // Close the form
   };
 
   // Filter vouchers based on search term and status

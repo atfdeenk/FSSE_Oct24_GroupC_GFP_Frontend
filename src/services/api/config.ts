@@ -94,6 +94,16 @@ export const API_CONFIG = {
       detail: (id: string | number) => `/topup-requests/${id}`,
       approve: (id: string | number) => `/request-topup/${id}/approve`,
       reject: (id: string | number) => `/request-topup/${id}/reject`
+    },
+    
+    // Voucher endpoints
+    vouchers: {
+      list: '/vouchers',  // GET for retrieving all vouchers
+      detail: (id: string | number) => `/vouchers/${id}`,  // GET, PUT, DELETE for specific voucher
+      create: '/vouchers',  // POST to create a new voucher
+      update: (id: string | number) => `/vouchers/${id}`,  // PUT to update a voucher
+      delete: (id: string | number) => `/vouchers/${id}`,  // DELETE to remove a voucher
+      deactivate: (id: string | number) => `/vouchers/${id}/deactivate`  // PUT to deactivate a voucher
     }
   }
 };
