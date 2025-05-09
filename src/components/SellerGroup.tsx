@@ -107,6 +107,38 @@ const SellerGroup: React.FC<SellerGroupProps> = ({
                     return;
                   }
                   
+                  // Check if this vendor already has an applied voucher
+                  const appliedVouchers = voucherService.getAppliedVouchers();
+                  const alreadyAppliedVoucherId = appliedVouchers[vendorId];
+                  
+                  if (alreadyAppliedVoucherId) {
+                    // Get the already applied voucher details
+                    const allVouchers = voucherService.getAllVouchers();
+                    const appliedVoucher = allVouchers.find(v => v.id === alreadyAppliedVoucherId);
+                    
+                    if (appliedVoucher && appliedVoucher.code === voucher.code) {
+                      // The same voucher is already applied
+                      toast(`Voucher ${voucher.code} is already applied to ${seller}`, {
+                        icon: '🔔',
+                        style: {
+                          background: '#3b82f6',
+                          color: 'white',
+                        },
+                      });
+                      return;
+                    } else if (appliedVoucher) {
+                      // A different voucher is already applied
+                      toast(`Another voucher (${appliedVoucher.code}) is already applied to ${seller}. Remove it first to apply a different voucher.`, {
+                        icon: '🔔',
+                        style: {
+                          background: '#3b82f6',
+                          color: 'white',
+                        },
+                      });
+                      return;
+                    }
+                  }
+                  
                   // Apply the voucher directly
                   const success = voucherService.applyVoucherForVendor(vendorId, voucher.code);
                   

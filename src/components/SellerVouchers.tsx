@@ -246,6 +246,28 @@ export default function SellerVouchers({ cartItems, onVouchersApplied }: SellerV
                               key={voucher.id}
                               className="bg-neutral-700 border border-white/10 p-2 rounded-md cursor-pointer hover:bg-neutral-600 transition-colors"
                               onClick={() => {
+                                // Check if this vendor already has an applied voucher
+                                const currentAppliedVouchers = voucherService.getAppliedVouchers();
+                                const alreadyAppliedVoucherId = currentAppliedVouchers[vendorId];
+                                
+                                if (alreadyAppliedVoucherId) {
+                                  // Get the already applied voucher details
+                                  const allVouchers = voucherService.getAllVouchers();
+                                  const appliedVoucher = allVouchers.find(v => v.id === alreadyAppliedVoucherId);
+                                  
+                                  if (appliedVoucher && appliedVoucher.code === voucher.code) {
+                                    // The same voucher is already applied
+                                    toast(`Voucher ${voucher.code} is already applied to ${sellerGroups[vendorId]?.sellerName}`, {
+                                      icon: '🔔',
+                                      style: {
+                                        background: '#3b82f6',
+                                        color: 'white',
+                                      },
+                                    });
+                                    return;
+                                  }
+                                }
+                                
                                 // Apply voucher directly when clicked
                                 const success = voucherService.applyVoucherForVendor(vendorId, voucher.code);
                                 
