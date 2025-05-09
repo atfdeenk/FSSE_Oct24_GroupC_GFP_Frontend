@@ -151,13 +151,21 @@ export default function ProductsPage() {
   useEffect(() => {
     const fetchCategories = async () => {
       try {
-        const res = await categoryService.getCategories() as CategoriesResponse;
-        if (Array.isArray(res)) {
+        const res = await categoryService.getCategories();
+        console.log('Categories response:', res);
+        
+        // Handle the response structure with categories array
+        if (res && res.categories && Array.isArray(res.categories)) {
+          setCategories(res.categories.map((c: any) => ({ id: c.id, name: c.name })));
+        } else if (Array.isArray(res)) {
+          // Fallback for direct array response
           setCategories(res.map((c: any) => ({ id: c.id, name: c.name })));
         } else {
+          console.error('Unexpected categories response format:', res);
           setCategories([]);
         }
       } catch (e) {
+        console.error('Error fetching categories:', e);
         setCategories([]);
       }
     };

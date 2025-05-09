@@ -101,8 +101,12 @@ export interface Category {
 // The API returns a category object directly, not wrapped in a response object
 export interface CategoryResponse extends Category {}
 
-// The API returns an array of categories directly
-export type CategoriesResponse = Category[];
+// The API returns categories in a nested structure
+export interface CategoriesResponse {
+  categories: Category[];
+  count: number;
+  msg: string;
+}
 
 // Product types
 export interface Product {

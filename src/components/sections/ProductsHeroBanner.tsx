@@ -4,7 +4,7 @@
 import React from "react";
 
 const ProductsHeroBanner: React.FC = () => (
-  <div className="w-full bg-black relative overflow-hidden pt-20 px-1">
+  <div className="w-full bg-black relative overflow-hidden pt-20 px-1" style={{ zIndex: 0 }}>
     <div className="absolute inset-0 bg-[url('/coffee-beans-dark.jpg')] bg-cover bg-center opacity-20"></div>
     <div className="absolute inset-0 bg-gradient-to-b from-black via-transparent to-black"></div>
 

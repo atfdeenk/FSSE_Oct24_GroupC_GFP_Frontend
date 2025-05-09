@@ -68,7 +68,7 @@ const UnifiedProductControls: React.FC<UnifiedProductControlsProps> = ({
       </svg>
     </div>
     {/* Category filter */}
-    <div className="relative w-full md:w-48">
+    <div className="relative w-full md:w-48" style={{ zIndex: 20 }}>
       <select
         className="w-full appearance-none bg-black/50 border border-white/10 rounded-sm px-4 py-3 focus:outline-none focus:border-amber-500/50 text-white disabled:opacity-50"
         value={selectedCategory}
