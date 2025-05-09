@@ -3,7 +3,8 @@
 import { useState } from 'react';
 import Link from 'next/link';
 import { useRouter } from 'next/navigation';
-import { AuthUser } from '@/lib/auth';
+import { AuthUser, logout } from '@/lib/auth';
+import { toast } from 'react-hot-toast';
 
 interface SellerDashboardTabsProps {
   activeTab: string;
@@ -85,7 +86,7 @@ export default function SellerDashboardTabs({
         ))}
       </nav>
 
-      <div className="mt-6 pt-6 border-t border-white/10">
+      <div className="mt-6 pt-6 border-t border-white/10 space-y-2">
         <Link
           href="/"
           className="w-full flex items-center px-4 py-3 text-sm font-medium rounded-md text-white/70 hover:bg-white/5 hover:text-white transition-colors"
@@ -95,6 +96,20 @@ export default function SellerDashboardTabs({
           </svg>
           Back to Store
         </Link>
+        
+        <button
+          onClick={() => {
+            logout();
+            toast.success('You have been signed out');
+            router.push('/');
+          }}
+          className="w-full flex items-center px-4 py-3 text-sm font-medium rounded-md text-red-400 hover:bg-red-500/10 hover:text-red-300 transition-colors"
+        >
+          <svg className="w-5 h-5 mr-3" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+            <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={1.5} d="M17 16l4-4m0 0l-4-4m4 4H7m6 4v1a3 3 0 01-3 3H6a3 3 0 01-3-3V7a3 3 0 013-3h4a3 3 0 013 3v1" />
+          </svg>
+          Sign Out
+        </button>
       </div>
     </div>
   );
