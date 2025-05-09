@@ -288,7 +288,7 @@ const productService = {
   },
 
   // Get featured products
-  getFeaturedProducts: async (limit = 6) => {
+  getFeaturedProducts: async (limit = 1000) => {
     try {
       const response = await axiosInstance.get<ProductsResponse>(
         API_CONFIG.ENDPOINTS.products.list,
@@ -302,7 +302,7 @@ const productService = {
   },
 
   // Get flash sale products
-  getFlashSaleProducts: async (limit = 6) => {
+  getFlashSaleProducts: async (limit = 1000) => {
     try {
       const response = await axiosInstance.get<ProductsResponse>(
         API_CONFIG.ENDPOINTS.products.list,
@@ -316,7 +316,7 @@ const productService = {
   },
 
   // Get products by category
-  getProductsByCategory: async (categoryId: number | string, page = 1, limit = 12) => {
+  getProductsByCategory: async (categoryId: number | string, page = 1, limit = 1000) => {
     try {
       const response = await axiosInstance.get<ProductsResponse>(
         API_CONFIG.ENDPOINTS.products.list,

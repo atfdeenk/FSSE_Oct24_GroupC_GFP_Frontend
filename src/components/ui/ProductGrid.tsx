@@ -9,10 +9,11 @@ interface ProductGridProps {
   loading: boolean;
   loadingMessage?: string;
   children?: React.ReactNode; // For optional empty overlays
+  className?: string; // Custom class name for grid layout
 }
 
-const ProductGrid: React.FC<ProductGridProps> = ({ products, loading, loadingMessage, children }) => (
-  <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4 gap-6 min-h-[40vh] relative">
+const ProductGrid: React.FC<ProductGridProps> = ({ products, loading, loadingMessage, children, className }) => (
+  <div className={`grid ${className || 'grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4 gap-6'} min-h-[40vh] relative`}>
     {loading && products.length === 0 && <LoadingOverlay message={loadingMessage || "Fetching products..."} />}
     {products.length === 0 && !loading && (
       <div className="col-span-full flex flex-col items-center justify-center min-h-[40vh]">

@@ -26,6 +26,7 @@ interface UnifiedProductControlsProps {
   onPrev: () => void;
   onNext: () => void;
   onLast: () => void;
+  onClearFilters?: () => void;
 }
 
 const UnifiedProductControls: React.FC<UnifiedProductControlsProps> = ({
@@ -48,8 +49,10 @@ const UnifiedProductControls: React.FC<UnifiedProductControlsProps> = ({
   onPrev,
   onNext,
   onLast,
+  onClearFilters
 }) => (
-  <div className="flex flex-col md:flex-row md:items-center md:space-x-4 space-y-4 md:space-y-0 mb-8 w-full">
+  <div className="flex flex-col space-y-4 mb-8 w-full">
+    <div className="flex flex-col md:flex-row md:items-center md:space-x-4 space-y-4 md:space-y-0 w-full">
     {/* Search input */}
     <div className="relative w-full md:w-56">
       <input
@@ -129,6 +132,23 @@ const UnifiedProductControls: React.FC<UnifiedProductControlsProps> = ({
         className="md:justify-end w-full md:w-auto md:mt-0 mt-4"
       />
     </div>
+    </div>
+    
+    {/* Clear filters button - only show if any filter is active */}
+    {(searchInput || selectedCategory || selectedLocation || sort) && (
+      <div className="flex justify-end">
+        <button
+          onClick={onClearFilters}
+          disabled={loading}
+          className="flex items-center space-x-1.5 text-amber-500 hover:text-amber-400 font-medium text-sm transition-colors duration-200 disabled:opacity-50 disabled:pointer-events-none"
+        >
+          <svg className="w-4 h-4" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+            <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M6 18L18 6M6 6l12 12" />
+          </svg>
+          <span>Clear all filters</span>
+        </button>
+      </div>
+    )}
   </div>
 );
 

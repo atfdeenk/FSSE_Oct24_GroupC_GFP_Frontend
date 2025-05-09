@@ -10,6 +10,7 @@ import { ProductsHeroBanner } from '@/components';
 import useDebounce from '@/hooks/useDebounce';
 import { PaginationControls } from '@/components/ui';
 import { UnifiedProductControls } from '@/components/ui';
+import ScrollableProductRow from '@/components/ui/ScrollableProductRow';
 
 export default function ProductsPage() {
   const [categories, setCategories] = useState<{ id: number | string; name: string }[]>([]);
@@ -17,11 +18,15 @@ export default function ProductsPage() {
   const [selectedCategory, setSelectedCategory] = useState<string>('');
   const [selectedLocation, setSelectedLocation] = useState<string>('');
   const [products, setProducts] = useState<Product[]>([]);
+  const [flashSaleProducts, setFlashSaleProducts] = useState<Product[]>([]);
+  const [featuredProducts, setFeaturedProducts] = useState<Product[]>([]);
   const [error, setError] = useState('');
   const [searchInput, setSearchInput] = useState('');
   const [sort, setSort] = useState('');
   const [page, setPage] = useState(1);
   const [loading, setLoading] = useState(false);
+  const [flashSaleLoading, setFlashSaleLoading] = useState(true);
+  const [featuredLoading, setFeaturedLoading] = useState(true);
   const [totalProducts, setTotalProducts] = useState(0);
   const [totalPages, setTotalPages] = useState(1);
   type LoadingReason = 'search' | 'sort' | 'pagination' | 'filter' | 'initial';
@@ -132,6 +137,15 @@ export default function ProductsPage() {
   useEffect(() => {
     setPage(1);
   }, [debouncedSearch, selectedCategory, selectedLocation]);
+  
+  // Handle clearing all filters
+  const handleClearFilters = () => {
+    setSearchInput('');
+    setSelectedCategory('');
+    setSelectedLocation('');
+    setSort('');
+    setPage(1);
+  };
 
   // Fetch categories on mount
   useEffect(() => {
@@ -149,6 +163,40 @@ export default function ProductsPage() {
     };
     fetchCategories();
   }, []);
+  
+  // Fetch all products for flash sale and featured sections
+  useEffect(() => {
+    const fetchSpecialProducts = async () => {
+      setFlashSaleLoading(true);
+      setFeaturedLoading(true);
+      try {
+        // Get all products with a higher limit
+        const response = await productService.getProducts({ limit: 100 });
+        if (response && response.products) {
+          // Client-side filtering for flash sale products
+          const flashSaleItems = response.products
+            .filter(product => product.flash_sale === true)
+            .slice(0, 4);
+          setFlashSaleProducts(flashSaleItems);
+          
+          // Client-side filtering for featured products
+          const featuredItems = response.products
+            .filter(product => product.featured === true)
+            .slice(0, 4);
+          setFeaturedProducts(featuredItems);
+          
+          console.log('Flash sale products:', flashSaleItems.length);
+          console.log('Featured products:', featuredItems.length);
+        }
+      } catch (error) {
+        console.error('Error fetching special products:', error);
+      } finally {
+        setFlashSaleLoading(false);
+        setFeaturedLoading(false);
+      }
+    };
+    fetchSpecialProducts();
+  }, []);
 
   return (
     <div className="min-h-screen bg-black text-white">
@@ -158,6 +206,40 @@ export default function ProductsPage() {
 
       {/* Main content */}
       <div className="max-w-6xl mx-auto px-6 py-12">
+        {/* Flash Sale Section */}
+        {(flashSaleProducts.length > 0 || flashSaleLoading) && (
+          <div className="mb-12">
+            <div className="flex items-center mb-6">
+              <h2 className="text-2xl font-bold text-white">Flash Sale</h2>
+              <span className="ml-3 bg-red-600 text-white text-xs font-bold px-2 py-1 rounded-full animate-pulse">
+                HOT DEALS
+              </span>
+            </div>
+            <ScrollableProductRow 
+              products={flashSaleProducts} 
+              loading={flashSaleLoading}
+              loadingMessage="Loading flash sale products..."
+            />
+          </div>
+        )}
+        
+        {/* Featured Products Section */}
+        {(featuredProducts.length > 0 || featuredLoading) && (
+          <div className="mb-12">
+            <div className="flex items-center mb-6">
+              <h2 className="text-2xl font-bold text-white">Featured Products</h2>
+              <span className="ml-3 bg-amber-600 text-white text-xs font-bold px-2 py-1 rounded-full">
+                RECOMMENDED
+              </span>
+            </div>
+            <ScrollableProductRow 
+              products={featuredProducts} 
+              loading={featuredLoading}
+              loadingMessage="Loading featured products..."
+            />
+          </div>
+        )}
+        
         {/* Unified controls row as component */}
         <UnifiedProductControls
           searchInput={searchInput}
@@ -177,9 +259,11 @@ export default function ProductsPage() {
           totalProducts={totalProducts}
           onFirst={() => setPage(1)}
           onPrev={() => setPage(p => Math.max(1, p - 1))}
-          onNext={() => setPage(p => p + 1)}
+          onNext={() => setPage(p => Math.min(totalPages, p + 1))}
           onLast={() => setPage(totalPages)}
+          onClearFilters={handleClearFilters}
         />
+        
         {error && (
           <div className="bg-red-900/20 border border-red-500/50 text-red-400 px-4 py-3 rounded-sm mb-8 text-center">{error}</div>
         )}
@@ -216,7 +300,7 @@ export default function ProductsPage() {
             loading={loading}
             onFirst={() => setPage(1)}
             onPrev={() => setPage(p => Math.max(1, p - 1))}
-            onNext={() => setPage(p => p + 1)}
+            onNext={() => setPage(p => Math.min(totalPages, p + 1))}
             onLast={() => setPage(totalPages)}
           />
         )}
