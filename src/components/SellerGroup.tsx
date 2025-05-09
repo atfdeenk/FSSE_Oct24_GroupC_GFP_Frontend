@@ -143,17 +143,15 @@ const SellerGroup: React.FC<SellerGroupProps> = ({
                   const success = voucherService.applyVoucherForVendor(vendorId, voucher.code);
                   
                   if (success) {
-                    // Calculate and store the updated voucher discount
-                    const discount = voucherService.calculateTotalVoucherDiscount(items);
-                    localStorage.setItem('voucherDiscount', discount.toString());
-                    localStorage.setItem('useSellerVouchers', 'true');
-                    
                     // Show success toast
                     toast.success(`Applied ${voucher.discountPercentage}% discount for ${seller}`);
                     
                     // Dispatch a custom event to notify the cart page that vouchers have been applied
                     const event = new CustomEvent('vouchersApplied');
                     window.dispatchEvent(event);
+                    
+                    // Force a page refresh to ensure cart state is updated correctly
+                    window.location.reload();
                   } else {
                     toast.error('Failed to apply voucher');
                   }

@@ -117,9 +117,28 @@ export default function CartPage() {
     }
     
     // Add event listener for vouchers applied from SellerGroup component
-    const handleVouchersApplied = () => {
+    const handleVouchersApplied = (event: Event) => {
       setUseSellerVouchers(true);
-      updateVoucherDiscount();
+      
+      // Store current selections before updating
+      const currentSelections = new Set(selectedItems);
+      
+      // Update voucher discount
+      const totalVoucherDiscount = voucherService.calculateTotalVoucherDiscount(cartItems);
+      setVoucherDiscount(totalVoucherDiscount);
+      
+      // Apply vouchers to cart items without losing selection state
+      const updatedItems = voucherService.applyAllVouchersToCartItems(cartItems);
+      
+      // Update cart items
+      setCartItems(updatedItems);
+      
+      // Restore selection state
+      setSelectedItems(currentSelections);
+      
+      // Store voucher discount in localStorage for checkout page
+      localStorage.setItem('voucherDiscount', totalVoucherDiscount.toString());
+      localStorage.setItem('useSellerVouchers', 'true');
     };
     
     window.addEventListener('vouchersApplied', handleVouchersApplied);
