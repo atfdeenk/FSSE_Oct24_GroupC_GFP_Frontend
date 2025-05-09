@@ -4,6 +4,8 @@
  * Since there's no dedicated endpoint for vouchers, this service
  * manages vouchers locally using localStorage and applies discounts
  * to products from specific vendors.
+ * 
+ * Supports applying multiple vouchers from different sellers simultaneously.
  */
 
 import { Product } from '@/types';
@@ -23,8 +25,9 @@ export interface Voucher {
   createdAt: Date;
 }
 
-// Storage key for vouchers
+// Storage keys for vouchers
 const VOUCHERS_STORAGE_KEY = 'bumibrew_vouchers';
+const APPLIED_VOUCHERS_KEY = 'bumibrew_applied_vouchers';
 
 // Get all vouchers from localStorage
 export const getAllVouchers = (): Voucher[] => {
@@ -240,6 +243,191 @@ export const generateVoucherCode = (prefix = 'BUMI'): string => {
   return `${prefix}${randomPart}`;
 };
 
+// Get all currently applied vouchers
+export const getAppliedVouchers = (): {[vendorId: string]: string} => {
+  try {
+    const appliedVouchersJson = localStorage.getItem(APPLIED_VOUCHERS_KEY);
+    if (!appliedVouchersJson) return {};
+    
+    return JSON.parse(appliedVouchersJson);
+  } catch (error) {
+    console.error('Error getting applied vouchers:', error);
+    return {};
+  }
+};
+
+// Apply a voucher for a specific vendor
+export const applyVoucherForVendor = (vendorId: string | number, voucherCode: string): boolean => {
+  const voucher = getVoucherByCode(voucherCode);
+  if (!voucher || !isVoucherValid(voucher)) return false;
+  
+  // Check if this voucher belongs to the specified vendor
+  const voucherVendorId = typeof voucher.vendorId === 'string' ? 
+    voucher.vendorId : voucher.vendorId.toString();
+  const normalizedVendorId = typeof vendorId === 'string' ? 
+    vendorId : vendorId.toString();
+    
+  if (voucherVendorId !== normalizedVendorId) return false;
+  
+  // Get current applied vouchers
+  const appliedVouchers = getAppliedVouchers();
+  
+  // Add or update the voucher for this vendor
+  appliedVouchers[normalizedVendorId] = voucher.id;
+  
+  // Save to localStorage
+  localStorage.setItem(APPLIED_VOUCHERS_KEY, JSON.stringify(appliedVouchers));
+  
+  return true;
+};
+
+// Remove a voucher for a specific vendor
+export const removeVoucherForVendor = (vendorId: string | number): boolean => {
+  const normalizedVendorId = typeof vendorId === 'string' ? 
+    vendorId : vendorId.toString();
+  
+  // Get current applied vouchers
+  const appliedVouchers = getAppliedVouchers();
+  
+  // Check if this vendor has an applied voucher
+  if (!appliedVouchers[normalizedVendorId]) return false;
+  
+  // Remove the voucher for this vendor
+  delete appliedVouchers[normalizedVendorId];
+  
+  // Save to localStorage
+  localStorage.setItem(APPLIED_VOUCHERS_KEY, JSON.stringify(appliedVouchers));
+  
+  return true;
+};
+
+// Clear all applied vouchers
+export const clearAppliedVouchers = (): void => {
+  localStorage.removeItem(APPLIED_VOUCHERS_KEY);
+};
+
+// Apply all vouchers to cart items
+export const applyAllVouchersToCartItems = (cartItems: any[]): any[] => {
+  const appliedVouchers = getAppliedVouchers();
+  const allVouchers = getAllVouchers();
+  
+  // If no applied vouchers, return original items
+  if (Object.keys(appliedVouchers).length === 0) return cartItems;
+  
+  // Group cart items by vendor
+  const itemsByVendor: {[vendorId: string]: any[]} = {};
+  
+  cartItems.forEach(item => {
+    const vendorId = typeof item.vendor_id === 'string' ? 
+      item.vendor_id : item.vendor_id?.toString();
+    
+    if (!vendorId) return;
+    
+    if (!itemsByVendor[vendorId]) {
+      itemsByVendor[vendorId] = [];
+    }
+    
+    itemsByVendor[vendorId].push(item);
+  });
+  
+  // Apply vouchers to each vendor's items
+  return cartItems.map(item => {
+    const vendorId = typeof item.vendor_id === 'string' ? 
+      item.vendor_id : item.vendor_id?.toString();
+    
+    if (!vendorId || !appliedVouchers[vendorId]) return item;
+    
+    const voucherId = appliedVouchers[vendorId];
+    const voucher = allVouchers.find(v => v.id === voucherId);
+    
+    if (!voucher || !isVoucherValid(voucher)) return item;
+    
+    // Check if product-specific voucher applies to this item
+    if (voucher.productIds && voucher.productIds.length > 0) {
+      const productId = typeof item.product_id === 'string' ? 
+        parseInt(item.product_id) : (item.product_id || item.id);
+      
+      if (!voucher.productIds.includes(productId)) return item;
+    }
+    
+    // Apply discount to item
+    return {
+      ...item,
+      discount_percentage: voucher.discountPercentage
+    };
+  });
+};
+
+// Calculate total discount from all applied vouchers for cart items
+export const calculateTotalVoucherDiscount = (cartItems: any[]): number => {
+  const appliedVouchers = getAppliedVouchers();
+  const allVouchers = getAllVouchers();
+  
+  // If no applied vouchers, return 0
+  if (Object.keys(appliedVouchers).length === 0) return 0;
+  
+  // Group cart items by vendor
+  const itemsByVendor: {[vendorId: string]: any[]} = {};
+  
+  cartItems.forEach(item => {
+    const vendorId = typeof item.vendor_id === 'string' ? 
+      item.vendor_id : item.vendor_id?.toString();
+    
+    if (!vendorId) return;
+    
+    if (!itemsByVendor[vendorId]) {
+      itemsByVendor[vendorId] = [];
+    }
+    
+    itemsByVendor[vendorId].push(item);
+  });
+  
+  let totalDiscount = 0;
+  
+  // Calculate discount for each vendor
+  Object.entries(itemsByVendor).forEach(([vendorId, items]) => {
+    if (!appliedVouchers[vendorId]) return;
+    
+    const voucherId = appliedVouchers[vendorId];
+    const voucher = allVouchers.find(v => v.id === voucherId);
+    
+    if (!voucher || !isVoucherValid(voucher)) return;
+    
+    // Calculate applicable subtotal for this vendor
+    let applicableSubtotal = 0;
+    
+    items.forEach(item => {
+      // Check if product-specific voucher applies to this item
+      if (voucher.productIds && voucher.productIds.length > 0) {
+        const productId = typeof item.product_id === 'string' ? 
+          parseInt(item.product_id) : (item.product_id || item.id);
+        
+        if (!voucher.productIds.includes(productId)) return;
+      }
+      
+      // Add to applicable subtotal
+      const price = item.price || 0;
+      const quantity = item.quantity || 1;
+      applicableSubtotal += price * quantity;
+    });
+    
+    // Check minimum purchase requirement
+    if (voucher.minPurchase && applicableSubtotal < voucher.minPurchase) return;
+    
+    // Calculate discount
+    let discountAmount = Math.round(applicableSubtotal * (voucher.discountPercentage / 100));
+    
+    // Apply max discount cap if set
+    if (voucher.maxDiscount && discountAmount > voucher.maxDiscount) {
+      discountAmount = voucher.maxDiscount;
+    }
+    
+    totalDiscount += discountAmount;
+  });
+  
+  return totalDiscount;
+};
+
 export default {
   getAllVouchers,
   getVendorVouchers,
@@ -251,5 +439,11 @@ export default {
   applyVoucherToProducts,
   getVouchersForProduct,
   applyVoucherToProduct,
-  generateVoucherCode
+  generateVoucherCode,
+  getAppliedVouchers,
+  applyVoucherForVendor,
+  removeVoucherForVendor,
+  clearAppliedVouchers,
+  applyAllVouchersToCartItems,
+  calculateTotalVoucherDiscount
 };

@@ -100,9 +100,31 @@ const SellerGroup: React.FC<SellerGroupProps> = ({
                 key={voucher.id} 
                 className="bg-amber-500/10 border border-amber-500/20 rounded-md px-3 py-1 text-xs flex items-center gap-2 cursor-pointer hover:bg-amber-500/20 transition-colors"
                 onClick={() => {
-                  // Copy voucher code to clipboard
-                  navigator.clipboard.writeText(voucher.code);
-                  toast.success(`Voucher code ${voucher.code} copied to clipboard!`);
+                  // Get the vendor ID from the first item
+                  const vendorId = items[0]?.vendor_id?.toString() || '';
+                  if (!vendorId) {
+                    toast.error('Could not determine vendor ID');
+                    return;
+                  }
+                  
+                  // Apply the voucher directly
+                  const success = voucherService.applyVoucherForVendor(vendorId, voucher.code);
+                  
+                  if (success) {
+                    // Calculate and store the updated voucher discount
+                    const discount = voucherService.calculateTotalVoucherDiscount(items);
+                    localStorage.setItem('voucherDiscount', discount.toString());
+                    localStorage.setItem('useSellerVouchers', 'true');
+                    
+                    // Show success toast
+                    toast.success(`Applied ${voucher.discountPercentage}% discount for ${seller}`);
+                    
+                    // Dispatch a custom event to notify the cart page that vouchers have been applied
+                    const event = new CustomEvent('vouchersApplied');
+                    window.dispatchEvent(event);
+                  } else {
+                    toast.error('Failed to apply voucher');
+                  }
                 }}
               >
                 <span className="font-mono font-bold text-amber-400">{voucher.code}</span>

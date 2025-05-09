@@ -12,6 +12,7 @@ import LoadingOverlay from '@/components/ui/LoadingOverlay';
 import BalanceDisplay from '@/components/ui/BalanceDisplay';
 import EmptyState from "@/components/EmptyState";
 import SellerGroup from "@/components/SellerGroup";
+import SellerVouchers from "@/components/SellerVouchers";
 import { PROMO_CODES } from "@/constants/promoCodes";
 import { isAuthenticated } from "@/lib/auth";
 import { calculateSubtotal, calculateDiscount, calculateTotal } from '@/utils/cartUtils';
@@ -41,6 +42,8 @@ export default function CartPage() {
   const [promoError, setPromoError] = useState("");
   const [showSelectionBar, setShowSelectionBar] = useState(false);
   const [showClearCartModal, setShowClearCartModal] = useState(false);
+  const [useSellerVouchers, setUseSellerVouchers] = useState(false);
+  const [voucherDiscount, setVoucherDiscount] = useState(0);
 
   // Helper function to create sample vouchers for testing
   const createSampleVouchers = () => {
@@ -104,6 +107,27 @@ export default function CartPage() {
     if (savedPromoDiscount) {
       setPromoDiscount(Number(savedPromoDiscount));
     }
+    
+    // Check if there are any applied seller vouchers
+    const appliedVouchers = voucherService.getAppliedVouchers();
+    if (Object.keys(appliedVouchers).length > 0) {
+      setUseSellerVouchers(true);
+      // Calculate total voucher discount
+      updateVoucherDiscount();
+    }
+    
+    // Add event listener for vouchers applied from SellerGroup component
+    const handleVouchersApplied = () => {
+      setUseSellerVouchers(true);
+      updateVoucherDiscount();
+    };
+    
+    window.addEventListener('vouchersApplied', handleVouchersApplied);
+    
+    // Clean up event listener
+    return () => {
+      window.removeEventListener('vouchersApplied', handleVouchersApplied);
+    };
   }, [fetchCart]);
   
   // Create sample vouchers when cart items are loaded
@@ -265,14 +289,46 @@ export default function CartPage() {
     localStorage.removeItem('promoVoucherId');
     localStorage.removeItem('promoVendorId');
     
-    // Clear discount percentages from all cart items
-    const resetCartItems = cartItems.map(item => ({
+    // Reset cart items to remove any applied discounts
+    const updatedCartItems = cartItems.map(item => ({
       ...item,
       discount_percentage: undefined
     }));
     
-    setCartItems(resetCartItems);
-  }
+    setCartItems(updatedCartItems);
+  };
+
+  // Toggle between standard promo code and seller vouchers
+  const toggleVoucherMode = () => {
+    if (useSellerVouchers) {
+      // Switching to standard promo code
+      // Clear all applied seller vouchers
+      voucherService.clearAppliedVouchers();
+      setVoucherDiscount(0);
+      
+      // Reset cart items to remove any applied discounts
+      const updatedCartItems = cartItems.map(item => ({
+        ...item,
+        discount_percentage: undefined
+      }));
+      
+      setCartItems(updatedCartItems);
+    } else {
+      // Switching to seller vouchers
+      // Clear standard promo code
+      setPromoCode("");
+      setPromoDiscount(0);
+      setPromoError("");
+      clearPromoLocalStorage();
+    }
+    
+    setUseSellerVouchers(!useSellerVouchers);
+  };
+
+  // Handle seller vouchers applied
+  const handleVouchersApplied = () => {
+    updateVoucherDiscount();
+  };
 
   // Group cart items by seller
   const itemsBySeller = useMemo(() => {
@@ -296,14 +352,46 @@ export default function CartPage() {
 
   // Get all seller names for display
   const sellerNames = useMemo(() => Object.keys(itemsBySeller), [itemsBySeller]);
-  
+
   // Calculate subtotal, discount, total using centralized utils
   const selectedCartItems = cartItems.filter(item => selectedItems.has(item.id));
-  const subtotal = calculateSubtotal(selectedCartItems);
-  // Use the promoDiscount directly as it's already the calculated amount, not a percentage
-  const discount = promoDiscount;
-  const total = calculateTotal(subtotal, discount);
   const totalCartValue = calculateSubtotal(cartItems);
+
+  // Update voucher discount based on applied vouchers
+  const updateVoucherDiscount = () => {
+    const totalVoucherDiscount = voucherService.calculateTotalVoucherDiscount(cartItems);
+    setVoucherDiscount(totalVoucherDiscount);
+  
+    // Apply vouchers to cart items without losing selection state
+    const updatedItems = voucherService.applyAllVouchersToCartItems(cartItems);
+  
+    // Store current selection state
+    const currentSelections = new Set(selectedItems);
+  
+    // Update cart items while preserving selection state
+    setCartItems(updatedItems);
+  
+    // Restore selection state
+    setSelectedItems(currentSelections);
+  
+    // Store voucher discount in localStorage for checkout page
+    localStorage.setItem('voucherDiscount', totalVoucherDiscount.toString());
+    localStorage.setItem('useSellerVouchers', 'true');
+  };
+
+  // Calculate subtotal, discount, and total with memoization
+  const subtotal = useMemo(() => {
+    return calculateSubtotal(selectedCartItems);
+  }, [selectedCartItems]);
+
+  const discount = useMemo(() => {
+    // If using seller vouchers, use voucher discount instead of promo discount
+    return useSellerVouchers ? voucherDiscount : promoDiscount;
+  }, [promoDiscount, voucherDiscount, useSellerVouchers]);
+
+  const total = useMemo(() => {
+    return calculateTotal(subtotal, discount);
+  }, [subtotal, discount]);
 
   return (
     <div className="min-h-screen flex flex-col bg-black">
@@ -457,22 +545,41 @@ export default function CartPage() {
                   promoCode={promoCode}
                   setPromoCode={setPromoCode}
                 >
-                  <PromoCodeInput
-                    value={promoCode}
-                    onChange={setPromoCode}
-                    onApply={applyPromoCode}
-                    error={promoError}
-                    successMessage={promoDiscount > 0 ? "Promo code applied successfully!" : undefined}
-                    disabled={loading}
-                    onRemove={promoDiscount > 0 ? () => {
-                      setPromoCode("");
-                      setPromoDiscount(0);
-                      setPromoError("");
-                      // Clear from localStorage
-                      localStorage.removeItem('promoCode');
-                      localStorage.removeItem('promoDiscount');
-                    } : undefined}
-                  />
+                  <div className="mb-4">
+                    <div className="flex items-center justify-between mb-2">
+                      <h3 className="text-white font-medium">Discounts</h3>
+                      <button 
+                        onClick={toggleVoucherMode}
+                        className="text-amber-400 text-sm hover:text-amber-300 transition-colors"
+                      >
+                        Switch to {useSellerVouchers ? 'Promo Code' : 'Seller Vouchers'}
+                      </button>
+                    </div>
+                    
+                    {useSellerVouchers ? (
+                      <SellerVouchers 
+                        cartItems={cartItems} 
+                        onVouchersApplied={handleVouchersApplied} 
+                      />
+                    ) : (
+                      <PromoCodeInput
+                        value={promoCode}
+                        onChange={setPromoCode}
+                        onApply={applyPromoCode}
+                        error={promoError}
+                        successMessage={promoDiscount > 0 ? "Promo code applied successfully!" : undefined}
+                        disabled={loading}
+                        onRemove={promoDiscount > 0 ? () => {
+                          setPromoCode("");
+                          setPromoDiscount(0);
+                          setPromoError("");
+                          // Clear from localStorage
+                          localStorage.removeItem('promoCode');
+                          localStorage.removeItem('promoDiscount');
+                        } : undefined}
+                      />
+                    )}
+                  </div>
                   <button
                     className={`w-full py-3 rounded-sm font-bold transform hover:translate-y-[-2px] transition-all duration-300 shadow-lg ${selectedItems.size > 0 ? 'bg-amber-500 text-black hover:bg-amber-400 hover:shadow-amber-500/20' : 'bg-neutral-700 text-white/50 cursor-not-allowed'}`}
                     disabled={selectedItems.size === 0}
@@ -486,6 +593,17 @@ export default function CartPage() {
                         
                         // Force a synchronization of the cart state
                         setSelectedItems(new Set(selectedIds));
+                        
+                        // Store discount information for checkout
+                        if (useSellerVouchers) {
+                          // Store information about seller vouchers being used
+                          localStorage.setItem('useSellerVouchers', 'true');
+                          localStorage.setItem('voucherDiscount', voucherDiscount.toString());
+                        } else {
+                          // Store information about standard promo code being used
+                          localStorage.setItem('useSellerVouchers', 'false');
+                          // Promo code and discount are already stored in localStorage
+                        }
                         
                         // Add a small delay to ensure localStorage is updated before navigation
                         setTimeout(() => {

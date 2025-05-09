@@ -11,6 +11,7 @@ import { roleBasedCartService as cartService } from '@/services/roleBasedService
 import { roleBasedBalanceService as balanceService } from '@/services/roleBasedBalanceService';
 import { refreshCart, refreshBalance } from '@/utils/events';
 import { CheckoutFormData } from '@/components/checkout/CheckoutForm';
+import voucherService from '@/services/vouchers';
 
 export interface Address {
   id: number;
@@ -29,6 +30,8 @@ export interface UseCheckoutReturn {
   promoCode: string;
   promoDiscount: number;
   promoError: string;
+  useSellerVouchers: boolean;
+  voucherDiscount: number;
   showNewAddressForm: boolean;
   showSavedAddresses: boolean;
   newAddress: Address;
@@ -46,6 +49,8 @@ export interface UseCheckoutReturn {
   setPromoCode: (code: string) => void;
   setPromoDiscount: (amount: number) => void;
   setPromoError: (error: string) => void;
+  setUseSellerVouchers: (use: boolean) => void;
+  updateVoucherDiscount: () => void;
   setShowNewAddressForm: (show: boolean) => void;
   setShowSavedAddresses: (show: boolean) => void;
   setNewAddress: (address: Address) => void;
@@ -69,21 +74,39 @@ export function useCheckout(): UseCheckoutReturn {
   const [promoCode, setPromoCode] = useState('');
   const [promoDiscount, setPromoDiscount] = useState(0);
   const [promoError, setPromoError] = useState('');
+  const [useSellerVouchers, setUseSellerVouchers] = useState(false);
+  const [voucherDiscount, setVoucherDiscount] = useState(0);
   const [showNewAddressForm, setShowNewAddressForm] = useState(false);
   const [showSavedAddresses, setShowSavedAddresses] = useState(false);
   
-  // Load promo code from localStorage (synced with cart page)
+
+  
+  // Load promo code and voucher settings from localStorage (synced with cart page)
   useEffect(() => {
     if (typeof window !== 'undefined') {
-      const savedPromoCode = localStorage.getItem('promoCode');
-      const savedPromoDiscount = localStorage.getItem('promoDiscount');
+      // Check if we're using seller vouchers or standard promo code
+      const useSellerVouchersStr = localStorage.getItem('useSellerVouchers');
+      const useVouchers = useSellerVouchersStr === 'true';
+      setUseSellerVouchers(useVouchers);
       
-      if (savedPromoCode) {
-        setPromoCode(savedPromoCode);
-      }
-      
-      if (savedPromoDiscount) {
-        setPromoDiscount(Number(savedPromoDiscount));
+      if (useVouchers) {
+        // Load voucher discount
+        const savedVoucherDiscount = localStorage.getItem('voucherDiscount');
+        if (savedVoucherDiscount) {
+          setVoucherDiscount(Number(savedVoucherDiscount));
+        }
+      } else {
+        // Load standard promo code
+        const savedPromoCode = localStorage.getItem('promoCode');
+        const savedPromoDiscount = localStorage.getItem('promoDiscount');
+        
+        if (savedPromoCode) {
+          setPromoCode(savedPromoCode);
+        }
+        
+        if (savedPromoDiscount) {
+          setPromoDiscount(Number(savedPromoDiscount));
+        }
       }
       
       // Listen for custom event to reset promo discount
@@ -100,6 +123,19 @@ export function useCheckout(): UseCheckoutReturn {
       };
     }
   }, []);
+  
+  // Update voucher discount based on applied vouchers
+  const updateVoucherDiscount = () => {
+    // Calculate discount from applied vouchers
+    const discount = voucherService.calculateTotalVoucherDiscount(selectedCartItems);
+    setVoucherDiscount(discount);
+    
+    // Store in localStorage for synchronization with checkout
+    localStorage.setItem('voucherDiscount', discount.toString());
+    localStorage.setItem('useSellerVouchers', 'true');
+  };
+  
+
   
   // Custom setPromoCode function that also updates localStorage
   const handlePromoCodeChange = (code: string) => {
@@ -184,6 +220,18 @@ export function useCheckout(): UseCheckoutReturn {
   // Filter cart items based on selected items
   const selectedCartItems = cartItems.filter(item => selectedItems.has(item.id));
   
+  // Recalculate voucher discount when selected cart items change
+  useEffect(() => {
+    if (useSellerVouchers && selectedCartItems.length > 0) {
+      // Calculate discount from applied vouchers
+      const discount = voucherService.calculateTotalVoucherDiscount(selectedCartItems);
+      setVoucherDiscount(discount);
+      
+      // Store in localStorage for synchronization with checkout
+      localStorage.setItem('voucherDiscount', discount.toString());
+    }
+  }, [selectedCartItems, useSellerVouchers]);
+  
   // Helper function to group cart items by seller
   const groupItemsBySeller = (items: CartItemWithDetails[]) => {
     const grouped: Record<string, CartItemWithDetails[]> = {};
@@ -247,17 +295,10 @@ export function useCheckout(): UseCheckoutReturn {
   // Calculate totals
   const subtotal = calculateSubtotal(selectedCartItems);
   
-  // Calculate eco-packaging cost based on selected seller options
-  const ecoPackagingCount = Object.values(ecoPackaging).filter(Boolean).length;
-  const ecoPackagingCost = 5000 * ecoPackagingCount; // 5000 IDR per seller
-  
-  // Calculate carbon offset cost
-  const carbonOffsetCost = carbonOffset ? 3800 : 0; // 3800 IDR for carbon offset
-  
-  // Use promoDiscount directly as it's already the calculated amount, not a percentage
-  const discount = promoDiscount;
-  
-  // Calculate total
+  // Calculate subtotal and total
+  const ecoPackagingCost = Object.values(ecoPackaging).filter(Boolean).length * 5000; // 5000 per item
+  const carbonOffsetCost = carbonOffset ? 3800 : 0; // 3800 for carbon offset
+  const discount = useSellerVouchers ? voucherDiscount : promoDiscount;
   const total = calculateTotal(subtotal, discount) + ecoPackagingCost + carbonOffsetCost;
   
   // Handle changes to the new address form
@@ -444,7 +485,7 @@ export function useCheckout(): UseCheckoutReturn {
         payment_method: formData.paymentMethod,
         total_amount: total,
         subtotal: subtotal,
-        discount: promoDiscount,
+        discount: discount, // Use the correct discount based on voucher mode
         // Include detailed product information for reviews
         items: selectedCartItems.map(item => ({
           id: item.id,
@@ -486,6 +527,8 @@ export function useCheckout(): UseCheckoutReturn {
     promoCode,
     promoDiscount,
     promoError,
+    useSellerVouchers,
+    voucherDiscount,
     showNewAddressForm,
     showSavedAddresses,
     newAddress,
@@ -503,6 +546,8 @@ export function useCheckout(): UseCheckoutReturn {
     setPromoCode: handlePromoCodeChange,
     setPromoDiscount: handlePromoDiscountChange,
     setPromoError,
+    setUseSellerVouchers,
+    updateVoucherDiscount,
     setShowNewAddressForm,
     setShowSavedAddresses,
     setNewAddress,
