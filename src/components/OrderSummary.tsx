@@ -1,5 +1,6 @@
 import React from "react";
 import { formatCurrency } from "@/utils/format";
+import PromoCodeInput from "./PromoCodeInput";
 
 interface OrderSummaryProps {
   selectedItemsCount: number;
@@ -14,6 +15,7 @@ interface OrderSummaryProps {
   promoCode: string;
   setPromoCode: (code: string) => void;
   shippingLabel?: string;
+  voucherDiscount?: number; // Added voucherDiscount prop
   children?: React.ReactNode; // For extra controls (e.g. checkout button)
 }
 
@@ -30,6 +32,7 @@ const OrderSummary: React.FC<OrderSummaryProps> = ({
   promoCode,
   setPromoCode,
   shippingLabel = "Free",
+  voucherDiscount = 0,
   children,
 }) => {
   return (
@@ -86,15 +89,62 @@ const OrderSummary: React.FC<OrderSummaryProps> = ({
             </span>
           </div>
           
-          {discount > 0 && (
+          {/* Promo Code Input */}
+          <div className="mb-4">
+            <h4 className="text-white/80 text-sm mb-2">Order Promo Code</h4>
+            <PromoCodeInput
+              value={promoCode}
+              onChange={setPromoCode}
+              onApply={onApplyPromo}
+              error={promoError}
+              successMessage={promoDiscount > 0 ? "Promo code applied successfully!" : undefined}
+              onRemove={promoDiscount > 0 ? () => {
+                setPromoCode("");
+                // Call onApplyPromo to recalculate the discount
+                setTimeout(() => onApplyPromo(), 0);
+                // Clear from localStorage
+                localStorage.removeItem('promoCode');
+                localStorage.removeItem('promoDiscount');
+              } : undefined}
+            />
+          </div>
+
+          {/* Show promo code discount if applicable */}
+          {promoDiscount > 0 && (
             <div className="flex justify-between items-center bg-green-500/10 p-2 rounded-md">
               <span className="text-green-400 flex items-center gap-1.5">
                 <svg className="w-4 h-4" fill="none" viewBox="0 0 24 24" stroke="currentColor">
                   <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={1.5} d="M7 7h.01M7 3h5c.512 0 1.024.195 1.414.586l7 7a2 2 0 010 2.828l-7 7a2 2 0 01-2.828 0l-7-7A1.994 1.994 0 013 12V7a4 4 0 014-4z" />
                 </svg>
-                {promoDiscount > 0 ? 'Promo Discount' : 'Voucher Discount'}
+                Promo Discount
               </span>
-              <span className="text-green-400 font-medium">-{formatCurrency(discount)}</span>
+              <span className="text-green-400 font-medium">-{formatCurrency(promoDiscount)}</span>
+            </div>
+          )}
+          
+          {/* Show voucher discount if applicable */}
+          {voucherDiscount > 0 && (
+            <div className="flex justify-between items-center bg-green-500/10 p-2 rounded-md">
+              <span className="text-green-400 flex items-center gap-1.5">
+                <svg className="w-4 h-4" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                  <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={1.5} d="M15 5v2m0 4v2m0 4v2M5 5a2 2 0 00-2 2v3a2 2 0 110 4v3a2 2 0 002 2h14a2 2 0 002-2v-3a2 2 0 110-4V7a2 2 0 00-2-2H5z" />
+                </svg>
+                Item Voucher Discount
+              </span>
+              <span className="text-green-400 font-medium">-{formatCurrency(voucherDiscount)}</span>
+            </div>
+          )}
+          
+          {/* Show total discount if both are applied */}
+          {promoDiscount > 0 && voucherDiscount > 0 && (
+            <div className="flex justify-between items-center bg-amber-500/10 p-2 rounded-md">
+              <span className="text-amber-400 flex items-center gap-1.5 font-medium">
+                <svg className="w-4 h-4" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                  <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={1.5} d="M12 6v6m0 0v6m0-6h6m-6 0H6" />
+                </svg>
+                Total Discount
+              </span>
+              <span className="text-amber-400 font-medium">-{formatCurrency(discount)}</span>
             </div>
           )}
           

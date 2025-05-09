@@ -363,24 +363,11 @@ export function useCheckout(): UseCheckoutReturn {
   const ecoPackagingCost = Object.values(ecoPackaging).filter(Boolean).length * 5000; // 5000 per item
   const carbonOffsetCost = carbonOffset ? 3800 : 0; // 3800 for carbon offset
 
-  // Determine which discount to apply (voucher or promo code)
+  // Allow both voucher and promo code discounts to stack together
   const discount = useMemo(() => {
-    // If using seller vouchers and there are applied vouchers, use voucher discount
-    if (useSellerVouchers) {
-      const appliedVouchers = voucherService.getAppliedVouchers();
-      if (Object.keys(appliedVouchers).length > 0) {
-        return voucherDiscount;
-      } else {
-        // No vouchers applied, reset to promo code mode
-        if (voucherDiscount > 0) {
-          setVoucherDiscount(0);
-        }
-        return promoDiscount;
-      }
-    } else {
-      return promoDiscount;
-    }
-  }, [useSellerVouchers, voucherDiscount, promoDiscount]);
+    // Stack both discount types together
+    return promoDiscount + voucherDiscount;
+  }, [voucherDiscount, promoDiscount]);
 
   // Ensure discount is properly applied
   const discountedSubtotal = Math.max(0, subtotal - discount);

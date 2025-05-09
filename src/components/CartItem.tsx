@@ -11,6 +11,8 @@ interface CartItemProps {
   onSelect: (id: string | number) => void;
   onUpdateQuantity: (id: string | number, quantity: number) => void;
   onRemove: (id: string | number) => void;
+  hasVoucherDiscount?: boolean;
+  voucherDiscount?: number;
 }
 
 const CartItem: React.FC<CartItemProps> = ({
@@ -20,6 +22,8 @@ const CartItem: React.FC<CartItemProps> = ({
   onSelect,
   onUpdateQuantity,
   onRemove,
+  hasVoucherDiscount = false,
+  voucherDiscount = 0,
 }) => {
   return (
     <div
@@ -71,16 +75,28 @@ const CartItem: React.FC<CartItemProps> = ({
               {item.seller}
             </div>
             <div className="mt-1 sm:hidden">
-              {item.discount_percentage ? (
+              {(item.discount_percentage || hasVoucherDiscount) ? (
                 <div className="flex items-center gap-2">
                   <div className="text-white/50 line-through text-xs">
                     {formatCurrency(item.unit_price)}
                   </div>
                   <div className="text-amber-500 font-bold">
-                    {formatCurrency(item.unit_price * (100 - item.discount_percentage) / 100)} × {item.quantity}
+                    {formatCurrency(item.unit_price * (100 - Math.max(item.discount_percentage || 0, voucherDiscount)) / 100)} × {item.quantity}
                   </div>
-                  <div className="text-green-400 text-xs bg-green-500/10 px-1.5 py-0.5 rounded-sm">
-                    {item.discount_percentage}% off
+                  <div className="flex flex-wrap gap-1">
+                    {(item.discount_percentage ?? 0) > 0 && (
+                      <div className="text-green-400 text-xs bg-green-500/10 px-1.5 py-0.5 rounded-sm">
+                        {item.discount_percentage}% off
+                      </div>
+                    )}
+                    {hasVoucherDiscount && voucherDiscount > 0 && (
+                      <div className="text-amber-400 text-xs bg-amber-500/10 px-1.5 py-0.5 rounded-sm flex items-center gap-1">
+                        <svg className="w-3 h-3" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                          <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={1.5} d="M15 5v2m0 4v2m0 4v2M5 5a2 2 0 00-2 2v3a2 2 0 110 4v3a2 2 0 002 2h14a2 2 0 002-2v-3a2 2 0 110-4V7a2 2 0 00-2-2H5z" />
+                        </svg>
+                        {voucherDiscount}% voucher
+                      </div>
+                    )}
                   </div>
                 </div>
               ) : (
@@ -122,16 +138,28 @@ const CartItem: React.FC<CartItemProps> = ({
             </div>
 
             <div className="hidden sm:block w-24 text-right">
-              {item.discount_percentage ? (
+              {(item.discount_percentage || hasVoucherDiscount) ? (
                 <div className="flex flex-col items-end">
                   <div className="text-white/50 line-through text-xs">
                     {formatCurrency(item.unit_price * item.quantity)}
                   </div>
                   <div className="text-amber-500 font-bold">
-                    {formatCurrency((item.unit_price * (100 - item.discount_percentage) / 100) * item.quantity)}
+                    {formatCurrency((item.unit_price * (100 - Math.max(item.discount_percentage || 0, voucherDiscount)) / 100) * item.quantity)}
                   </div>
-                  <div className="text-green-400 text-xs bg-green-500/10 px-1.5 py-0.5 rounded-sm mt-0.5 inline-block">
-                    {item.discount_percentage}% off
+                  <div className="flex flex-col gap-1 mt-0.5 items-end">
+                    {(item.discount_percentage ?? 0) > 0 && (
+                      <div className="text-green-400 text-xs bg-green-500/10 px-1.5 py-0.5 rounded-sm">
+                        {item.discount_percentage}% off
+                      </div>
+                    )}
+                    {hasVoucherDiscount && voucherDiscount > 0 && (
+                      <div className="text-amber-400 text-xs bg-amber-500/10 px-1.5 py-0.5 rounded-sm flex items-center gap-1">
+                        <svg className="w-3 h-3" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                          <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={1.5} d="M15 5v2m0 4v2m0 4v2M5 5a2 2 0 00-2 2v3a2 2 0 110 4v3a2 2 0 002 2h14a2 2 0 002-2v-3a2 2 0 110-4V7a2 2 0 00-2-2H5z" />
+                        </svg>
+                        {voucherDiscount}% voucher
+                      </div>
+                    )}
                   </div>
                 </div>
               ) : (
@@ -158,8 +186,26 @@ const CartItem: React.FC<CartItemProps> = ({
       {/* Mobile Total Price - Only visible on small screens */}
       <div className="mt-3 pt-3 border-t border-white/5 flex justify-between items-center sm:hidden">
         <span className="text-white/60 text-xs">Subtotal:</span>
-        <span className="text-amber-500 font-bold">{formatCurrency(item.unit_price * item.quantity)}</span>
+        <span className="text-amber-500 font-bold">
+          {hasVoucherDiscount || item.discount_percentage ? 
+            formatCurrency((item.unit_price * (100 - Math.max(item.discount_percentage || 0, voucherDiscount)) / 100) * item.quantity) :
+            formatCurrency(item.unit_price * item.quantity)
+          }
+        </span>
       </div>
+      
+      {/* Voucher badge - show only if there's a voucher discount */}
+      {hasVoucherDiscount && voucherDiscount > 0 && (
+        <div className="mt-2 bg-amber-500/10 rounded-md px-2 py-1 text-xs flex items-center justify-between">
+          <div className="flex items-center gap-1 text-amber-400">
+            <svg className="w-3.5 h-3.5" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+              <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={1.5} d="M15 5v2m0 4v2m0 4v2M5 5a2 2 0 00-2 2v3a2 2 0 110 4v3a2 2 0 002 2h14a2 2 0 002-2v-3a2 2 0 110-4V7a2 2 0 00-2-2H5z" />
+            </svg>
+            <span>Seller voucher applied: {voucherDiscount}% off</span>
+          </div>
+          <span className="text-white/60">-{formatCurrency((item.unit_price * voucherDiscount / 100) * item.quantity)}</span>
+        </div>
+      )}
     </div>
   );
 };

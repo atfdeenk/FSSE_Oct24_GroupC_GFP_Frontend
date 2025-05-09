@@ -317,39 +317,20 @@ export default function CartPage() {
     toast.success('Discount cleared');
   };
 
-  // Toggle between standard promo code and seller vouchers
+  // Toggle seller vouchers visibility
   const toggleVoucherMode = () => {
-    // If switching from promo code to seller vouchers
-    if (!useSellerVouchers) {
-      // Clear promo code
-      setPromoCode("");
-      setPromoDiscount(0);
-      setPromoError("");
-      localStorage.removeItem('promoCode');
-      localStorage.removeItem('promoDiscount');
-      
-      // Enable seller vouchers
-      setUseSellerVouchers(true);
-      localStorage.setItem('useSellerVouchers', 'true');
-      
-      // Calculate voucher discount
+    // Simply toggle the visibility state
+    const newState = !useSellerVouchers;
+    setUseSellerVouchers(newState);
+    localStorage.setItem('useSellerVouchers', newState ? 'true' : 'false');
+    
+    if (newState) {
+      // Calculate voucher discount when enabling
       const discount = voucherService.calculateTotalVoucherDiscount(cartItems);
       setVoucherDiscount(discount);
-      
-      toast.success('Switched to seller vouchers mode');
-      console.log('Switched to seller vouchers mode', { discount });
-    } 
-    // If switching from seller vouchers to promo code
-    else {
-      // Clear seller vouchers
-      voucherService.clearAppliedVouchers(); // This now handles all localStorage cleanup
-      setVoucherDiscount(0);
-      
-      // Enable promo code
-      setUseSellerVouchers(false);
-      
-      toast.success('Switched to promo code mode');
-      console.log('Switched to promo code mode');
+      toast.success('Seller vouchers enabled');
+    } else {
+      toast.success('Seller vouchers hidden');
     }
   };
 
@@ -414,9 +395,9 @@ export default function CartPage() {
   }, [selectedCartItems]);
 
   const discount = useMemo(() => {
-    // If using seller vouchers, use voucher discount instead of promo discount
-    return useSellerVouchers ? voucherDiscount : promoDiscount;
-  }, [promoDiscount, voucherDiscount, useSellerVouchers]);
+    // Allow vouchers and promo codes to stack together
+    return promoDiscount + voucherDiscount;
+  }, [promoDiscount, voucherDiscount]);
 
   const total = useMemo(() => {
     return calculateTotal(subtotal, discount);
@@ -546,6 +527,7 @@ export default function CartPage() {
                         <span className="ml-2 hidden sm:inline-block">({formatCurrency(subtotal)})</span>
                       </div>
                       <button
+                        onClick={() => router.push('/checkout')}
                         className="bg-amber-500 text-black px-4 py-2 rounded-md font-medium hover:bg-amber-400 transition-all shadow-lg hover:shadow-amber-500/20 hover:translate-y-[-2px] flex items-center gap-2"
                         disabled={selectedItems.size === 0}
                       >
@@ -573,6 +555,7 @@ export default function CartPage() {
                   onApplyPromo={applyPromoCode}
                   promoCode={promoCode}
                   setPromoCode={setPromoCode}
+                  voucherDiscount={voucherDiscount}
                 >
                   <div className="mb-4">
                     <div className="flex items-center justify-between mb-2">
@@ -581,33 +564,32 @@ export default function CartPage() {
                         onClick={toggleVoucherMode}
                         className="text-amber-400 text-sm hover:text-amber-300 transition-colors"
                       >
-                        Switch to {useSellerVouchers ? 'Promo Code' : 'Seller Vouchers'}
+                        {useSellerVouchers ? 'Hide Seller Vouchers' : 'Show Seller Vouchers'}
                       </button>
                     </div>
                     
-                    {useSellerVouchers ? (
-                      <SellerVouchers 
-                        cartItems={cartItems} 
-                        onVouchersApplied={handleVouchersApplied} 
-                      />
-                    ) : (
-                      <PromoCodeInput
-                        value={promoCode}
-                        onChange={setPromoCode}
-                        onApply={applyPromoCode}
-                        error={promoError}
-                        successMessage={promoDiscount > 0 ? "Promo code applied successfully!" : undefined}
-                        disabled={loading}
-                        onRemove={promoDiscount > 0 ? () => {
-                          setPromoCode("");
-                          setPromoDiscount(0);
-                          setPromoError("");
-                          // Clear from localStorage
-                          localStorage.removeItem('promoCode');
-                          localStorage.removeItem('promoDiscount');
-                        } : undefined}
-                      />
+                    {/* Promo Code section moved to OrderSummary component */}
+                    
+                    {/* Seller Vouchers - Toggleable */}
+                    {useSellerVouchers && (
+                      <div className="mt-4">
+                        <h4 className="text-white/80 text-sm mb-2">Item-Specific Vouchers</h4>
+                        <SellerVouchers 
+                          cartItems={cartItems} 
+                          onVouchersApplied={handleVouchersApplied} 
+                        />
+                        {voucherDiscount > 0 && (
+                          <div className="mt-2 text-green-400 text-sm flex items-center">
+                            <svg className="w-4 h-4 mr-1" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                              <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M5 13l4 4L19 7" />
+                            </svg>
+                            Voucher discount: {formatCurrency(voucherDiscount)}
+                          </div>
+                        )}
+                      </div>
                     )}
+                    
+                    {/* PromoCodeInput moved to OrderSummary component */}
                   </div>
                   <button
                     className={`w-full py-3 rounded-sm font-bold transform hover:translate-y-[-2px] transition-all duration-300 shadow-lg ${selectedItems.size > 0 ? 'bg-amber-500 text-black hover:bg-amber-400 hover:shadow-amber-500/20' : 'bg-neutral-700 text-white/50 cursor-not-allowed'}`}
