@@ -307,19 +307,19 @@ export default function AdminDashboardPage() {
       {/* Main Content */}
       <div className="flex-1 flex flex-col overflow-hidden bg-neutral-900">
         <header className="bg-neutral-800 shadow-md z-10 sticky top-0">
-          <div className="px-6 py-4 flex items-center justify-between">
-            <div className="flex items-center">
-              <h1 className="text-2xl font-bold text-white">
+          <div className="px-4 sm:px-6 py-4 flex flex-col sm:flex-row items-start sm:items-center justify-between gap-3 sm:gap-0">
+            <div className="flex flex-col sm:flex-row sm:items-center">
+              <h1 className="text-xl sm:text-2xl font-bold text-white truncate max-w-[220px] sm:max-w-none">
                 {activeSection === 'overview' && 'Dashboard Overview'}
                 {activeSection === 'users' && 'User Management'}
                 {activeSection === 'products' && 'Product Approval'}
                 {activeSection === 'topup-requests' && 'Top-up Requests'}
               </h1>
-              <div className="ml-4 px-2 py-1 bg-amber-600/10 text-amber-500 rounded-md text-xs">
+              <div className="mt-1 sm:mt-0 sm:ml-4 px-2 py-1 bg-amber-600/10 text-amber-500 rounded-md text-xs inline-flex">
                 Admin Panel
               </div>
             </div>
-            <div className="flex items-center space-x-4">
+            <div className="flex items-center space-x-3 sm:space-x-4 w-full sm:w-auto justify-end">
               {/* Notification bell */}
               <div className="relative">
                 <button 
@@ -350,7 +350,7 @@ export default function AdminDashboardPage() {
               {/* Store link */}
               <Link
                 href="/"
-                className="text-sm bg-amber-600 hover:bg-amber-700 text-white py-2 px-4 rounded-lg flex items-center transition-colors shadow-md"
+                className="text-sm bg-amber-600 hover:bg-amber-700 text-white py-2 px-3 sm:px-4 rounded-lg flex items-center transition-colors shadow-md whitespace-nowrap"
               >
                 <FaShoppingCart className="mr-2" /> View Store
               </Link>
@@ -361,12 +361,12 @@ export default function AdminDashboardPage() {
         <main className="flex-1 overflow-auto p-6">
           <div className="container mx-auto">
             {/* Breadcrumbs */}
-            <div className="flex items-center text-sm text-white/60 mb-6">
-              <span>Admin</span>
-              <svg xmlns="http://www.w3.org/2000/svg" className="h-4 w-4 mx-2" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+            <div className="flex items-center text-sm text-white/60 mb-6 overflow-hidden">
+              <span className="whitespace-nowrap">Admin</span>
+              <svg xmlns="http://www.w3.org/2000/svg" className="h-4 w-4 mx-2 flex-shrink-0" fill="none" viewBox="0 0 24 24" stroke="currentColor">
                 <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M9 5l7 7-7 7" />
               </svg>
-              <span className="text-amber-500">
+              <span className="text-amber-500 truncate">
                 {activeSection === 'overview' && 'Dashboard'}
                 {activeSection === 'users' && 'User Management'}
                 {activeSection === 'products' && 'Product Approval'}
