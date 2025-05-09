@@ -76,35 +76,6 @@ const UserMenu: React.FC<UserMenuProps> = ({ user, show, onToggle, onLogout, use
                 Dashboard
               </Link>
             </li>
-            <li>
-              <Link
-                href="/orders"
-                className="block px-4 py-2 text-white/80 hover:bg-amber-500/10 hover:text-amber-500 transition-colors"
-                onClick={onToggle}
-              >
-                My Orders
-              </Link>
-            </li>
-            {user?.role === 'seller' && (
-              <li>
-                <Link
-                  href="/seller/products"
-                  className="block px-4 py-2 text-white/80 hover:bg-amber-500/10 hover:text-amber-500 transition-colors"
-                  onClick={onToggle}
-                >
-                  My Products
-                </Link>
-              </li>
-            )}
-            <li>
-              <Link
-                href="/settings"
-                className="block px-4 py-2 text-white/80 hover:bg-amber-500/10 hover:text-amber-500 transition-colors"
-                onClick={onToggle}
-              >
-                Settings
-              </Link>
-            </li>
             <li className="border-t border-white/10">
               <button
                 onClick={onLogout}
