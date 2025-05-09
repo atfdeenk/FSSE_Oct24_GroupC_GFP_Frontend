@@ -318,79 +318,66 @@ export const adminService = {
   
   // Get products pending approval
   getPendingProducts: async (): Promise<ProductApprovalItem[]> => {
-    try {
-      // In a real API, you would have a specific endpoint for pending products
-      // For now, we'll get all products and filter them client-side
-      const response = await axiosInstance.get(
-        API_CONFIG.ENDPOINTS.products.list
-      );
-      
-      // Check the response structure and extract products array
-      // The API returns a ProductsResponse with products in a 'products' property
-      const productsResponse = response.data;
-      const productsArray = Array.isArray(productsResponse) ? productsResponse : 
-                           (productsResponse?.products ? productsResponse.products : []);
-      
-      // Filter products that need approval (this would be done server-side in a real API)
-      return productsArray
-        .filter((product: any) => product.status === 'pending')
-        .map((product: any) => ({
-          id: product.id,
-          name: product.name,
-          description: product.description,
-          price: product.price,
-          category: product.category_name || 'Uncategorized',
-          seller: {
-            id: product.vendor_id || product.user_id,
-            name: product.seller_name || product.vendor_name || 'Unknown Seller',
-            email: product.seller_email || 'unknown@example.com'
-          },
-          images: product.images || [product.image_url].filter(Boolean),
-          status: product.status || 'pending',
-          created_at: product.created_at || new Date().toISOString().split('T')[0],
-          stock_quantity: product.stock_quantity || 0,
-          currency: product.currency || 'USD',
-          location: product.location || 'Unknown',
-          unit_quantity: product.unit_quantity || '1 unit'
-        }));
-    } catch (error) {
-      console.error('Error fetching pending products:', error);
-      return [];
-    }
-  },
-  
+  try {
+    const response = await axiosInstance.get('/products?include_unapproved=true');
+
+    const productsResponse = response.data;
+    const productsArray = Array.isArray(productsResponse)
+      ? productsResponse
+      : productsResponse?.products || [];
+
+    // Filter based on is_approved === false
+    return productsArray
+      .filter((product: any) => product.is_approved === false)
+      .map((product: any) => ({
+        id: product.id,
+        name: product.name,
+        description: product.description,
+        price: product.price,
+        category: (product.categories?.[0]?.name || 'Uncategorized'),
+        seller: {
+          id: product.vendor_id || product.user_id,
+          name: product.vendor_name || 'Unknown Seller',
+          email: product.seller_email || 'unknown@example.com'
+        },
+        images: product.images || [product.image_url].filter(Boolean),
+        status: 'pending', // You can hardcode this if needed for UI display
+        created_at: product.created_at,
+        stock_quantity: product.stock_quantity || 0,
+        currency: product.currency || 'USD',
+        location: product.location || 'Unknown',
+        unit_quantity: product.unit_quantity || '1 unit'
+      }));
+  } catch (error) {
+    console.error('Error fetching pending products:', error);
+    return [];
+  }
+},
+
   // Approve product
-  approveProduct: async (id: number): Promise<boolean> => {
-    try {
-      // In a real API, you would have a specific endpoint for approving products
-      await axiosInstance.patch(
-        API_CONFIG.ENDPOINTS.products.detail(id),
-        { status: 'approved' }
-      );
-      return true;
-    } catch (error) {
-      console.error(`Error approving product ${id}:`, error);
-      return false;
-    }
-  },
-  
+ approveProduct: async (id: number): Promise<boolean> => {
+  try {
+    await axiosInstance.patch(`/products/${id}/approve`);
+    return true;
+  } catch (error) {
+    console.error(`Error approving product ${id}:`, error);
+    return false;
+  }
+},
+
   // Reject product
   rejectProduct: async (id: number, reason: string): Promise<boolean> => {
-    try {
-      // In a real API, you would have a specific endpoint for rejecting products
-      await axiosInstance.patch(
-        API_CONFIG.ENDPOINTS.products.detail(id),
-        { 
-          status: 'rejected',
-          rejection_reason: reason 
-        }
-      );
-      return true;
-    } catch (error) {
-      console.error(`Error rejecting product ${id}:`, error);
-      return false;
-    }
-  },
+  try {
+    await axiosInstance.patch(`/products/${id}/reject`, {
+      reason
+    });
+    return true;
+  } catch (error) {
+    console.error(`Error rejecting product ${id}:`, error);
+    return false;
+  }
+},
+
   
   // Update user balance
   updateUserBalance: async (userId: number, amount: number, description: string): Promise<boolean> => {
