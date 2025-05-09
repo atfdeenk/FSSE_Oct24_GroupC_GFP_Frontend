@@ -95,7 +95,8 @@ export default function UserTable({
 
   return (
     <div className="bg-neutral-800 shadow-lg rounded-lg border border-neutral-700 overflow-hidden">
-      <div className="overflow-x-auto">
+      {/* Desktop view - traditional table */}
+      <div className="hidden md:block overflow-x-auto">
         <table className="min-w-full divide-y divide-neutral-700">
           <thead className="bg-neutral-750">
             <tr>
@@ -107,7 +108,6 @@ export default function UserTable({
               {renderSortableHeader('Joined', 'joined')}
               <th scope="col" className="relative py-4 pl-3 pr-4 sm:pr-6 text-white">
                 <span className="sr-only">Actions</span>
-                <span>Actions</span>
               </th>
             </tr>
           </thead>
@@ -208,6 +208,109 @@ export default function UserTable({
             })}
           </tbody>
         </table>
+      </div>
+
+      {/* Mobile view - card-based layout */}
+      <div className="md:hidden divide-y divide-neutral-700">
+        {users.map((user) => {
+          // Format date
+          const formattedDate = user.created_at ? formatApiTimestamp(user.created_at) : { dateString: 'N/A', timeString: '' };
+          
+          return (
+            <div key={user.id} className="p-4 hover:bg-neutral-750 transition-colors">
+              <div className="flex items-center justify-between mb-3">
+                <div className="flex items-center">
+                  <div className="h-10 w-10 flex-shrink-0 rounded-full bg-neutral-700 flex items-center justify-center overflow-hidden">
+                    {user.image_url ? (
+                      <img src={user.image_url} alt="" className="h-10 w-10 object-cover" />
+                    ) : (
+                      <div className="text-neutral-400 font-medium text-lg">
+                        {user.first_name ? user.first_name.charAt(0).toUpperCase() : user.username ? user.username.charAt(0).toUpperCase() : '?'}
+                      </div>
+                    )}
+                  </div>
+                  <div className="ml-3">
+                    {user.first_name || user.last_name ? (
+                      <div className="font-medium text-white">
+                        {user.first_name} {user.last_name}
+                      </div>
+                    ) : (
+                      <div className="font-medium text-white">{user.username}</div>
+                    )}
+                    <div className="text-neutral-400 text-xs">@{user.username}</div>
+                  </div>
+                </div>
+                
+                <span className={`inline-flex rounded-full px-2 py-0.5 text-xs font-semibold ${
+                  user.role === 'admin' 
+                    ? 'bg-purple-900/50 text-purple-300 border border-purple-700' 
+                    : (user.role === 'seller' || user.role === 'vendor')
+                      ? 'bg-blue-900/50 text-blue-300 border border-blue-700' 
+                      : 'bg-green-900/50 text-green-300 border border-green-700'
+                }`}>
+                  {user.role}
+                </span>
+              </div>
+              
+              <div className="grid grid-cols-2 gap-2 mb-3 text-xs">
+                <div>
+                  <div className="text-neutral-400">Email</div>
+                  <div className="text-neutral-300 truncate">{user.email}</div>
+                </div>
+                
+                <div>
+                  <div className="text-neutral-400">Location</div>
+                  <div className="text-neutral-300">{user.city || 'N/A'}</div>
+                </div>
+                
+                <div>
+                  <div className="text-neutral-400">Status</div>
+                  <div className="text-neutral-300">
+                    <span className={`inline-flex rounded-full px-2 py-0.5 text-xs font-semibold ${
+                      user.is_active === true || user.status === 'active'
+                        ? 'bg-green-900/50 text-green-300 border border-green-700' 
+                        : 'bg-neutral-700/50 text-neutral-300 border border-neutral-600'
+                    }`}>
+                      {user.is_active === true ? 'active' : user.is_active === false ? 'inactive' : user.status || 'unknown'}
+                    </span>
+                  </div>
+                </div>
+                
+                <div>
+                  <div className="text-neutral-400">Joined</div>
+                  <div className="text-neutral-300">{formattedDate.dateString}</div>
+                </div>
+              </div>
+              
+              <div className="flex justify-end space-x-3 border-t border-neutral-700/50 pt-3">
+                <button
+                  type="button"
+                  onClick={() => onViewDetails(user)}
+                  className="text-amber-500 hover:text-amber-400 focus:outline-none transition-colors p-1.5 hover:bg-neutral-700 rounded-lg flex items-center text-xs"
+                >
+                  <FaEye className="h-3.5 w-3.5 mr-1" />
+                  <span>View</span>
+                </button>
+                <button
+                  type="button"
+                  onClick={() => onEditUser(user)}
+                  className="text-blue-500 hover:text-blue-400 focus:outline-none transition-colors p-1.5 hover:bg-neutral-700 rounded-lg flex items-center text-xs"
+                >
+                  <FaEdit className="h-3.5 w-3.5 mr-1" />
+                  <span>Edit</span>
+                </button>
+                <button
+                  type="button"
+                  onClick={() => onDeleteUser(user)}
+                  className="text-red-500 hover:text-red-400 focus:outline-none transition-colors p-1.5 hover:bg-neutral-700 rounded-lg flex items-center text-xs"
+                >
+                  <FaTrash className="h-3.5 w-3.5 mr-1" />
+                  <span>Delete</span>
+                </button>
+              </div>
+            </div>
+          );
+        })}
       </div>
     </div>
   );
