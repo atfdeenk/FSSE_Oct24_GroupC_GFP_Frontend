@@ -39,13 +39,13 @@ export default function AdminDashboardTabs() {
   return (
     <div className="w-full px-2 py-4 sm:px-0">
       <Tab.Group selectedIndex={selectedIndex} onChange={setSelectedIndex}>
-        <Tab.List className="flex space-x-1 rounded-xl bg-neutral-800 p-1.5 mb-4 border border-neutral-700 shadow-lg">
+        <Tab.List className="flex flex-wrap sm:flex-nowrap gap-1 rounded-xl bg-neutral-800 p-1.5 mb-4 border border-neutral-700 shadow-lg overflow-x-auto">
           {Object.keys(categories).map((category) => (
             <Tab
               key={category}
               className={({ selected }) =>
                 classNames(
-                  'w-full rounded-lg py-3 text-sm font-medium leading-5 transition-all duration-200',
+                  'flex-1 min-w-[120px] rounded-lg py-2 sm:py-3 text-xs sm:text-sm font-medium leading-5 transition-all duration-200',
                   'focus:outline-none focus:ring-2 ring-offset-2 ring-offset-amber-500 ring-opacity-60',
                   selected
                     ? 'bg-gradient-to-r from-amber-600 to-amber-700 text-white shadow-md border border-amber-500/50'
@@ -53,7 +53,7 @@ export default function AdminDashboardTabs() {
                 )
               }
             >
-              {category}
+              <span className="whitespace-nowrap">{category}</span>
             </Tab>
           ))}
         </Tab.List>

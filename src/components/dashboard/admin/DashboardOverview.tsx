@@ -183,126 +183,126 @@ export default function DashboardOverview() {
   }
 
   return (
-    <div className="space-y-6">
+    <div className="space-y-6 px-1 sm:px-0">
       {/* Stats Overview */}
-      <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 xl:grid-cols-5 gap-4">
+      <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 xl:grid-cols-5 gap-3 sm:gap-4">
         <AdminCard
           title="Total Users"
-          icon={<FaUsers size={20} />}
+          icon={<FaUsers size={18} className="flex-shrink-0" />}
           className="hover:shadow-xl transition-shadow duration-200"
         >
-          <div className="text-3xl font-bold text-white mb-1">{stats?.totalUsers || 0}</div>
-          <p className="text-sm text-neutral-400">Registered users on the platform</p>
+          <div className="text-2xl sm:text-3xl font-bold text-white mb-1">{stats?.totalUsers || 0}</div>
+          <p className="text-xs sm:text-sm text-neutral-400">Registered users on the platform</p>
         </AdminCard>
 
         <AdminCard
           title="Admin Users"
-          icon={<FaUserShield size={20} />}
+          icon={<FaUserShield size={18} className="flex-shrink-0" />}
           className="hover:shadow-xl transition-shadow duration-200"
         >
-          <div className="text-3xl font-bold text-white mb-1">{stats?.totalAdmins || 0}</div>
-          <p className="text-sm text-neutral-400">Users with admin privileges</p>
+          <div className="text-2xl sm:text-3xl font-bold text-white mb-1">{stats?.totalAdmins || 0}</div>
+          <p className="text-xs sm:text-sm text-neutral-400">Users with admin privileges</p>
         </AdminCard>
 
         <AdminCard
           title="Pending Products"
-          icon={<FaBoxOpen size={20} />}
+          icon={<FaBoxOpen size={18} className="flex-shrink-0" />}
           className="hover:shadow-xl transition-shadow duration-200"
           headerAction={
             pendingProducts.length > 0 ? (
-              <span className="inline-flex items-center px-2.5 py-0.5 rounded-full text-xs font-medium bg-amber-600/20 text-amber-400 border border-amber-600/30">
+              <span className="inline-flex items-center px-2 sm:px-2.5 py-0.5 rounded-full text-xs font-medium bg-amber-600/20 text-amber-400 border border-amber-600/30">
                 {pendingProducts.length}
               </span>
             ) : null
           }
         >
-          <div className="text-3xl font-bold text-white mb-1">{pendingProducts.length}</div>
-          <p className="text-sm text-neutral-400">Products waiting for approval</p>
+          <div className="text-2xl sm:text-3xl font-bold text-white mb-1">{pendingProducts.length}</div>
+          <p className="text-xs sm:text-sm text-neutral-400">Products waiting for approval</p>
           {pendingProducts.length > 0 && (
             <button
               onClick={() => navigateToSection('products')}
-              className="mt-3 text-sm text-amber-400 hover:text-amber-300 flex items-center"
+              className="mt-2 sm:mt-3 text-xs sm:text-sm text-amber-400 hover:text-amber-300 flex items-center"
             >
-              Review now <FaArrowRight className="ml-1 h-3 w-3" />
+              Review now <FaArrowRight className="ml-1 h-3 w-3 flex-shrink-0" />
             </button>
           )}
         </AdminCard>
 
         <AdminCard
           title="Approved Top-ups"
-          icon={<FaShoppingCart size={20} />}
+          icon={<FaShoppingCart size={18} className="flex-shrink-0" />}
           className="hover:shadow-md transition-shadow duration-200"
         >
-          <div className="text-3xl font-bold text-white mb-1">{approvedTopUpsCount}</div>
-          <p className="text-sm text-neutral-400">Number of approved top-ups</p>
+          <div className="text-2xl sm:text-3xl font-bold text-white mb-1">{approvedTopUpsCount}</div>
+          <p className="text-xs sm:text-sm text-neutral-400">Number of approved top-ups</p>
         </AdminCard>
 
         <AdminCard
           title="Total Top-up Amount"
-          icon={<FaDollarSign size={20} />}
+          icon={<FaDollarSign size={18} className="flex-shrink-0" />}
           className="hover:shadow-md transition-shadow duration-200"
         >
-          <div className="text-3xl font-bold text-amber-400 mb-1">
+          <div className="text-2xl sm:text-3xl font-bold text-amber-400 mb-1">
             {formatCurrency(totalTopUpAmount)}
           </div>
-          <p className="text-sm text-neutral-400">Total approved top-up amount</p>
+          <p className="text-xs sm:text-sm text-neutral-400">Total approved top-up amount</p>
         </AdminCard>
       </div>
 
       {/* Quick Actions */}
       <AdminCard
         title="Admin Actions"
-        icon={<FaChartLine size={20} />}
+        icon={<FaChartLine size={18} className="flex-shrink-0" />}
         className="hover:shadow-md transition-shadow duration-200"
       >
-        <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-4">
+        <div className="grid grid-cols-2 sm:grid-cols-2 lg:grid-cols-4 gap-2 sm:gap-4">
           <div
-            className="p-4 bg-neutral-800 rounded-lg border border-neutral-700 hover:bg-neutral-700 hover:border-amber-700/50 cursor-pointer transition-all duration-200 flex flex-col items-center text-center shadow-md"
+            className="relative p-3 sm:p-4 bg-neutral-800 rounded-lg border border-neutral-700 hover:bg-neutral-700 hover:border-amber-700/50 cursor-pointer transition-all duration-200 flex flex-col items-center text-center shadow-md"
             onClick={() => navigateToSection('products')}
           >
             {pendingProducts.length > 0 && (
-              <span className="absolute -top-2 -right-2 w-6 h-6 bg-red-900/80 text-red-300 border border-red-700 rounded-full flex items-center justify-center text-xs font-bold">
+              <span className="absolute -top-2 -right-2 w-5 h-5 sm:w-6 sm:h-6 bg-red-900/80 text-red-300 border border-red-700 rounded-full flex items-center justify-center text-xs font-bold">
                 {pendingProducts.length}
               </span>
             )}
-            <div className="w-12 h-12 bg-amber-900/30 rounded-full flex items-center justify-center mb-3 border border-amber-700/50">
-              <FaBoxOpen className="text-amber-400" size={20} />
+            <div className="w-10 h-10 sm:w-12 sm:h-12 bg-amber-900/30 rounded-full flex items-center justify-center mb-2 sm:mb-3 border border-amber-700/50">
+              <FaBoxOpen className="text-amber-400" size={16} />
             </div>
-            <h4 className="font-medium text-white mb-1">Review Products</h4>
-            <p className="text-xs text-neutral-400">Approve or reject pending products</p>
+            <h4 className="font-medium text-white text-sm sm:text-base mb-0.5 sm:mb-1">Review Products</h4>
+            <p className="text-xs text-neutral-400 line-clamp-2">Approve or reject pending products</p>
           </div>
 
           <div
-            className="p-4 bg-neutral-800 rounded-lg border border-neutral-700 hover:bg-neutral-700 hover:border-amber-700/50 cursor-pointer transition-all duration-200 flex flex-col items-center text-center shadow-md"
+            className="p-3 sm:p-4 bg-neutral-800 rounded-lg border border-neutral-700 hover:bg-neutral-700 hover:border-amber-700/50 cursor-pointer transition-all duration-200 flex flex-col items-center text-center shadow-md"
             onClick={() => navigateToSection('topup-requests')}
           >
-            <div className="w-12 h-12 bg-amber-900/30 rounded-full flex items-center justify-center mb-3 border border-amber-700/50">
-              <FaMoneyBillWave className="text-amber-400" size={20} />
+            <div className="w-10 h-10 sm:w-12 sm:h-12 bg-amber-900/30 rounded-full flex items-center justify-center mb-2 sm:mb-3 border border-amber-700/50">
+              <FaMoneyBillWave className="text-amber-400" size={16} />
             </div>
-            <h4 className="font-medium text-white mb-1">Top-up Requests</h4>
-            <p className="text-xs text-neutral-400">Manage customer top-up requests</p>
+            <h4 className="font-medium text-white text-sm sm:text-base mb-0.5 sm:mb-1">Top-up Requests</h4>
+            <p className="text-xs text-neutral-400 line-clamp-2">Manage customer top-up requests</p>
           </div>
 
           <div
-            className="p-4 bg-neutral-800 rounded-lg border border-neutral-700 hover:bg-neutral-700 hover:border-amber-700/50 cursor-pointer transition-all duration-200 flex flex-col items-center text-center shadow-md"
+            className="p-3 sm:p-4 bg-neutral-800 rounded-lg border border-neutral-700 hover:bg-neutral-700 hover:border-amber-700/50 cursor-pointer transition-all duration-200 flex flex-col items-center text-center shadow-md"
             onClick={() => navigateToSection('users')}
           >
-            <div className="w-12 h-12 bg-amber-900/30 rounded-full flex items-center justify-center mb-3 border border-amber-700/50">
-              <FaUserShield className="text-amber-400" size={20} />
+            <div className="w-10 h-10 sm:w-12 sm:h-12 bg-amber-900/30 rounded-full flex items-center justify-center mb-2 sm:mb-3 border border-amber-700/50">
+              <FaUserShield className="text-amber-400" size={16} />
             </div>
-            <h4 className="font-medium text-white mb-1">User Management</h4>
-            <p className="text-xs text-neutral-400">Manage user accounts and roles</p>
+            <h4 className="font-medium text-white text-sm sm:text-base mb-0.5 sm:mb-1">User Management</h4>
+            <p className="text-xs text-neutral-400 line-clamp-2">Manage user accounts and roles</p>
           </div>
 
           <div
-            className="p-4 bg-neutral-800 rounded-lg border border-neutral-700 hover:bg-neutral-700 hover:border-amber-700/50 cursor-pointer transition-all duration-200 flex flex-col items-center text-center shadow-md"
+            className="p-3 sm:p-4 bg-neutral-800 rounded-lg border border-neutral-700 hover:bg-neutral-700 hover:border-amber-700/50 cursor-pointer transition-all duration-200 flex flex-col items-center text-center shadow-md"
             onClick={() => navigateToSection('admin-management')}
           >
-            <div className="w-12 h-12 bg-amber-900/30 rounded-full flex items-center justify-center mb-3 border border-amber-700/50">
-              <FaUserShield className="text-amber-400" size={20} />
+            <div className="w-10 h-10 sm:w-12 sm:h-12 bg-amber-900/30 rounded-full flex items-center justify-center mb-2 sm:mb-3 border border-amber-700/50">
+              <FaUserShield className="text-amber-400" size={16} />
             </div>
-            <h4 className="font-medium text-white mb-1">Admin Settings</h4>
-            <p className="text-xs text-neutral-400">Manage admin accounts and permissions</p>
+            <h4 className="font-medium text-white text-sm sm:text-base mb-0.5 sm:mb-1">Admin Settings</h4>
+            <p className="text-xs text-neutral-400 line-clamp-2">Manage admin accounts and permissions</p>
           </div>
         </div>
       </AdminCard>
@@ -384,30 +384,28 @@ export default function DashboardOverview() {
 
       {/* Alert for pending products */}
       {pendingProducts.length > 0 && (
-        <div className="rounded-lg bg-amber-900/20 border border-amber-700 p-4 shadow-md">
-          <div className="flex flex-col sm:flex-row">
-            <div className="flex-shrink-0">
-              <FaExclamationTriangle className="h-5 w-5 text-amber-500" aria-hidden="true" />
+        <div className="rounded-lg bg-amber-900/20 border border-amber-700 p-3 sm:p-4 shadow-md">
+          <div className="flex flex-col sm:flex-row items-start sm:items-center">
+            <div className="flex-shrink-0 flex items-center">
+              <FaExclamationTriangle className="h-4 w-4 sm:h-5 sm:w-5 text-amber-500" aria-hidden="true" />
             </div>
-            <div className="ml-0 sm:ml-3 mt-2 sm:mt-0">
-              <p className="text-sm text-amber-400">
+            <div className="ml-0 sm:ml-3 mt-2 sm:mt-0 flex-grow">
+              <p className="text-xs sm:text-sm text-amber-400">
                 <span className="font-bold">Attention needed:</span> There are {pendingProducts.length} products awaiting your approval.
                 {pendingProducts.length > 0 && pendingProducts[0].seller && (
-                  <span className="block mt-1">
+                  <span className="block mt-0.5 sm:mt-1">
                     Latest from: <span className="font-medium">{pendingProducts[0].seller.name}</span>
                   </span>
                 )}
               </p>
             </div>
-            <div className="ml-0 sm:ml-auto pl-0 sm:pl-3 mt-3 sm:mt-0">
-              <div className="-mx-1.5 -my-1.5">
-                <button
-                  onClick={() => navigateToSection('products')}
-                  className="px-4 py-2 bg-amber-600/30 text-amber-400 border border-amber-600 rounded-lg text-sm font-medium hover:bg-amber-600/40 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-amber-500 transition-colors shadow-md"
-                >
-                  Review Now
-                </button>
-              </div>
+            <div className="w-full sm:w-auto mt-3 sm:mt-0">
+              <button
+                onClick={() => navigateToSection('products')}
+                className="w-full sm:w-auto px-3 sm:px-4 py-1.5 sm:py-2 bg-amber-600/30 text-amber-400 border border-amber-600 rounded-lg text-xs sm:text-sm font-medium hover:bg-amber-600/40 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-amber-500 transition-colors shadow-md"
+              >
+                Review Now
+              </button>
             </div>
           </div>
         </div>
