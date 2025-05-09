@@ -17,6 +17,7 @@ import { isAuthenticated } from "@/lib/auth";
 import { calculateSubtotal, calculateDiscount, calculateTotal } from '@/utils/cartUtils';
 import { formatCurrency } from '@/utils/format';
 import { CartItemWithDetails } from '@/types/cart';
+import voucherService from '@/services/vouchers';
 import toast from 'react-hot-toast';
 
 export default function CartPage() {
@@ -79,27 +80,150 @@ export default function CartPage() {
 
   const applyPromoCode = () => {
     setPromoError("");
-    const found = PROMO_CODES.find(
+  
+    // First check standard promo codes
+    const foundPromo = PROMO_CODES.find(
       (p) => p.code.toUpperCase() === promoCode.toUpperCase()
     );
-    if (found) {
+  
+    if (foundPromo) {
       // Apply percentage discount to subtotal
-      const discountAmount = Math.round(subtotal * (found.discount / 100));
+      const discountAmount = Math.round(subtotal * (foundPromo.discount / 100));
       setPromoDiscount(discountAmount);
-      
+    
       // Save to localStorage for checkout page
       localStorage.setItem('promoCode', promoCode);
       localStorage.setItem('promoDiscount', discountAmount.toString());
+      localStorage.setItem('promoType', 'standard');
+    
+      toast.success(`Promo code applied: ${foundPromo.discount}% discount`);
+      return;
+    }
+  
+    // If not a standard promo code, check for seller vouchers
+    const voucher = voucherService.getVoucherByCode(promoCode);
+  
+    if (voucher) {
+      // Check if voucher is valid
+      if (!voucherService.isVoucherValid(voucher)) {
+        setPromoError("This voucher has expired");
+        setPromoDiscount(0);
+        clearPromoLocalStorage();
+        return;
+      }
       
-      toast.success(`Promo code applied: ${found.discount}% discount`);
+      // Convert selectedItems from Set to Array for filtering
+      const selectedItemsArray = cartItems.filter(item => 
+        Array.from(selectedItems).some(id => 
+          id === item.id || String(id) === String(item.id) || Number(id) === Number(item.id)
+        )
+      );
+    
+      // Check if voucher can be applied to items in cart
+      const applicableItems = selectedItemsArray.filter((item: CartItemWithDetails) => {
+        // Check if item belongs to the vendor who created the voucher
+        const itemVendorId = typeof item.vendor_id === 'string' ? 
+          parseInt(item.vendor_id) : item.vendor_id;
+        const voucherVendorId = typeof voucher.vendorId === 'string' ? 
+          parseInt(voucher.vendorId) : voucher.vendorId;
+        
+        if (itemVendorId !== voucherVendorId) {
+          return false;
+        }
+        
+        // If voucher is product-specific, check if the item is in the list
+        if (voucher.productIds && voucher.productIds.length > 0) {
+          const productId = typeof item.product_id === 'string' ? 
+            parseInt(item.product_id) : item.product_id;
+          return voucher.productIds.includes(productId);
+        }
+        
+        // If no product restrictions, all items from this vendor are eligible
+        return true;
+      });
+    
+      if (applicableItems.length === 0) {
+        setPromoError("This voucher cannot be applied to any items in your cart");
+        setPromoDiscount(0);
+        clearPromoLocalStorage();
+        return;
+      }
+    
+      // Calculate applicable subtotal (only for items from this vendor)
+      const applicableSubtotal = applicableItems.reduce(
+        (sum: number, item: CartItemWithDetails) => sum + ((item.price || 0) * item.quantity), 0
+      );
+    
+      // Check minimum purchase requirement
+      if (voucher.minPurchase && applicableSubtotal < voucher.minPurchase) {
+        const shortfall = voucher.minPurchase - applicableSubtotal;
+        setPromoError(`Minimum purchase of ${formatCurrency(voucher.minPurchase)} required. Add ${formatCurrency(shortfall)} more from this seller.`);
+        setPromoDiscount(0);
+        clearPromoLocalStorage();
+        return;
+      }
+    
+      // Calculate discount
+      let discountAmount = Math.round(applicableSubtotal * (voucher.discountPercentage / 100));
+    
+      // Apply max discount cap if set
+      if (voucher.maxDiscount && discountAmount > voucher.maxDiscount) {
+        discountAmount = voucher.maxDiscount;
+      }
+    
+      setPromoDiscount(discountAmount);
+    
+      // Apply discount_percentage to applicable cart items
+      const updatedCartItems = cartItems.map(item => {
+        // Check if this item is in the applicableItems list
+        const isApplicable = applicableItems.some(appItem => appItem.id === item.id);
+        
+        if (isApplicable) {
+          // Apply the discount percentage to this item
+          return {
+            ...item,
+            discount_percentage: voucher.discountPercentage
+          };
+        }
+        
+        return item;
+      });
+      
+      // Update cart items with discounts applied
+      setCartItems(updatedCartItems);
+    
+      // Save to localStorage for checkout page
+      localStorage.setItem('promoCode', promoCode);
+      localStorage.setItem('promoDiscount', discountAmount.toString());
+      localStorage.setItem('promoType', 'voucher');
+      localStorage.setItem('promoVoucherId', voucher.id);
+      localStorage.setItem('promoVendorId', voucher.vendorId.toString());
+    
+      const sellerName = applicableItems[0]?.seller || 'this seller';
+      toast.success(`Voucher applied: ${voucher.discountPercentage}% off items from ${sellerName}`);
     } else {
-      setPromoError("Invalid promo code");
+      setPromoError("Invalid promo code or voucher");
       setPromoDiscount(0);
-      // Clear from localStorage
-      localStorage.removeItem('promoCode');
-      localStorage.removeItem('promoDiscount');
+      clearPromoLocalStorage();
     }
   };
+
+  // Helper function to clear promo code data from localStorage and reset discounts
+  const clearPromoLocalStorage = () => {
+    localStorage.removeItem('promoCode');
+    localStorage.removeItem('promoDiscount');
+    localStorage.removeItem('promoType');
+    localStorage.removeItem('promoVoucherId');
+    localStorage.removeItem('promoVendorId');
+    
+    // Clear discount percentages from all cart items
+    const resetCartItems = cartItems.map(item => ({
+      ...item,
+      discount_percentage: undefined
+    }));
+    
+    setCartItems(resetCartItems);
+  }
 
   // Group cart items by seller
   const itemsBySeller = useMemo(() => {

@@ -70,8 +70,24 @@ const CartItem: React.FC<CartItemProps> = ({
               <span className="inline-block w-2 h-2 rounded-full bg-amber-500/50"></span>
               {item.seller}
             </div>
-            <div className="text-amber-500 font-bold mt-1 sm:hidden">
-              {formatCurrency(item.unit_price)} × {item.quantity}
+            <div className="mt-1 sm:hidden">
+              {item.discount_percentage ? (
+                <div className="flex items-center gap-2">
+                  <div className="text-white/50 line-through text-xs">
+                    {formatCurrency(item.unit_price)}
+                  </div>
+                  <div className="text-amber-500 font-bold">
+                    {formatCurrency(item.unit_price * (100 - item.discount_percentage) / 100)} × {item.quantity}
+                  </div>
+                  <div className="text-green-400 text-xs bg-green-500/10 px-1.5 py-0.5 rounded-sm">
+                    {item.discount_percentage}% off
+                  </div>
+                </div>
+              ) : (
+                <div className="text-amber-500 font-bold">
+                  {formatCurrency(item.unit_price)} × {item.quantity}
+                </div>
+              )}
             </div>
           </div>
 
@@ -105,8 +121,24 @@ const CartItem: React.FC<CartItemProps> = ({
               </button>
             </div>
 
-            <div className="hidden sm:block text-amber-500 font-bold w-24 text-right">
-              {formatCurrency(item.unit_price * item.quantity)}
+            <div className="hidden sm:block w-24 text-right">
+              {item.discount_percentage ? (
+                <div className="flex flex-col items-end">
+                  <div className="text-white/50 line-through text-xs">
+                    {formatCurrency(item.unit_price * item.quantity)}
+                  </div>
+                  <div className="text-amber-500 font-bold">
+                    {formatCurrency((item.unit_price * (100 - item.discount_percentage) / 100) * item.quantity)}
+                  </div>
+                  <div className="text-green-400 text-xs bg-green-500/10 px-1.5 py-0.5 rounded-sm mt-0.5 inline-block">
+                    {item.discount_percentage}% off
+                  </div>
+                </div>
+              ) : (
+                <div className="text-amber-500 font-bold">
+                  {formatCurrency(item.unit_price * item.quantity)}
+                </div>
+              )}
             </div>
 
             <button

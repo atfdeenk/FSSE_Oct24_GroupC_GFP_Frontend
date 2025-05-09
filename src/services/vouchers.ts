@@ -111,16 +111,25 @@ export const deleteVoucher = (id: string): boolean => {
   return true;
 };
 
-// Check if a voucher is valid
-export const isVoucherValid = (code: string): Voucher | null => {
+// Get a voucher by its code
+export const getVoucherByCode = (code: string): Voucher | null => {
   const allVouchers = getAllVouchers();
   const voucher = allVouchers.find(v => 
-    v.code.toLowerCase() === code.toLowerCase() && 
-    v.isActive && 
-    new Date(v.expiryDate) > new Date()
+    v.code.toLowerCase() === code.toLowerCase()
   );
   
   return voucher || null;
+};
+
+// Check if a voucher is valid
+export const isVoucherValid = (voucher: Voucher | string): boolean => {
+  if (typeof voucher === 'string') {
+    const foundVoucher = getVoucherByCode(voucher);
+    if (!foundVoucher) return false;
+    voucher = foundVoucher;
+  }
+  
+  return voucher.isActive && new Date(voucher.expiryDate) > new Date();
 };
 
 // Apply voucher discount to products
@@ -128,8 +137,8 @@ export const applyVoucherToProducts = (
   products: Product[], 
   voucherCode: string
 ): Product[] => {
-  const voucher = isVoucherValid(voucherCode);
-  if (!voucher) return products;
+  const voucher = getVoucherByCode(voucherCode);
+  if (!voucher || !isVoucherValid(voucher)) return products;
   
   return products.map(product => {
     // Only apply to products from the voucher's vendor
@@ -237,6 +246,7 @@ export default {
   createVoucher,
   updateVoucher,
   deleteVoucher,
+  getVoucherByCode,
   isVoucherValid,
   applyVoucherToProducts,
   getVouchersForProduct,

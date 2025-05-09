@@ -9,4 +9,5 @@ export interface CartItemWithDetails extends ApiCartItem {
   vendor_id?: string | number;
   unit_price: number;
   product_id: number | string;
+  discount_percentage?: number;
 }

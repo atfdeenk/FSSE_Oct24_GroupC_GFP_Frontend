@@ -85,16 +85,42 @@ const CheckoutItemList: React.FC<CheckoutItemListProps> = ({
                   <div className="flex-grow">
                     <div className="flex justify-between">
                       <h4 className="font-medium text-white">{item.name || item.product?.name || `Product #${item.product_id}`}</h4>
-                      <span className="text-amber-500 font-medium">
-                        {formatCurrency((item.price || item.unit_price || item.product?.price || 0) * item.quantity)}
-                      </span>
+                      {item.discount_percentage ? (
+                        <div className="flex flex-col items-end">
+                          <div className="text-white/50 line-through text-xs">
+                            {formatCurrency((item.price || item.unit_price || item.product?.price || 0) * item.quantity)}
+                          </div>
+                          <div className="text-amber-500 font-medium">
+                            {formatCurrency(((item.price || item.unit_price || item.product?.price || 0) * (100 - item.discount_percentage) / 100) * item.quantity)}
+                          </div>
+                        </div>
+                      ) : (
+                        <span className="text-amber-500 font-medium">
+                          {formatCurrency((item.price || item.unit_price || item.product?.price || 0) * item.quantity)}
+                        </span>
+                      )}
                     </div>
                     
                     <div className="flex flex-wrap items-center text-white/70 text-sm mt-1">
                       <div className="bg-black/30 rounded-full px-2 py-0.5 mr-2 text-xs">
                         <span>Qty: {item.quantity}</span>
                       </div>
-                      <span>{formatCurrency(item.price || item.unit_price || item.product?.price || 0)} each</span>
+                      
+                      {item.discount_percentage ? (
+                        <div className="flex items-center gap-2">
+                          <span className="line-through text-white/40 text-xs">
+                            {formatCurrency(item.price || item.unit_price || item.product?.price || 0)}
+                          </span>
+                          <span className="text-green-400">
+                            {formatCurrency((item.price || item.unit_price || item.product?.price || 0) * (100 - item.discount_percentage) / 100)} each
+                          </span>
+                          <span className="bg-green-500/10 text-green-400 text-xs px-1.5 py-0.5 rounded-full">
+                            {item.discount_percentage}% off
+                          </span>
+                        </div>
+                      ) : (
+                        <span>{formatCurrency(item.price || item.unit_price || item.product?.price || 0)} each</span>
+                      )}
                       
                       {/* Product category if available */}
                       {item.product?.categories?.[0]?.name && (
