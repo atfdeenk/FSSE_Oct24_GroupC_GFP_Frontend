@@ -111,8 +111,9 @@ async function testCategories() {
   
   try {
     console.log('Getting all categories...');
-    const categories = await categoryService.getCategories();
-    // The API returns an array of categories directly
+    const categoriesResponse = await categoryService.getCategories();
+    // The API returns categories in a nested structure
+    const categories = categoriesResponse.categories || [];
     console.log('Categories retrieved:', categories.length > 0 ? 'success' : 'failed');
     
     if (categories.length > 0) {
