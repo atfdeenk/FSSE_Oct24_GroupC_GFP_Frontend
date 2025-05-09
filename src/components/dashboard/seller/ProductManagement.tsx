@@ -471,10 +471,70 @@ export default function ProductManagement() {
       rejected: product.rejected !== undefined ? product.rejected : false,
       currency: product.currency || 'IDR',
       unit_quantity: product.unit_quantity || 'piece',
-      slug: product.slug || ''
+      slug: product.slug || '',
+      flash_sale: product.flash_sale,
+      featured: product.featured
     });
     setImageFile(null); // Reset image file when editing
     setShowForm(true);
+  };
+  
+  // Handle toggle flash sale status
+  const handleToggleFlashSale = async (product: Product) => {
+    try {
+      const updatedFlashSale = !product.flash_sale;
+      toast.loading(`${updatedFlashSale ? 'Enabling' : 'Disabling'} flash sale...`, { id: 'flash-sale-toast' });
+      
+      // Update product with toggled flash sale status
+      const response = await productService.updateProduct(product.id, {
+        flash_sale: updatedFlashSale
+      });
+      
+      if (response) {
+        // Update local state
+        const updatedProducts = products.map(p =>
+          p.id === product.id ? { ...p, flash_sale: updatedFlashSale } : p
+        );
+        setProducts(updatedProducts);
+        
+        toast.success(
+          `Flash sale ${updatedFlashSale ? 'enabled' : 'disabled'} for ${product.name}`,
+          { id: 'flash-sale-toast' }
+        );
+      }
+    } catch (error) {
+      console.error('Error toggling flash sale status:', error);
+      toast.error('Failed to update flash sale status', { id: 'flash-sale-toast' });
+    }
+  };
+  
+  // Handle toggle featured status
+  const handleToggleFeatured = async (product: Product) => {
+    try {
+      const updatedFeatured = !product.featured;
+      toast.loading(`${updatedFeatured ? 'Setting as' : 'Removing from'} featured products...`, { id: 'featured-toast' });
+      
+      // Update product with toggled featured status
+      const response = await productService.updateProduct(product.id, {
+        featured: updatedFeatured
+      });
+      
+      if (response) {
+        // Update local state
+        const updatedProducts = products.map(p =>
+          p.id === product.id ? { ...p, featured: updatedFeatured } : p
+        );
+        setProducts(updatedProducts);
+        
+        toast.success(
+          `Product ${updatedFeatured ? 'added to' : 'removed from'} featured products`,
+          { id: 'featured-toast' }
+        );
+      }
+    } catch (error) {
+      console.error('Error toggling featured status:', error);
+      toast.error('Failed to update featured status', { id: 'featured-toast' });
+    }
   };
 
   // Handle product delete
@@ -1041,6 +1101,42 @@ export default function ProductManagement() {
                   <option value="false">Inactive</option>
                 </select>
               </div>
+              
+              <div className="flex flex-col space-y-4">
+                <div>
+                  <label className="flex items-center space-x-2 cursor-pointer">
+                    <input
+                      type="checkbox"
+                      checked={formData.flash_sale || false}
+                      onChange={(e) => {
+                        setFormData(prev => ({
+                          ...prev,
+                          flash_sale: e.target.checked
+                        }));
+                      }}
+                      className="form-checkbox h-4 w-4 text-amber-500 rounded focus:ring-amber-500/50"
+                    />
+                    <span className="text-sm font-medium text-white/70">Flash Sale</span>
+                  </label>
+                </div>
+                
+                <div>
+                  <label className="flex items-center space-x-2 cursor-pointer">
+                    <input
+                      type="checkbox"
+                      checked={formData.featured || false}
+                      onChange={(e) => {
+                        setFormData(prev => ({
+                          ...prev,
+                          featured: e.target.checked
+                        }));
+                      }}
+                      className="form-checkbox h-4 w-4 text-amber-500 rounded focus:ring-amber-500/50"
+                    />
+                    <span className="text-sm font-medium text-white/70">Featured Product</span>
+                  </label>
+                </div>
+              </div>
             </div>
             
             <div className="flex justify-end space-x-3 pt-4">
@@ -1256,6 +1352,12 @@ export default function ProductManagement() {
                   <th scope="col" className="px-6 py-3 text-left text-xs font-medium text-white/70 uppercase tracking-wider">
                     Status
                   </th>
+                  <th scope="col" className="px-6 py-3 text-center text-xs font-medium text-white/70 uppercase tracking-wider">
+                    Flash Sale
+                  </th>
+                  <th scope="col" className="px-6 py-3 text-center text-xs font-medium text-white/70 uppercase tracking-wider">
+                    Featured
+                  </th>
                   <th scope="col" className="px-6 py-3 text-right text-xs font-medium text-white/70 uppercase tracking-wider">
                     Actions
                   </th>
@@ -1314,6 +1416,22 @@ export default function ProductManagement() {
                           {product.is_approved ? 'Active' : 'Inactive'}
                         </span>
                       </td>
+                      <td className="px-6 py-4 whitespace-nowrap text-center">
+                        <button
+                          onClick={() => handleToggleFlashSale(product)}
+                          className={`px-2 py-1 rounded-md text-xs font-medium ${product.flash_sale ? 'bg-amber-500 text-black' : 'bg-neutral-700 text-white/70'}`}
+                        >
+                          {product.flash_sale ? 'ON' : 'OFF'}
+                        </button>
+                      </td>
+                      <td className="px-6 py-4 whitespace-nowrap text-center">
+                        <button
+                          onClick={() => handleToggleFeatured(product)}
+                          className={`px-2 py-1 rounded-md text-xs font-medium ${product.featured ? 'bg-amber-500 text-black' : 'bg-neutral-700 text-white/70'}`}
+                        >
+                          {product.featured ? 'ON' : 'OFF'}
+                        </button>
+                      </td>
                       <td className="px-6 py-4 whitespace-nowrap text-right text-sm font-medium">
                         <button
                           onClick={() => handleEdit(product)}
@@ -1332,7 +1450,7 @@ export default function ProductManagement() {
                   ))
                 ) : (
                   <tr>
-                    <td colSpan={6} className="px-6 py-4 text-center text-sm text-white/50">
+                    <td colSpan={8} className="px-6 py-4 text-center text-sm text-white/50">
                       {loading ? 'Loading products...' : 'No products found'}
                     </td>
                   </tr>
