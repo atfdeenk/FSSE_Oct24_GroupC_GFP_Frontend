@@ -206,39 +206,42 @@ export default function ProductsPage() {
 
       {/* Main content */}
       <div className="max-w-6xl mx-auto px-6 py-12">
-        {/* Flash Sale Section */}
-        {(flashSaleProducts.length > 0 || flashSaleLoading) && (
-          <div className="mb-12">
-            <div className="flex items-center mb-6">
-              <h2 className="text-2xl font-bold text-white">Flash Sale</h2>
-              <span className="ml-3 bg-red-600 text-white text-xs font-bold px-2 py-1 rounded-full animate-pulse">
-                HOT DEALS
-              </span>
+        {/* Special Products Sections */}
+        <div className="flex flex-col gap-3 mb-6">
+          {/* Flash Sale Section */}
+          {(flashSaleProducts.length > 0 || flashSaleLoading) && (
+            <div className="bg-black/30 border border-white/5 rounded-md p-3 pb-2">
+              <div className="flex items-center mb-1">
+                <h2 className="text-lg font-bold text-white">Flash Sale</h2>
+                <span className="ml-2 bg-red-600 text-white text-xs font-bold px-2 py-0.5 rounded-full animate-pulse">
+                  HOT DEALS
+                </span>
+              </div>
+              <ScrollableProductRow 
+                products={flashSaleProducts} 
+                loading={flashSaleLoading}
+                loadingMessage="Loading flash sale products..."
+              />
             </div>
-            <ScrollableProductRow 
-              products={flashSaleProducts} 
-              loading={flashSaleLoading}
-              loadingMessage="Loading flash sale products..."
-            />
-          </div>
-        )}
-        
-        {/* Featured Products Section */}
-        {(featuredProducts.length > 0 || featuredLoading) && (
-          <div className="mb-12">
-            <div className="flex items-center mb-6">
-              <h2 className="text-2xl font-bold text-white">Featured Products</h2>
-              <span className="ml-3 bg-amber-600 text-white text-xs font-bold px-2 py-1 rounded-full">
-                RECOMMENDED
-              </span>
+          )}
+          
+          {/* Featured Products Section */}
+          {(featuredProducts.length > 0 || featuredLoading) && (
+            <div className="bg-black/30 border border-white/5 rounded-md p-3 pb-2">
+              <div className="flex items-center mb-1">
+                <h2 className="text-lg font-bold text-white">Featured Products</h2>
+                <span className="ml-2 bg-amber-600 text-white text-xs font-bold px-2 py-0.5 rounded-full">
+                  RECOMMENDED
+                </span>
+              </div>
+              <ScrollableProductRow 
+                products={featuredProducts} 
+                loading={featuredLoading}
+                loadingMessage="Loading featured products..."
+              />
             </div>
-            <ScrollableProductRow 
-              products={featuredProducts} 
-              loading={featuredLoading}
-              loadingMessage="Loading featured products..."
-            />
-          </div>
-        )}
+          )}
+        </div>
         
         {/* Unified controls row as component */}
         <UnifiedProductControls

@@ -53,19 +53,19 @@ const ScrollableProductRow: React.FC<ScrollableProductRowProps> = ({
         style={{ scrollbarWidth: 'none', msOverflowStyle: 'none' }}
       >
         {loading && products.length === 0 && (
-          <div className="w-full min-h-[300px] flex items-center justify-center">
+          <div className="w-full min-h-[200px] flex items-center justify-center">
             <LoadingOverlay message={loadingMessage || "Loading products..."} />
           </div>
         )}
         
         {products.length === 0 && !loading && (
-          <div className="w-full min-h-[300px] flex items-center justify-center">
+          <div className="w-full min-h-[200px] flex items-center justify-center">
             {children || <p className="text-white/50">No products found</p>}
           </div>
         )}
         
         {products.length > 0 && products.map(product => (
-          <div key={product.id} className="min-w-[250px] snap-start">
+          <div key={product.id} className="w-[calc(50%-8px)] sm:w-[calc(33.333%-11px)] md:w-[calc(25%-12px)] flex-shrink-0 snap-start">
             <ProductCard product={product} />
           </div>
         ))}
