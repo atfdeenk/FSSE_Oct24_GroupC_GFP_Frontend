@@ -72,14 +72,11 @@ export function useCheckout(): UseCheckoutReturn {
   const [showNewAddressForm, setShowNewAddressForm] = useState(false);
   const [showSavedAddresses, setShowSavedAddresses] = useState(false);
   
-  // Load promo code and voucher data from localStorage (synced with cart page)
+  // Load promo code from localStorage (synced with cart page)
   useEffect(() => {
     if (typeof window !== 'undefined') {
       const savedPromoCode = localStorage.getItem('promoCode');
       const savedPromoDiscount = localStorage.getItem('promoDiscount');
-      const promoType = localStorage.getItem('promoType');
-      const promoVoucherId = localStorage.getItem('promoVoucherId');
-      const promoVendorId = localStorage.getItem('promoVendorId');
       
       if (savedPromoCode) {
         setPromoCode(savedPromoCode);
@@ -184,48 +181,8 @@ export function useCheckout(): UseCheckoutReturn {
     }
   }, [user]);
   
-  // Filter cart items to only include selected items
-  const selectedCartItems = cartItems.filter(item => {
-    // Check if the item ID is in the selectedItems set
-    // Handle both string and number IDs
-    return Array.from(selectedItems).some(id => 
-      id === item.id || String(id) === String(item.id) || Number(id) === Number(item.id)
-    );
-  });
-  
-  // Apply voucher discounts to cart items if a voucher is stored in localStorage
-  useEffect(() => {
-    if (typeof window !== 'undefined' && selectedCartItems.length > 0) {
-      const promoType = localStorage.getItem('promoType');
-      const promoVoucherId = localStorage.getItem('promoVoucherId');
-      const promoVendorId = localStorage.getItem('promoVendorId');
-      const discountPercentage = localStorage.getItem('discountPercentage');
-      
-      // Only apply if this is a voucher (not a standard promo code)
-      if (promoType === 'voucher' && promoVendorId) {
-        const vendorId = promoVendorId;
-        
-        // Apply discount_percentage to applicable items
-        selectedCartItems.forEach(item => {
-          const itemVendorId = typeof item.vendor_id === 'string' ? 
-            parseInt(item.vendor_id) : item.vendor_id;
-          const voucherVendorId = typeof vendorId === 'string' ? 
-            parseInt(vendorId) : vendorId;
-          
-          // Apply discount if item belongs to the vendor who created the voucher
-          if (itemVendorId === voucherVendorId) {
-            // Get discount percentage from localStorage or use a default value
-            const voucherDiscountPercentage = discountPercentage ? 
-              parseInt(discountPercentage) : 
-              localStorage.getItem('promoCode')?.includes('BUMI') ? 10 : 5;
-            
-            // Apply discount to item
-            item.discount_percentage = voucherDiscountPercentage;
-          }
-        });
-      }
-    }
-  }, [selectedCartItems]);
+  // Filter cart items based on selected items
+  const selectedCartItems = cartItems.filter(item => selectedItems.has(item.id));
   
   // Helper function to group cart items by seller
   const groupItemsBySeller = (items: CartItemWithDetails[]) => {

@@ -42,6 +42,48 @@ export default function CartPage() {
   const [showSelectionBar, setShowSelectionBar] = useState(false);
   const [showClearCartModal, setShowClearCartModal] = useState(false);
 
+  // Helper function to create sample vouchers for testing
+  const createSampleVouchers = () => {
+    const existingVouchers = voucherService.getAllVouchers();
+    
+    // Only create sample vouchers if none exist
+    if (existingVouchers.length === 0) {
+      // Get unique vendor IDs from cart items
+      const vendorIds = [...new Set(cartItems.map(item => item.vendor_id))];
+      
+      // Create a voucher for each vendor
+      vendorIds.forEach(vendorId => {
+        if (vendorId) {
+          voucherService.createVoucher({
+            code: `VENDOR${vendorId}OFF`,
+            vendorId: vendorId,
+            discountPercentage: 10,
+            maxDiscount: 50,
+            minPurchase: 100,
+            expiryDate: new Date(Date.now() + 30 * 24 * 60 * 60 * 1000), // 30 days from now
+            isActive: true,
+            description: `10% off on all products from vendor ${vendorId}`
+          });
+        }
+      });
+      
+      // Create some product-specific vouchers
+      cartItems.forEach(item => {
+        if (item.id && item.vendor_id) {
+          voucherService.createVoucher({
+            code: `PROD${item.id}SPECIAL`,
+            vendorId: item.vendor_id,
+            productIds: [typeof item.id === 'string' ? parseInt(item.id) : item.id],
+            discountPercentage: 15,
+            expiryDate: new Date(Date.now() + 7 * 24 * 60 * 60 * 1000), // 7 days from now
+            isActive: true,
+            description: `15% off on product ${item.name || item.id}`
+          });
+        }
+      });
+    }
+  };
+
   useEffect(() => {
     // Check if user is authenticated
     if (!isAuthenticated()) {
@@ -63,6 +105,13 @@ export default function CartPage() {
       setPromoDiscount(Number(savedPromoDiscount));
     }
   }, [fetchCart]);
+  
+  // Create sample vouchers when cart items are loaded
+  useEffect(() => {
+    if (cartItems.length > 0) {
+      createSampleVouchers();
+    }
+  }, [cartItems.length]);
 
   // Show selection bar when items are selected
   useEffect(() => {

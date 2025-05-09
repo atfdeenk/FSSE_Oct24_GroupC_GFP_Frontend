@@ -1,8 +1,11 @@
 "use client";
 
-import React from 'react';
-import CartItem from '@/components/CartItem';
+import React, { useState, useEffect } from 'react';
 import { CartItemWithDetails } from '@/types/cart';
+import CartItem from './CartItem';
+import voucherService from '@/services/vouchers';
+import { Voucher } from '@/services/vouchers';
+import toast from 'react-hot-toast';
 
 interface SellerGroupProps {
   seller: string;
@@ -23,6 +26,18 @@ const SellerGroup: React.FC<SellerGroupProps> = ({
   onRemoveItem,
   loading = false
 }) => {
+  const [storeVouchers, setStoreVouchers] = useState<Voucher[]>([]);
+  
+  useEffect(() => {
+    if (items.length > 0 && items[0].vendor_id) {
+      // Get vouchers for this seller
+      const vendorId = items[0].vendor_id;
+      const vouchers = voucherService.getVendorVouchers(vendorId);
+      // Filter for active vouchers only
+      const activeVouchers = vouchers.filter(voucher => voucherService.isVoucherValid(voucher));
+      setStoreVouchers(activeVouchers);
+    }
+  }, [items]);
   return (
     <div className="mb-8 last:mb-0 bg-neutral-900/40 backdrop-blur-sm rounded-lg overflow-hidden border border-white/5 shadow-xl">
       <a 
@@ -70,6 +85,35 @@ const SellerGroup: React.FC<SellerGroupProps> = ({
           </div>
         </div>
       </a>
+      
+      {storeVouchers.length > 0 && (
+        <div className="px-4 py-2 bg-gradient-to-r from-amber-900/20 to-neutral-800/20 border-b border-amber-700/20">
+          <div className="flex items-center gap-2 mb-1">
+            <svg className="w-4 h-4 text-amber-400" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+              <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={1.5} d="M15 5v2m0 4v2m0 4v2M5 5a2 2 0 00-2 2v3a2 2 0 110 4v3a2 2 0 002 2h14a2 2 0 002-2v-3a2 2 0 110-4V7a2 2 0 00-2-2H5z" />
+            </svg>
+            <span className="text-sm font-medium text-amber-400">Available Vouchers</span>
+          </div>
+          <div className="flex flex-wrap gap-2 mt-1">
+            {storeVouchers.map((voucher) => (
+              <div 
+                key={voucher.id} 
+                className="bg-amber-500/10 border border-amber-500/20 rounded-md px-3 py-1 text-xs flex items-center gap-2 cursor-pointer hover:bg-amber-500/20 transition-colors"
+                onClick={() => {
+                  // Copy voucher code to clipboard
+                  navigator.clipboard.writeText(voucher.code);
+                  toast.success(`Voucher code ${voucher.code} copied to clipboard!`);
+                }}
+              >
+                <span className="font-mono font-bold text-amber-400">{voucher.code}</span>
+                <span className="text-white/70">{voucher.discountPercentage}% off</span>
+                {voucher.minPurchase && <span className="text-white/50">min {voucher.minPurchase}</span>}
+                {voucher.maxDiscount && <span className="text-white/50">max {voucher.maxDiscount}</span>}
+              </div>
+            ))}
+          </div>
+        </div>
+      )}
       
       <div className="p-3">
         {items.map(item => (
