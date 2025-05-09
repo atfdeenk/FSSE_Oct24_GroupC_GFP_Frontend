@@ -346,7 +346,35 @@ export default function CartPage() {
 
   // Handle seller vouchers applied
   const handleVouchersApplied = () => {
-    updateVoucherDiscount();
+    console.log('Vouchers applied event received');
+    // Set flag to use seller vouchers
+    setUseSellerVouchers(true);
+    
+    // Calculate and update voucher discount
+    const totalVoucherDiscount = voucherService.calculateTotalVoucherDiscount(cartItems);
+    setVoucherDiscount(totalVoucherDiscount);
+    
+    // Apply vouchers to cart items without losing selection state
+    const updatedItems = voucherService.applyAllVouchersToCartItems(cartItems);
+    
+    // Store current selection state
+    const currentSelections = new Set(selectedItems);
+    
+    // Update cart items while preserving selection state
+    setCartItems(updatedItems);
+    
+    // Restore selection state
+    setSelectedItems(currentSelections);
+    
+    // Store voucher discount in localStorage for checkout page
+    localStorage.setItem('voucherDiscount', totalVoucherDiscount.toString());
+    localStorage.setItem('useSellerVouchers', 'true');
+    
+    console.log('Updated cart with voucher discounts:', {
+      totalVoucherDiscount,
+      updatedItemsCount: updatedItems.length,
+      selectedItemsCount: currentSelections.size
+    });
   };
 
   // Group cart items by seller

@@ -150,8 +150,7 @@ const SellerGroup: React.FC<SellerGroupProps> = ({
                     const event = new CustomEvent('vouchersApplied');
                     window.dispatchEvent(event);
                     
-                    // Force a page refresh to ensure cart state is updated correctly
-                    window.location.reload();
+                    // Instead of forcing a page refresh, let the event handler update the state
                   } else {
                     toast.error('Failed to apply voucher');
                   }

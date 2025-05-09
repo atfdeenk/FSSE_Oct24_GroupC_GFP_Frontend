@@ -265,19 +265,35 @@ export default function SellerVouchers({ cartItems, onVouchersApplied }: SellerV
                                       },
                                     });
                                     return;
+                                  } else if (appliedVoucher) {
+                                    // A different voucher is already applied
+                                    toast(`Another voucher (${appliedVoucher.code}) is already applied. Remove it first.`, {
+                                      icon: '🔔',
+                                      style: {
+                                        background: '#3b82f6',
+                                        color: 'white',
+                                      },
+                                    });
+                                    return;
                                   }
                                 }
                                 
-                                // Apply voucher directly when clicked
+                                // Apply the voucher
                                 const success = voucherService.applyVoucherForVendor(vendorId, voucher.code);
                                 
                                 if (success) {
+                                  // Calculate the discount amount for this vendor's items
+                                  const itemsTotal = calculateSellerSubtotal(sellerGroups[vendorId]?.items || []);
+                                  const discountAmount = Math.round(itemsTotal * (voucher.discountPercentage / 100));
+                                  console.log(`Discount calculation: ${itemsTotal} * ${voucher.discountPercentage}% = ${discountAmount}`);
+                                  
                                   // Update applied vouchers state
                                   setAppliedVouchers(voucherService.getAppliedVouchers());
                                   
-                                  // Calculate and store the updated voucher discount
-                                  const discount = voucherService.calculateTotalVoucherDiscount(cartItems);
-                                  localStorage.setItem('voucherDiscount', discount.toString());
+                                  // Store the calculated discount in localStorage
+                                  const currentDiscount = parseInt(localStorage.getItem('voucherDiscount') || '0');
+                                  const newTotalDiscount = currentDiscount + discountAmount;
+                                  localStorage.setItem('voucherDiscount', newTotalDiscount.toString());
                                   localStorage.setItem('useSellerVouchers', 'true');
                                   
                                   // Show success toast
@@ -285,6 +301,9 @@ export default function SellerVouchers({ cartItems, onVouchersApplied }: SellerV
                                   
                                   // Notify parent component
                                   onVouchersApplied();
+                                  
+                                  // Instead of forcing a page refresh, just update the state
+                                  // This ensures the discount persists and is properly displayed
                                 } else {
                                   toast.error('Failed to apply voucher');
                                 }

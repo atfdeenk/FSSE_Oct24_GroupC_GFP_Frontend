@@ -240,6 +240,9 @@ export default function CheckoutPage() {
             <div>
               <div className="text-sm text-white/60">Total</div>
               <div className="text-lg font-bold text-amber-500">{checkout.total.toLocaleString('id-ID', { style: 'currency', currency: 'IDR', minimumFractionDigits: 0 })}</div>
+              {checkout.discount > 0 && (
+                <div className="text-xs text-green-400 mt-1">You saved {checkout.discount.toLocaleString('id-ID', { style: 'currency', currency: 'IDR', minimumFractionDigits: 0 })}</div>
+              )}
             </div>
             <button
               onClick={() => {

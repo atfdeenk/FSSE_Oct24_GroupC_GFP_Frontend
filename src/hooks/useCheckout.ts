@@ -89,11 +89,17 @@ export function useCheckout(): UseCheckoutReturn {
       const useVouchers = useSellerVouchersStr === 'true';
       setUseSellerVouchers(useVouchers);
       
+      console.log('Checkout: Loading discount settings from localStorage', {
+        useSellerVouchers: useVouchers
+      });
+      
       if (useVouchers) {
         // Load voucher discount
         const savedVoucherDiscount = localStorage.getItem('voucherDiscount');
         if (savedVoucherDiscount) {
-          setVoucherDiscount(Number(savedVoucherDiscount));
+          const discountAmount = Number(savedVoucherDiscount);
+          setVoucherDiscount(discountAmount);
+          console.log('Checkout: Loaded voucher discount', { discountAmount });
         }
       } else {
         // Load standard promo code
@@ -105,7 +111,9 @@ export function useCheckout(): UseCheckoutReturn {
         }
         
         if (savedPromoDiscount) {
-          setPromoDiscount(Number(savedPromoDiscount));
+          const discountAmount = Number(savedPromoDiscount);
+          setPromoDiscount(discountAmount);
+          console.log('Checkout: Loaded promo discount', { discountAmount });
         }
       }
       
@@ -116,10 +124,23 @@ export function useCheckout(): UseCheckoutReturn {
         }
       };
       
+      // Listen for vouchers applied event
+      const handleVouchersApplied = () => {
+        setUseSellerVouchers(true);
+        const savedVoucherDiscount = localStorage.getItem('voucherDiscount');
+        if (savedVoucherDiscount) {
+          const discountAmount = Number(savedVoucherDiscount);
+          setVoucherDiscount(discountAmount);
+          console.log('Checkout: Updated voucher discount from event', { discountAmount });
+        }
+      };
+      
       window.addEventListener('setPromoDiscount', handleSetPromoDiscount as EventListener);
+      window.addEventListener('vouchersApplied', handleVouchersApplied as EventListener);
       
       return () => {
         window.removeEventListener('setPromoDiscount', handleSetPromoDiscount as EventListener);
+        window.removeEventListener('vouchersApplied', handleVouchersApplied as EventListener);
       };
     }
   }, []);
@@ -225,12 +246,28 @@ export function useCheckout(): UseCheckoutReturn {
     if (useSellerVouchers && selectedCartItems.length > 0) {
       // Calculate discount from applied vouchers
       const discount = voucherService.calculateTotalVoucherDiscount(selectedCartItems);
-      setVoucherDiscount(discount);
       
-      // Store in localStorage for synchronization with checkout
-      localStorage.setItem('voucherDiscount', discount.toString());
+      // Only update if the discount has changed
+      if (discount !== voucherDiscount) {
+        setVoucherDiscount(discount);
+        
+        // Apply vouchers to cart items
+        const updatedItems = voucherService.applyAllVouchersToCartItems(selectedCartItems);
+        
+        // Store in localStorage for synchronization with checkout
+        localStorage.setItem('voucherDiscount', discount.toString());
+        localStorage.setItem('useSellerVouchers', 'true');
+        
+        // Log to verify discount is being calculated correctly
+        console.log('Checkout: Voucher discount recalculated', {
+          discount,
+          previousDiscount: voucherDiscount,
+          selectedItemsCount: selectedCartItems.length,
+          appliedVouchers: voucherService.getAppliedVouchers()
+        });
+      }
     }
-  }, [selectedCartItems, useSellerVouchers]);
+  }, [selectedCartItems, useSellerVouchers, voucherDiscount]);
   
   // Helper function to group cart items by seller
   const groupItemsBySeller = (items: CartItemWithDetails[]) => {
@@ -298,8 +335,25 @@ export function useCheckout(): UseCheckoutReturn {
   // Calculate subtotal and total
   const ecoPackagingCost = Object.values(ecoPackaging).filter(Boolean).length * 5000; // 5000 per item
   const carbonOffsetCost = carbonOffset ? 3800 : 0; // 3800 for carbon offset
+  
+  // Determine which discount to apply (voucher or promo code)
   const discount = useSellerVouchers ? voucherDiscount : promoDiscount;
-  const total = calculateTotal(subtotal, discount) + ecoPackagingCost + carbonOffsetCost;
+  
+  // Ensure discount is properly applied
+  const discountedSubtotal = Math.max(0, subtotal - discount);
+  const total = discountedSubtotal + ecoPackagingCost + carbonOffsetCost;
+  
+  // Log the calculation for debugging
+  console.log('Checkout calculation:', {
+    subtotal,
+    voucherDiscount,
+    promoDiscount,
+    appliedDiscount: discount,
+    discountedSubtotal,
+    ecoPackagingCost,
+    carbonOffsetCost,
+    total
+  });
   
   // Handle changes to the new address form
   const handleAddressChange = (e: React.ChangeEvent<HTMLInputElement | HTMLTextAreaElement>) => {
@@ -472,7 +526,7 @@ export function useCheckout(): UseCheckoutReturn {
         refreshBalance();
       }
       
-      // Store additional order data in localStorage for the success page
+      // Store checkout data in localStorage for the success page
       const checkoutAdditionalData = {
         shipping_address: {
           full_name: formData.fullName,
@@ -485,18 +539,20 @@ export function useCheckout(): UseCheckoutReturn {
         payment_method: formData.paymentMethod,
         total_amount: total,
         subtotal: subtotal,
-        discount: discount, // Use the correct discount based on voucher mode
+        discount: discount,
+        eco_packaging_cost: ecoPackagingCost,
+        carbon_offset_cost: carbonOffsetCost,
         // Include detailed product information for reviews
         items: selectedCartItems.map(item => ({
           id: item.id,
           product_id: item.product_id,
           quantity: item.quantity,
           price: item.product?.price || item.unit_price || item.price || 0,
+          discount_percentage: item.discount_percentage || 0,
           product: {
             id: item.product?.id || item.product_id,
             name: item.product?.name || item.name || `Product #${item.product_id}`,
             price: item.product?.price || item.unit_price || item.price || 0,
-            // Use type assertion to handle properties not in the type definition
             image: (item.product as any)?.image || (item as any).image_url || '',
             description: (item.product as any)?.description || '',
             vendor_id: item.product?.vendor_id || item.vendor_id || 0,

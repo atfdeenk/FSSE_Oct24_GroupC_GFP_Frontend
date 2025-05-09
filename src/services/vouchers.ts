@@ -278,6 +278,55 @@ export const applyVoucherForVendor = (vendorId: string | number, voucherCode: st
   // Save to localStorage
   localStorage.setItem(APPLIED_VOUCHERS_KEY, JSON.stringify(appliedVouchers));
   
+  // Calculate the discount for this voucher and store it
+  // This helps ensure the discount persists across page refreshes
+  const allItems = JSON.parse(localStorage.getItem('cartItems') || '[]');
+  const vendorItems = allItems.filter((item: any) => {
+    const itemVendorId = typeof item.vendor_id === 'string' ? 
+      item.vendor_id : item.vendor_id?.toString();
+    return itemVendorId === normalizedVendorId;
+  });
+  
+  // Calculate applicable subtotal for this vendor
+  let applicableSubtotal = 0;
+  vendorItems.forEach((item: any) => {
+    // Check if product-specific voucher applies to this item
+    if (voucher.productIds && voucher.productIds.length > 0) {
+      const productId = typeof item.product_id === 'string' ? 
+        parseInt(item.product_id) : (item.product_id || item.id);
+      
+      if (!voucher.productIds.includes(productId)) return;
+    }
+    
+    // Add to applicable subtotal
+    const price = item.price || 0;
+    const quantity = item.quantity || 1;
+    applicableSubtotal += price * quantity;
+  });
+  
+  // Calculate discount
+  let discountAmount = Math.round(applicableSubtotal * (voucher.discountPercentage / 100));
+  
+  // Apply max discount cap if set
+  if (voucher.maxDiscount && discountAmount > voucher.maxDiscount) {
+    discountAmount = voucher.maxDiscount;
+  }
+  
+  // Store the discount amount
+  const currentDiscount = parseInt(localStorage.getItem('voucherDiscount') || '0');
+  const newTotalDiscount = currentDiscount + discountAmount;
+  localStorage.setItem('voucherDiscount', newTotalDiscount.toString());
+  localStorage.setItem('useSellerVouchers', 'true');
+  
+  console.log('Applied voucher with discount calculation:', {
+    vendorId: normalizedVendorId,
+    voucherCode,
+    applicableSubtotal,
+    discountPercentage: voucher.discountPercentage,
+    discountAmount,
+    totalDiscount: newTotalDiscount
+  });
+  
   return true;
 };
 
@@ -330,6 +379,11 @@ export const applyAllVouchersToCartItems = (cartItems: any[]): any[] => {
     itemsByVendor[vendorId].push(item);
   });
   
+  console.log('Applying vouchers to cart items:', {
+    appliedVouchers,
+    itemsByVendor
+  });
+  
   // Apply vouchers to each vendor's items
   return cartItems.map(item => {
     const vendorId = typeof item.vendor_id === 'string' ? 
@@ -350,10 +404,26 @@ export const applyAllVouchersToCartItems = (cartItems: any[]): any[] => {
       if (!voucher.productIds.includes(productId)) return item;
     }
     
+    // Calculate the item price with discount
+    const price = item.price || item.unit_price || 0;
+    const quantity = item.quantity || 1;
+    const discountPercentage = voucher.discountPercentage;
+    const discountAmount = Math.round(price * (discountPercentage / 100)) * quantity;
+    
+    console.log(`Applied discount to item ${item.id}:`, {
+      originalPrice: price,
+      quantity,
+      discountPercentage,
+      discountAmount,
+      finalPrice: price - Math.round(price * (discountPercentage / 100))
+    });
+    
     // Apply discount to item
     return {
       ...item,
-      discount_percentage: voucher.discountPercentage
+      discount_percentage: discountPercentage,
+      discount_amount: discountAmount,
+      discounted_price: price - Math.round(price * (discountPercentage / 100))
     };
   });
 };
@@ -383,6 +453,7 @@ export const calculateTotalVoucherDiscount = (cartItems: any[]): number => {
   });
   
   let totalDiscount = 0;
+  let discountDetails: {[vendorId: string]: {subtotal: number, discount: number}} = {};
   
   // Calculate discount for each vendor
   Object.entries(itemsByVendor).forEach(([vendorId, items]) => {
@@ -422,7 +493,20 @@ export const calculateTotalVoucherDiscount = (cartItems: any[]): number => {
       discountAmount = voucher.maxDiscount;
     }
     
+    // Store discount details for logging
+    discountDetails[vendorId] = {
+      subtotal: applicableSubtotal,
+      discount: discountAmount
+    };
+    
     totalDiscount += discountAmount;
+  });
+  
+  // Log detailed discount calculation for debugging
+  console.log('Voucher discount calculation:', {
+    appliedVouchers,
+    discountDetails,
+    totalDiscount
   });
   
   return totalDiscount;

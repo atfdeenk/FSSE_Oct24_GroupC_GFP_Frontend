@@ -40,8 +40,9 @@ export function useCart() {
       const cartResponse = await cartService.getCart();
       const itemsWithDetails = await fetchCartWithDetails();
       
-      // Update cart items
+      // Update cart items and store in localStorage for voucher calculations
       setCartItems(itemsWithDetails);
+      localStorage.setItem('cartItems', JSON.stringify(itemsWithDetails));
       
       // Selection logic based on options and initial load state
       if (!options.preserveSelections || isInitialLoadRef.current) {
