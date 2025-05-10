@@ -44,8 +44,12 @@ const categoryService = {
       return response.data;
     } catch (error: any) {
       console.error('Get categories error:', error);
-      // Return empty array on error
-      return [];
+      // Return empty CategoriesResponse on error
+      return {
+        categories: [],
+        count: 0,
+        msg: 'Failed to fetch categories',
+      };
     }
   },
 
@@ -126,8 +130,12 @@ const categoryService = {
       return response.data;
     } catch (error: any) {
       console.error('Get top categories error:', error);
-      // Return empty array on error
-      return [];
+      // Return empty CategoriesResponse on error
+      return {
+        categories: [],
+        count: 0,
+        msg: 'Failed to fetch categories',
+      };
     }
   },
 
@@ -141,8 +149,12 @@ const categoryService = {
       return response.data;
     } catch (error: any) {
       console.error(`Get subcategories for parent ${parentId} error:`, error);
-      // Return empty array on error
-      return [];
+      // Return empty CategoriesResponse on error
+      return {
+        categories: [],
+        count: 0,
+        msg: 'Failed to fetch categories',
+      };
     }
   },
   
@@ -169,7 +181,7 @@ const categoryService = {
       );
       
       // Extract all categories from the response
-      const allCategories = response.data || [];
+      const allCategories = response.data.categories || [];
       console.log(`Server returned ${allCategories.length} total categories`);
       
       // Filter categories by vendor ID on the client side
@@ -189,13 +201,22 @@ const categoryService = {
         console.log(`Category: ID: ${category.id}, Name: ${category.name}, Vendor ID: ${category.vendor_id}`);
       });
       
-      // Return only the filtered categories
+      // Return a CategoriesResponse object
       console.log(`=== Completed getCategoriesByVendor with ${vendorCategories.length} categories ===`);
-      return vendorCategories;
+      return {
+        categories: vendorCategories,
+        count: vendorCategories.length,
+        msg: `Fetched ${vendorCategories.length} categories for vendor ${vendorId}`,
+      };
+
     } catch (error: any) {
       console.error(`Get categories for vendor ${vendorId} error:`, error);
-      // Return empty array on error
-      return [];
+      // Return empty CategoriesResponse on error
+      return {
+        categories: [],
+        count: 0,
+        msg: 'Failed to fetch categories',
+      };
     }
   },
   
