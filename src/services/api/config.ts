@@ -98,12 +98,13 @@ export const API_CONFIG = {
     
     // Voucher endpoints
     vouchers: {
-      list: '/vouchers',  // GET for retrieving all vouchers
+      list: '/vouchers',  // GET for retrieving vendor's vouchers
       detail: (id: string | number) => `/vouchers/${id}`,  // GET, PUT, DELETE for specific voucher
       create: '/vouchers',  // POST to create a new voucher
       update: (id: string | number) => `/vouchers/${id}`,  // PUT to update a voucher
       delete: (id: string | number) => `/vouchers/${id}`,  // DELETE to remove a voucher
-      deactivate: (id: string | number) => `/vouchers/${id}/deactivate`  // PUT to deactivate a voucher
+      deactivate: (id: string | number) => `/vouchers/${id}/deactivate`,  // PATCH to deactivate a voucher
+      byCode: (code: string) => `/vouchers/code/${code}`  // GET voucher by code (for customers)
     }
   }
 };

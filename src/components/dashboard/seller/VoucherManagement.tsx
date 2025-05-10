@@ -6,25 +6,41 @@ import { formatCurrency } from '@/utils/format';
 import LoadingOverlay from '@/components/ui/LoadingOverlay';
 import { useAuthUser } from '@/hooks/useAuthUser';
 import voucherService, { Voucher as VoucherType } from '@/services/vouchers';
+import apiVoucherService from '@/services/api/vouchers';
+import axiosInstance from '@/services/api/axios';
 import productService from '@/services/api/products';
 import { Product } from '@/types';
+import { TOKEN_KEY } from '@/constants';
 
-// Define voucher interface for the component
+// Define voucher interface for the component - aligned with API structure
 interface Voucher {
   id: string;
   code: string;
-  discount_type: 'percentage' | 'fixed';
-  discount_value: number;
-  min_purchase: number;
-  max_discount?: number;
-  valid_from: string;
-  valid_until: string;
-  usage_limit?: number;
-  usage_count?: number;
-  status: 'active' | 'expired' | 'used';
+  vendorId: number | string;
   productIds?: number[];
   productNames?: string[];
-  vendorId: number | string;
+  
+  // Local UI fields
+  discount_type?: 'percentage' | 'fixed';
+  discount_value?: number;
+  min_purchase?: number;
+  max_discount?: number;
+  valid_from?: string;
+  valid_until?: string;
+  status?: 'active' | 'expired' | 'used';
+  
+  // API fields
+  discount_percent?: number;
+  is_active?: boolean;
+  expires_at?: string;
+  
+  // Mapped fields from API to local
+  discountPercentage?: number;
+  expiryDate?: Date;
+  isActive?: boolean;
+  createdAt?: Date;
+  usage_limit?: number;
+  usage_count?: number;
 }
 
 export default function VoucherManagement() {
@@ -36,24 +52,94 @@ export default function VoucherManagement() {
   const [searchTerm, setSearchTerm] = useState('');
   const [statusFilter, setStatusFilter] = useState<'all' | 'active' | 'expired' | 'used'>('all');
   
-  // Form state
-  const [formData, setFormData] = useState<Partial<Voucher>>({
+  // Form state interface matching API requirements
+  interface VoucherFormData {
+    code: string;
+    discount_percent: number;
+    is_active: boolean;
+    expires_at: string;
+    // Additional fields for UI purposes
+    productIds?: number[];
+    usage_limit?: number;
+    status?: string;
+  }
+  
+  // Form state - using API field names directly with additional UI fields
+  const [formData, setFormData] = useState<VoucherFormData>({
     code: '',
-    discount_type: 'percentage',
-    discount_value: 10,
-    min_purchase: 0,
-    max_discount: 0,
-    valid_from: new Date().toISOString().split('T')[0],
-    valid_until: new Date(Date.now() + 30 * 24 * 60 * 60 * 1000).toISOString().split('T')[0],
-    usage_limit: 100,
-    status: 'active',
+    discount_percent: 10,
+    is_active: true,
+    expires_at: new Date(Date.now() + 30 * 24 * 60 * 60 * 1000).toISOString().split('T')[0],
     productIds: [],
-    vendorId: 0
+    usage_limit: 100
   });
 
   const { user } = useAuthUser();
   const [products, setProducts] = useState<Product[]>([]);
   const [selectedProductIds, setSelectedProductIds] = useState<number[]>([]);
+  
+  // Function to fetch vouchers directly from the API
+  const fetchVouchers = async () => {
+    try {
+      console.log('Fetching vouchers directly from API...');
+      
+      // Get the current token to ensure we're authenticated
+      const token = localStorage.getItem(TOKEN_KEY);
+      
+      if (!token) {
+        console.error('No authentication token found');
+        toast.error('You are not authenticated. Please log in again.');
+        return;
+      }
+      
+      // Use explicit auth header for debugging
+      const response = await axiosInstance.get('/vouchers/me', {
+        headers: {
+          'Authorization': `Bearer ${token}`
+        }
+      });
+      
+      console.log('API vouchers response:', response.data);
+      
+      // Map API vouchers to our component format
+      const formattedVouchers = response.data.map((v: any) => {
+        // Determine status based on expiry date
+        const now = new Date();
+        const expiryDate = new Date(v.expires_at);
+        let status: 'active' | 'expired' | 'used' = 'active';
+        
+        if (!v.is_active) {
+          status = 'used';
+        } else if (expiryDate < now) {
+          status = 'expired';
+        }
+        
+        // Format dates for form inputs
+        const validFrom = new Date(v.created_at).toISOString().split('T')[0];
+        const validUntil = expiryDate.toISOString().split('T')[0];
+        
+        return {
+          id: v.id.toString(),
+          code: v.code,
+          discount_type: 'percentage' as const,
+          discount_value: v.discount_percent,
+          min_purchase: 0, // Not provided in API response
+          max_discount: v.discount_amount || undefined,
+          valid_from: validFrom,
+          valid_until: validUntil,
+          usage_limit: v.usage_limit || 100,
+          usage_count: v.usage_count || 0,
+          status,
+          vendorId: v.vendor_id
+        };
+      });
+      
+      setVouchers(formattedVouchers);
+    } catch (error) {
+      console.error('Error fetching vouchers from API:', error);
+      toast.error('Failed to load vouchers from server');
+    }
+  };
   
   // Fetch vouchers and products
   useEffect(() => {
@@ -82,53 +168,113 @@ export default function VoucherManagement() {
           }
         }
         
-        // Fetch vouchers from localStorage
-        const storedVouchers = voucherService.getVendorVouchers(user?.id || 0);
-        
-        // Map vouchers to our component format
-        const formattedVouchers = storedVouchers.map(v => {
-          // Determine status based on expiry date
-          const now = new Date();
-          const expiryDate = new Date(v.expiryDate);
-          let status: 'active' | 'expired' | 'used' = 'active';
+        // Fetch vouchers from API
+        try {
+          console.log('Fetching vouchers from API...');
+          const apiVouchers = await apiVoucherService.getAllVouchers();
+          console.log('API vouchers:', apiVouchers);
           
-          if (expiryDate < now) {
-            status = 'expired';
-          }
+          // Map API vouchers to our component format
+          const formattedVouchers = apiVouchers.map(v => {
+            // Determine status based on expiry date
+            const now = new Date();
+            const expiryDate = new Date(v.expiryDate);
+            let status: 'active' | 'expired' | 'used' = 'active';
+            
+            if (!v.isActive) {
+              status = 'used';
+            } else if (expiryDate < now) {
+              status = 'expired';
+            }
+            
+            // Format dates for form inputs
+            const validFrom = new Date(v.createdAt).toISOString().split('T')[0];
+            const validUntil = expiryDate.toISOString().split('T')[0];
+            
+            // Get product names if product IDs are specified
+            const productNames = v.productIds && v.productIds.length > 0 ? 
+              v.productIds.map(id => {
+                const product = products.find(p => {
+                  const productId = typeof p.id === 'string' ? parseInt(p.id) : p.id;
+                  return productId === id;
+                });
+                return product ? product.name : `Product #${id}`;
+              }) : 
+              [];
+            
+            return {
+              id: v.id,
+              code: v.code,
+              discount_type: 'percentage' as const,
+              discount_value: v.discountPercentage,
+              min_purchase: v.minPurchase || 0,
+              max_discount: v.maxDiscount,
+              valid_from: validFrom,
+              valid_until: validUntil,
+              usage_limit: v.usage_limit || 100,
+              usage_count: v.usage_count || 0,
+              status,
+              productIds: v.productIds,
+              productNames,
+              vendorId: v.vendorId
+            };
+          });
           
-          // Format dates for form inputs
-          const validFrom = new Date(v.createdAt).toISOString().split('T')[0];
-          const validUntil = expiryDate.toISOString().split('T')[0];
+          setVouchers(formattedVouchers);
+        } catch (apiError) {
+          console.error('Error fetching vouchers from API:', apiError);
+          toast.error('Failed to load vouchers from server');
           
-          // Get product names if product IDs are specified
-          let productNames: string[] = [];
-          if (v.productIds && v.productIds.length > 0) {
-            productNames = products
-              .filter(p => {
-                const productId = typeof p.id === 'string' ? parseInt(p.id) : p.id;
-                return v.productIds?.includes(productId);
-              })
-              .map(p => p.name);
-          }
+          // Fallback to local storage if API fails
+          console.log('Falling back to local storage vouchers...');
+          const storedVouchers = voucherService.getVendorVouchers(user?.id || 0);
           
-          return {
-            id: v.id,
-            code: v.code,
-            discount_type: 'percentage' as const, // Our service only supports percentage for now
-            discount_value: v.discountPercentage,
-            min_purchase: v.minPurchase || 0,
-            max_discount: v.maxDiscount,
-            valid_from: validFrom,
-            valid_until: validUntil,
-            status,
-            productIds: v.productIds,
-            productNames,
-            vendorId: v.vendorId
-          };
-        });
-        
-        setVouchers(formattedVouchers);
-        console.log(`Loaded ${formattedVouchers.length} vouchers`);
+          // Map vouchers to our component format
+          const formattedVouchers = storedVouchers.map(v => {
+            // Determine status based on expiry date
+            const now = new Date();
+            const expiryDate = new Date(v.expiryDate);
+            let status: 'active' | 'expired' | 'used' = 'active';
+            
+            if (expiryDate < now) {
+              status = 'expired';
+            }
+            
+            // Format dates for form inputs
+            const validFrom = new Date(v.createdAt).toISOString().split('T')[0];
+            const validUntil = expiryDate.toISOString().split('T')[0];
+            
+            // Get product names if product IDs are specified
+            const productNames = v.productIds && v.productIds.length > 0 ? 
+              v.productIds.map(id => {
+                const product = products.find(p => {
+                  const productId = typeof p.id === 'string' ? parseInt(p.id) : p.id;
+                  return productId === id;
+                });
+                return product ? product.name : `Product #${id}`;
+              }) : 
+              [];
+            
+            return {
+              id: v.id,
+              code: v.code,
+              discount_type: 'percentage' as const,
+              discount_value: v.discountPercentage,
+              min_purchase: v.minPurchase || 0,
+              max_discount: v.maxDiscount,
+              valid_from: validFrom,
+              valid_until: validUntil,
+              usage_limit: v.usage_limit || 100,
+              usage_count: v.usage_count || 0,
+              status,
+              productIds: v.productIds,
+              productNames,
+              vendorId: v.vendorId
+            };
+          });
+          
+          setVouchers(formattedVouchers);
+        }
       } catch (error) {
         console.error('Error fetching data:', error);
         toast.error('Failed to load data');
@@ -136,9 +282,9 @@ export default function VoucherManagement() {
         setLoading(false);
       }
     };
-
+    
     fetchData();
-  }, [user]);
+  }, [user, products.length]);
 
   // Generate random voucher code
   const generateVoucherCode = () => {
@@ -156,11 +302,11 @@ export default function VoucherManagement() {
   const handleInputChange = (e: React.ChangeEvent<HTMLInputElement | HTMLSelectElement>) => {
     const { name, value, type } = e.target;
     
-    // Handle numeric values
-    if (type === 'number') {
+    // Handle numeric values - specifically for discount_percent
+    if (name === 'discount_percent' && type === 'number') {
       setFormData(prev => ({
         ...prev,
-        [name]: value === '' ? '' : parseFloat(value)
+        [name]: value === '' ? 0 : parseFloat(value)
       }));
     } else {
       setFormData(prev => ({
@@ -170,23 +316,11 @@ export default function VoucherManagement() {
     }
   };
 
-  // Handle discount type change
+  // No longer needed since we're only using percentage discounts for the API
+  // Keeping as a stub for backward compatibility
   const handleDiscountTypeChange = (e: React.ChangeEvent<HTMLSelectElement>) => {
-    const discountType = e.target.value as 'percentage' | 'fixed';
-    
-    // Reset discount value when changing type
-    let discountValue = formData.discount_value;
-    if (discountType === 'percentage' && (discountValue as number) > 100) {
-      discountValue = 10;
-    } else if (discountType === 'fixed' && (discountValue as number) < 1000) {
-      discountValue = 10000;
-    }
-    
-    setFormData(prev => ({
-      ...prev,
-      discount_type: discountType,
-      discount_value: discountValue
-    }));
+    // No-op - API only supports percentage discounts via discount_percent
+    console.log('Discount type change ignored - API only supports percentage discounts');
   };
   
   // Handle product selection
@@ -203,7 +337,7 @@ export default function VoucherManagement() {
     setFormData(prev => ({
       ...prev,
       productIds: selectedProductIds.includes(productId) 
-        ? prev.productIds?.filter(id => id !== productId) 
+        ? prev.productIds?.filter((id: number) => id !== productId) 
         : [...(prev.productIds || []), productId]
     }));
   };
@@ -214,20 +348,19 @@ export default function VoucherManagement() {
     setIsSubmitting(true);
     
     try {
-      // Validate form
-      if (!formData.code || !formData.discount_value || !formData.valid_from || !formData.valid_until) {
+      // Validate form - using exact API field names
+      if (!formData.code || !formData.discount_percent || !formData.expires_at) {
         toast.error('Please fill in all required fields');
         setIsSubmitting(false);
         return;
       }
       
-      // Check if dates are valid
-      const validFrom = new Date(formData.valid_from);
-      const validUntil = new Date(formData.valid_until);
+      // Check if expiry date is valid
+      const expiryDate = new Date(formData.expires_at);
       const now = new Date();
       
-      if (validFrom > validUntil) {
-        toast.error('Start date must be before end date');
+      if (expiryDate < now) {
+        toast.error('Expiry date must be in the future');
         setIsSubmitting(false);
         return;
       }
@@ -239,73 +372,102 @@ export default function VoucherManagement() {
         return;
       }
       
-      // Convert form data to voucher service format
-      const voucherData = {
-        code: formData.code || '',
-        vendorId: user.id,
-        discountPercentage: formData.discount_value || 0,
-        maxDiscount: formData.max_discount,
-        minPurchase: formData.min_purchase,
-        productIds: formData.productIds,
-        expiryDate: new Date(formData.valid_until || ''),
-        isActive: true,
-        description: `${formData.discount_value}% off voucher` + 
-          (formData.productIds && formData.productIds.length > 0 ? ' for selected products' : '')
+      // Use form data directly - exact match with API fields
+      // This matches the expected format: { code, discount_percent, is_active, expires_at }
+      const apiVoucherData = {
+        code: formData.code,
+        discount_percent: Number(formData.discount_percent),
+        is_active: formData.is_active,
+        expires_at: new Date(formData.expires_at).toISOString()
+      };
+      
+      console.log('Sending voucher data to API:', apiVoucherData);
+      
+      // Define resetForm function at the beginning to avoid reference error
+      const resetFormAndState = () => {
+        setFormData({
+          code: '',
+          discount_percent: 10,
+          is_active: true,
+          expires_at: new Date(Date.now() + 30 * 24 * 60 * 60 * 1000).toISOString().split('T')[0],
+          productIds: [],
+          usage_limit: 100,
+          status: 'active'
+        });
+        setShowForm(false);
+        setEditingVoucher(null);
+        setSelectedProductIds([]);
       };
       
       if (editingVoucher) {
-        // Update existing voucher
-        const updatedVoucher = voucherService.updateVoucher(editingVoucher.id, voucherData);
+        // Update existing voucher via API - direct approach
+        console.log('Updating voucher via API:', apiVoucherData);
         
-        if (updatedVoucher) {
+        try {
+          // Get the current token to ensure we're authenticated
+          const token = localStorage.getItem(TOKEN_KEY);
+          
+          if (!token) {
+            toast.error('You are not authenticated. Please log in again.');
+            return;
+          }
+          
+          // Use axios directly with explicit auth header for debugging
+          const response = await axiosInstance.put(`/vouchers/${editingVoucher.id}`, apiVoucherData, {
+            headers: {
+              'Authorization': `Bearer ${token}`
+            }
+          });
+          
+          console.log('API response:', response.data);
+          
+          // If we get here, the API call was successful
           toast.success('Voucher updated successfully');
           
-          // Refresh vouchers list
-          const storedVouchers = voucherService.getVendorVouchers(user.id);
-          setVouchers(storedVouchers.map(v => ({
-            id: v.id,
-            code: v.code,
-            discount_type: 'percentage' as const,
-            discount_value: v.discountPercentage,
-            min_purchase: v.minPurchase || 0,
-            max_discount: v.maxDiscount,
-            valid_from: new Date(v.createdAt).toISOString().split('T')[0],
-            valid_until: new Date(v.expiryDate).toISOString().split('T')[0],
-            status: new Date(v.expiryDate) > new Date() ? 'active' as const : 'expired' as const,
-            productIds: v.productIds,
-            vendorId: v.vendorId
-          })));
-        } else {
-          toast.error('Failed to update voucher');
+          // Refresh vouchers list directly from API
+          fetchVouchers();
+          
+          // Reset form and state
+          resetFormAndState();
+        } catch (error: any) {
+          console.error('Error updating voucher:', error);
+          toast.error(error.response?.data?.message || 'Failed to update voucher');
         }
       } else {
-        // Create new voucher
-        const newVoucher = voucherService.createVoucher(voucherData);
+        // Create new voucher via API - direct approach
+        console.log('Creating voucher via API:', apiVoucherData);
         
-        toast.success('Voucher created successfully');
-        
-        // Refresh vouchers list
-        const storedVouchers = voucherService.getVendorVouchers(user.id);
-        setVouchers(storedVouchers.map(v => ({
-          id: v.id,
-          code: v.code,
-          discount_type: 'percentage' as const,
-          discount_value: v.discountPercentage,
-          min_purchase: v.minPurchase || 0,
-          max_discount: v.maxDiscount,
-          valid_from: new Date(v.createdAt).toISOString().split('T')[0],
-          valid_until: new Date(v.expiryDate).toISOString().split('T')[0],
-          status: new Date(v.expiryDate) > new Date() ? 'active' as const : 'expired' as const,
-          productIds: v.productIds,
-          vendorId: v.vendorId
-        })));
+        try {
+          // Get the current token to ensure we're authenticated
+          const token = localStorage.getItem(TOKEN_KEY);
+          
+          if (!token) {
+            toast.error('You are not authenticated. Please log in again.');
+            return;
+          }
+          
+          // Use axios directly with explicit auth header for debugging
+          const response = await axiosInstance.post('/vouchers', apiVoucherData, {
+            headers: {
+              'Authorization': `Bearer ${token}`
+            }
+          });
+          
+          console.log('API response:', response.data);
+          
+          // If we get here, the API call was successful
+          toast.success('Voucher created successfully');
+          
+          // Refresh vouchers list directly from API
+          fetchVouchers();
+          
+          // Reset form and state
+          resetFormAndState();
+        } catch (error: any) {
+          console.error('Error creating voucher:', error);
+          toast.error(error.response?.data?.message || 'Failed to create voucher');
+        }
       }
-      
-      // Reset form and state
-      resetForm();
-      setShowForm(false);
-      setEditingVoucher(null);
-      setSelectedProductIds([]);
     } catch (error) {
       console.error('Error submitting voucher:', error);
       toast.error('Failed to save voucher');
@@ -314,14 +476,19 @@ export default function VoucherManagement() {
     }
   };
 
-  // Handle voucher edit
+  // Handle voucher edit - map component data to API field names
   const handleEdit = (voucher: Voucher) => {
     setEditingVoucher(voucher);
+    
+    // Map the voucher data to match API field names
     setFormData({
-      ...voucher
+      code: voucher.code,
+      discount_percent: voucher.discountPercentage || 0,
+      is_active: voucher.isActive || true, // Always set to active in the form
+      expires_at: new Date(voucher.expiryDate || new Date()).toISOString().split('T')[0]
     });
     
-    // Set selected product IDs
+    // Set selected product IDs if needed for UI
     if (voucher.productIds && voucher.productIds.length > 0) {
       setSelectedProductIds(voucher.productIds);
     } else {
@@ -366,16 +533,12 @@ export default function VoucherManagement() {
   const resetForm = () => {
     setFormData({
       code: '',
-      discount_type: 'percentage',
-      discount_value: 10,
-      min_purchase: 0,
-      max_discount: 0,
-      valid_from: new Date().toISOString().split('T')[0],
-      valid_until: new Date(Date.now() + 30 * 24 * 60 * 60 * 1000).toISOString().split('T')[0],
-      usage_limit: 100,
-      status: 'active',
+      discount_percent: 10,
+      is_active: true,
+      expires_at: new Date(Date.now() + 30 * 24 * 60 * 60 * 1000).toISOString().split('T')[0],
       productIds: [],
-      vendorId: user?.id || 0
+      usage_limit: 100,
+      status: 'active'
     });
     setEditingVoucher(null);
     setSelectedProductIds([]);
@@ -385,7 +548,16 @@ export default function VoucherManagement() {
   // Filter vouchers based on search term and status
   const filteredVouchers = vouchers.filter(voucher => {
     const matchesSearch = voucher.code.toLowerCase().includes(searchTerm.toLowerCase());
-    const matchesStatus = statusFilter === 'all' || voucher.status === statusFilter;
+    
+    // Map API is_active to local status for filtering
+    let voucherStatus = 'active';
+    if (voucher.status) {
+      voucherStatus = voucher.status;
+    } else if (voucher.is_active === false) {
+      voucherStatus = 'expired';
+    }
+    
+    const matchesStatus = statusFilter === 'all' || voucherStatus === statusFilter;
     
     return matchesSearch && matchesStatus;
   });
@@ -454,116 +626,55 @@ export default function VoucherManagement() {
                 </div>
               </div>
               
+              {/* Status is now handled by is_active field */}
+              
               <div>
-                <label htmlFor="status" className="block text-sm font-medium text-white/70 mb-1">
+                <label htmlFor="is_active" className="block text-sm font-medium text-white/70 mb-1">
                   Status
                 </label>
                 <select
-                  id="status"
-                  name="status"
-                  value={formData.status}
-                  onChange={handleInputChange}
+                  id="is_active"
+                  name="is_active"
+                  value={formData.is_active ? 'true' : 'false'}
+                  onChange={(e) => setFormData({...formData, is_active: e.target.value === 'true'})}
                   className="w-full bg-neutral-800 border border-white/10 rounded-md px-4 py-2 text-white focus:outline-none focus:ring-2 focus:ring-amber-500/50"
                 >
-                  <option value="active">Active</option>
-                  <option value="expired">Expired</option>
-                  <option value="used">Used</option>
+                  <option value="true">Active</option>
+                  <option value="false">Inactive</option>
                 </select>
               </div>
               
               <div>
-                <label htmlFor="discount_type" className="block text-sm font-medium text-white/70 mb-1">
-                  Discount Type*
+                <label htmlFor="discount_percent" className="block text-sm font-medium text-white/70 mb-1">
+                  Discount Percentage*
                 </label>
-                <select
-                  id="discount_type"
-                  name="discount_type"
-                  value={formData.discount_type}
-                  onChange={handleDiscountTypeChange}
-                  className="w-full bg-neutral-800 border border-white/10 rounded-md px-4 py-2 text-white focus:outline-none focus:ring-2 focus:ring-amber-500/50"
-                >
-                  <option value="percentage">Percentage (%)</option>
-                  <option value="fixed">Fixed Amount (Rp)</option>
-                </select>
-              </div>
-              
-              <div>
-                <label htmlFor="discount_value" className="block text-sm font-medium text-white/70 mb-1">
-                  {formData.discount_type === 'percentage' ? 'Discount Percentage (%)' : 'Discount Amount (Rp)'}*
-                </label>
-                <input
-                  type="number"
-                  id="discount_value"
-                  name="discount_value"
-                  value={formData.discount_value}
-                  onChange={handleInputChange}
-                  className="w-full bg-neutral-800 border border-white/10 rounded-md px-4 py-2 text-white focus:outline-none focus:ring-2 focus:ring-amber-500/50"
-                  min={formData.discount_type === 'percentage' ? 1 : 1000}
-                  max={formData.discount_type === 'percentage' ? 100 : undefined}
-                  step={formData.discount_type === 'percentage' ? 1 : 1000}
-                  required
-                />
-              </div>
-              
-              <div>
-                <label htmlFor="min_purchase" className="block text-sm font-medium text-white/70 mb-1">
-                  Minimum Purchase (Rp)
-                </label>
-                <input
-                  type="number"
-                  id="min_purchase"
-                  name="min_purchase"
-                  value={formData.min_purchase}
-                  onChange={handleInputChange}
-                  className="w-full bg-neutral-800 border border-white/10 rounded-md px-4 py-2 text-white focus:outline-none focus:ring-2 focus:ring-amber-500/50"
-                  min="0"
-                  step="1000"
-                />
-              </div>
-              
-              {formData.discount_type === 'percentage' && (
-                <div>
-                  <label htmlFor="max_discount" className="block text-sm font-medium text-white/70 mb-1">
-                    Maximum Discount (Rp)
-                  </label>
+                <div className="flex items-center">
                   <input
                     type="number"
-                    id="max_discount"
-                    name="max_discount"
-                    value={formData.max_discount}
+                    id="discount_percent"
+                    name="discount_percent"
+                    value={formData.discount_percent}
                     onChange={handleInputChange}
                     className="w-full bg-neutral-800 border border-white/10 rounded-md px-4 py-2 text-white focus:outline-none focus:ring-2 focus:ring-amber-500/50"
-                    min="0"
-                    step="1000"
-                    placeholder="No limit"
+                    min={1}
+                    max={100}
+                    step={1}
+                    required
                   />
                 </div>
-              )}
-              
-              <div>
-                <label htmlFor="valid_from" className="block text-sm font-medium text-white/70 mb-1">
-                  Valid From*
-                </label>
-                <input
-                  type="date"
-                  id="valid_from"
-                  name="valid_from"
-                  value={formData.valid_from}
-                  onChange={handleInputChange}
-                  className="w-full bg-neutral-800 border border-white/10 rounded-md px-4 py-2 text-white focus:outline-none focus:ring-2 focus:ring-amber-500/50"
-                  required
-                />
               </div>
               
+              {/* API only requires code, discount_percent, is_active, and expires_at */}
+              
               <div>
-                <label htmlFor="valid_until" className="block text-sm font-medium text-white/70 mb-1">
-                  Valid Until*
+                <label htmlFor="expires_at" className="block text-sm font-medium text-white/70 mb-1">
+                  Expires At*
                 </label>
                 <input
                   type="date"
-                  id="valid_until"
-                  name="valid_until"
-                  value={formData.valid_until}
+                  id="expires_at"
+                  name="expires_at"
+                  value={formData.expires_at}
                   onChange={handleInputChange}
                   className="w-full bg-neutral-800 border border-white/10 rounded-md px-4 py-2 text-white focus:outline-none focus:ring-2 focus:ring-amber-500/50"
                   required
@@ -578,11 +689,10 @@ export default function VoucherManagement() {
                   type="number"
                   id="usage_limit"
                   name="usage_limit"
-                  value={formData.usage_limit}
+                  value={formData.usage_limit || 100}
                   onChange={handleInputChange}
                   className="w-full bg-neutral-800 border border-white/10 rounded-md px-4 py-2 text-white focus:outline-none focus:ring-2 focus:ring-amber-500/50"
                   min="1"
-                  required
                 />
               </div>
             </div>
@@ -756,23 +866,14 @@ export default function VoucherManagement() {
                     </td>
                     <td className="px-6 py-4 whitespace-nowrap">
                       <div className="text-sm text-white">
-                        {voucher.discount_type === 'percentage' ? (
-                          <>
-                            {voucher.discount_value}%
-                            {voucher.max_discount ? (
-                              <span className="text-white/50 text-xs ml-1">
-                                (max {formatCurrency(voucher.max_discount)})
-                              </span>
-                            ) : null}
-                          </>
-                        ) : (
-                          formatCurrency(voucher.discount_value)
-                        )}
+                        {/* Display discount percentage from API field */}
+                        {(voucher.discount_percent || voucher.discountPercentage || 0)}%
                       </div>
                     </td>
                     <td className="px-6 py-4 whitespace-nowrap">
                       <div className="text-sm text-white">
-                        {voucher.min_purchase > 0 ? formatCurrency(voucher.min_purchase) : '-'}
+                        {/* Minimum purchase may not be available in API response */}
+                        {voucher.min_purchase ? formatCurrency(Number(voucher.min_purchase)) : '-'}
                       </div>
                     </td>
                     <td className="px-6 py-4 whitespace-nowrap">

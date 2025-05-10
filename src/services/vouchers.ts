@@ -26,6 +26,17 @@ export interface Voucher {
   isActive: boolean;
   description?: string;
   createdAt: Date;
+  usage_limit?: number; // Maximum number of times the voucher can be used
+  usage_count?: number; // Number of times the voucher has been used
+  
+  // API field names - added for direct API integration
+  discount_percent?: number;
+  discount_value?: number; // For backward compatibility
+  valid_from?: string;
+  valid_until?: string;
+  expires_at?: string;
+  is_active?: boolean;
+  status?: string;
 }
 
 // Storage keys for vouchers

@@ -13,6 +13,10 @@ export interface VoucherResponse {
   discount_amount: number | null;
   expires_at: string | null;
   is_active: boolean;
+  vendor_id: number;
+  created_at: string;
+  usage_limit?: number;
+  usage_count?: number;
 }
 
 // For GET /vouchers - returns an array of vouchers directly
@@ -43,12 +47,14 @@ const mapApiVoucherToLocal = (apiVoucher: VoucherResponse): Voucher => {
   return {
     id: apiVoucher.id.toString(),
     code: apiVoucher.code,
-    vendorId: 0, // Not provided in the API response
+    vendorId: apiVoucher.vendor_id || 0,
     discountPercentage: apiVoucher.discount_percent,
     maxDiscount: apiVoucher.discount_amount || undefined,
     expiryDate: apiVoucher.expires_at ? new Date(apiVoucher.expires_at) : new Date(),
     isActive: apiVoucher.is_active,
-    createdAt: new Date() // Not provided in the API response
+    createdAt: apiVoucher.created_at ? new Date(apiVoucher.created_at) : new Date(),
+    usage_limit: apiVoucher.usage_limit,
+    usage_count: apiVoucher.usage_count
   };
 };
 
