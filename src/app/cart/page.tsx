@@ -669,6 +669,9 @@ export default function CartPage() {
         cancelText="Keep Items"
         type="danger"
       />
+
+      {/* Loading overlay for cart actions */}
+      {loading && <LoadingOverlay message="Clearing cart..." />}
     </div>
   );
 }

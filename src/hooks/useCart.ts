@@ -376,6 +376,10 @@ export function useCart() {
       if (response.success) {
         setCartItems([]);
         setSelectedItems(new Set());
+        // Also clear cartSelectedItems in localStorage
+        if (typeof window !== 'undefined') {
+          localStorage.setItem('cartSelectedItems', JSON.stringify([]));
+        }
         // Toast is handled by the cart service
       } else {
         setError('Failed to clear cart');
