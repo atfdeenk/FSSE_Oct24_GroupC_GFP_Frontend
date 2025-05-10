@@ -5,15 +5,14 @@ import { toast } from 'react-hot-toast';
 import LoadingOverlay from '@/components/ui/LoadingOverlay';
 
 // Define category interface
-interface Category {
-  id: number;
-  name: string;
-  description: string;
-  slug: string;
-  image: string;
+import { Category as ApiCategory } from '@/types';
+import categoryService from '@/services/api/categories';
+
+interface Category extends ApiCategory {
   status: 'active' | 'inactive';
   product_count?: number;
 }
+
 
 export default function CategoryManagement() {
   const [categories, setCategories] = useState<Category[]>([]);
@@ -24,81 +23,33 @@ export default function CategoryManagement() {
   const [searchTerm, setSearchTerm] = useState('');
   
   // Form state
-  const [formData, setFormData] = useState<Partial<Category>>({
+  const [formData, setFormData] = useState<Partial<Category & { image: string }>>({
     name: '',
     description: '',
     slug: '',
-    image: '',
+    image: '', // For UI binding only, will be mapped to image_url
     status: 'active'
   });
 
   // Fetch categories
-  useEffect(() => {
-    const fetchCategories = async () => {
-      setLoading(true);
-      try {
-        // In a real application, you would fetch this data from your API
-        // For now, we'll use mock data
-        await new Promise(resolve => setTimeout(resolve, 500));
-        
-        // Mock categories
-        const mockCategories = [
-          { 
-            id: 1, 
-            name: 'Coffee Beans', 
-            description: 'Premium coffee beans from local farmers',
-            slug: 'coffee-beans',
-            image: 'https://via.placeholder.com/150?text=Coffee',
-            status: 'active' as const,
-            product_count: 8
-          },
-          { 
-            id: 2, 
-            name: 'Brewing Equipment', 
-            description: 'High-quality equipment for brewing the perfect cup',
-            slug: 'brewing-equipment',
-            image: 'https://via.placeholder.com/150?text=Equipment',
-            status: 'active' as const,
-            product_count: 12
-          },
-          { 
-            id: 3, 
-            name: 'Accessories', 
-            description: 'Coffee accessories to enhance your brewing experience',
-            slug: 'accessories',
-            image: 'https://via.placeholder.com/150?text=Accessories',
-            status: 'active' as const,
-            product_count: 15
-          },
-          { 
-            id: 4, 
-            name: 'Gift Sets', 
-            description: 'Curated gift sets for coffee lovers',
-            slug: 'gift-sets',
-            image: 'https://via.placeholder.com/150?text=GiftSets',
-            status: 'active' as const,
-            product_count: 5
-          },
-          { 
-            id: 5, 
-            name: 'Specialty Drinks', 
-            description: 'Unique specialty coffee blends and drinks',
-            slug: 'specialty-drinks',
-            image: 'https://via.placeholder.com/150?text=Specialty',
-            status: 'inactive' as const,
-            product_count: 0
-          }
-        ];
-        
-        setCategories(mockCategories);
-      } catch (error) {
-        console.error('Error fetching categories:', error);
-        toast.error('Failed to load categories');
-      } finally {
-        setLoading(false);
+  const fetchCategories = async () => {
+    setLoading(true);
+    try {
+      const response = await categoryService.getCategories();
+      if (response && Array.isArray(response.categories)) {
+        setCategories(response.categories as Category[]);
+      } else {
+        setCategories([]);
       }
-    };
+    } catch (error) {
+      console.error('Error fetching categories:', error);
+      toast.error('Failed to load categories');
+    } finally {
+      setLoading(false);
+    }
+  };
 
+  useEffect(() => {
     fetchCategories();
   }, []);
 
@@ -133,7 +84,6 @@ export default function CategoryManagement() {
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
     setIsSubmitting(true);
-    
     try {
       // Validate form data
       if (!formData.name) {
@@ -141,33 +91,31 @@ export default function CategoryManagement() {
         setIsSubmitting(false);
         return;
       }
-      
-      // In a real application, you would send this data to your API
-      await new Promise(resolve => setTimeout(resolve, 500));
-      
+      // Prepare payload for API (map image -> image_url)
+      const payload: any = {
+        name: formData.name,
+        description: formData.description,
+        slug: formData.slug,
+        image_url: formData.image,
+        status: formData.status,
+      };
+      let apiResponse;
       if (editingCategory) {
-        // Update existing category
-        const updatedCategories = categories.map(category => 
-          category.id === editingCategory.id 
-            ? { ...category, ...formData, id: editingCategory.id } as Category
-            : category
-        );
-        setCategories(updatedCategories);
-        toast.success('Category updated successfully');
+        apiResponse = await categoryService.updateCategory(editingCategory.id, payload);
       } else {
-        // Create new category
-        const newCategory = {
-          ...formData,
-          id: Math.max(0, ...categories.map(c => c.id)) + 1,
-          product_count: 0
-        } as Category;
-        
-        setCategories([...categories, newCategory]);
-        toast.success('Category created successfully');
+        apiResponse = await categoryService.createCategory(payload);
       }
-      
-      // Reset form
-      resetForm();
+      // Type guard for BaseResponse (has 'success' and 'message')
+      const isBaseResponse = (resp: any): resp is { success: boolean; message?: string } =>
+        typeof resp === 'object' && 'success' in resp;
+
+      if (!apiResponse || (isBaseResponse(apiResponse) && apiResponse.success === false)) {
+        toast.error((isBaseResponse(apiResponse) ? apiResponse.message : undefined) || 'Failed to save category');
+      } else {
+        toast.success(editingCategory ? 'Category updated successfully' : 'Category created successfully');
+        void fetchCategories(); // Refresh list
+        resetForm();
+      }
     } catch (error) {
       console.error('Error saving category:', error);
       toast.error('Failed to save category');
@@ -176,15 +124,17 @@ export default function CategoryManagement() {
     }
   };
 
+
   // Handle category edit
   const handleEdit = (category: Category) => {
     setEditingCategory(category);
     setFormData({
       name: category.name,
-      description: category.description,
+      description: category.description || '',
       slug: category.slug,
-      image: category.image,
-      status: category.status
+      image: category.image_url || '',
+      status: category.status,
+      vendor_id: category.vendor_id,
     });
     setShowForm(true);
   };
@@ -235,7 +185,7 @@ export default function CategoryManagement() {
   // Filter categories based on search term
   const filteredCategories = categories.filter(category => {
     return category.name.toLowerCase().includes(searchTerm.toLowerCase()) ||
-           category.description.toLowerCase().includes(searchTerm.toLowerCase());
+           (category.description || '').toLowerCase().includes(searchTerm.toLowerCase());
   });
 
   if (loading && categories.length === 0) {
@@ -447,9 +397,9 @@ export default function CategoryManagement() {
                     <td className="px-6 py-4 whitespace-nowrap">
                       <div className="flex items-center">
                         <div className="h-10 w-10 flex-shrink-0 rounded bg-neutral-800 overflow-hidden">
-                          {category.image ? (
+                          {category.image_url ? (
                             <img 
-                              src={category.image} 
+                              src={category.image_url} 
                               alt={category.name} 
                               className="h-10 w-10 object-cover"
                               onError={(e) => {
@@ -460,7 +410,7 @@ export default function CategoryManagement() {
                             <div className="h-10 w-10 flex items-center justify-center text-white/30 text-xs">
                               No image
                             </div>
-                          )}
+                          )} 
                         </div>
                         <div className="ml-4">
                           <div className="text-sm font-medium text-white">{category.name}</div>
@@ -469,7 +419,7 @@ export default function CategoryManagement() {
                       </div>
                     </td>
                     <td className="px-6 py-4">
-                      <div className="text-sm text-white truncate max-w-xs">{category.description}</div>
+                      <div className="text-sm text-white truncate max-w-xs">{category.description || ''}</div>
                     </td>
                     <td className="px-6 py-4 whitespace-nowrap">
                       <div className="text-sm text-white">{category.product_count || 0}</div>
@@ -494,7 +444,7 @@ export default function CategoryManagement() {
                           </svg>
                         </button>
                         <button
-                          onClick={() => handleDelete(category.id)}
+                          onClick={() => handleDelete(Number(category.id))}
                           className={`text-red-500 hover:text-red-400 transition-colors ${
                             category.product_count && category.product_count > 0 ? 'opacity-50 cursor-not-allowed' : ''
                           }`}
